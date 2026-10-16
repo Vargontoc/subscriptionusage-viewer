@@ -36,10 +36,10 @@ Se divide la estructura base ejecutable en una tarea de andamiaje del proyecto S
   1. Ejecutar el artefacto de TASK-001.
   2. Comprobar que no aparece un mensaje de "Tomcat started on port" ni equivalente y que el proceso no queda a la escucha de conexiones.
 
-### [ ] TASK-003 Cargar configuración externa con valores por defecto
+### [x] TASK-003 Cargar configuración externa con valores por defecto
 
 - **Cubre:** REQ-004, DEC-001
-- **Componente:** configuration-provider | por definir (analista técnico)
+- **Componente:** configuration-provider | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/config
 - **Depende de:** TASK-002
 - **Alcance:** Hacer que `configuration-provider` lea un fichero de configuración externo opcional y exponga sus propiedades al resto de componentes a través de `application-context`, aplicando valores por defecto documentados si el fichero no existe.
 - **Hecho cuando:** existe un fichero de configuración externo de ejemplo y, al iniciarse sin él, la aplicación registra al menos una propiedad con su valor por defecto.

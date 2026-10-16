@@ -2,3 +2,10 @@ spring:
   main:
     web-application-type: none
     banner-mode: off
+
+# Valores por defecto documentados de la aplicación.
+# Pueden sobrescribirse con un fichero externo (por ejemplo,
+# application.yml junto al JAR o --spring.config.location).
+app:
+  name: "Subscription Usage Viewer"
+  tray-icon-path: "icons/app-icon.png"
