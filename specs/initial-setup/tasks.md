@@ -112,10 +112,10 @@ Se divide la estructura base ejecutable en una tarea de andamiaje del proyecto S
   2. Comprobar que aparece un mensaje que indica que la aplicación está lista.
   3. Cerrar la aplicación y comprobar que se registra el mensaje de cierre.
 
-### [ ] TASK-008 Verificar el tiempo de inicio y la compatibilidad con Java 21
+### [x] TASK-008 Verificar el tiempo de inicio y la compatibilidad con Java 21
 
 - **Cubre:** NFR-001, NFR-002
-- **Componente:** application-context, lifecycle-coordinator | por definir (analista técnico)
+- **Componente:** application-context, lifecycle-coordinator | desktop/app/src/test/java/es/vargontoc/subscriptionviewer/startup
 - **Depende de:** TASK-007
 - **Alcance:** Medir de extremo a extremo el tiempo entre el lanzamiento del ejecutable y la aparición del mensaje de listo, y comprobar que la ejecución se realiza sobre Java 21 sin errores de versión.
 - **Hecho cuando:** existe un mecanismo repetible que cronometra el arranque y, en el entorno de desarrollo local, el tiempo medido es inferior a 30 segundos.

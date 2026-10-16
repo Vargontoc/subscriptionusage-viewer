@@ -62,8 +62,43 @@
                              requieren bandeja se omiten cuando headless es true. -->
                         <java.awt.headless>true</java.awt.headless>
                     </systemPropertyVariables>
+                    <excludes>
+                        <!-- Los tests de integración se ejecutan exclusivamente
+                             mediante el perfil integration-tests con Failsafe. -->
+                        <exclude>**/StartupTimeIntegrationTest.java</exclude>
+                        <exclude>**/JavaVersionCompatibilityTest.java</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>integration-tests</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <version>3.2.5</version>
+                        <configuration>
+                            <includes>
+                                <include>**/StartupTimeIntegrationTest.java</include>
+                                <include>**/JavaVersionCompatibilityTest.java</include>
+                            </includes>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
