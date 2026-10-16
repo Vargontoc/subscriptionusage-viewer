@@ -52,10 +52,10 @@ Se divide la estructura base ejecutable en una tarea de andamiaje del proyecto S
   3. Repetir la ejecución colocando un fichero externo con un valor distinto.
   4. Comprobar en los logs que la propiedad adopta el valor del fichero.
 
-### [ ] TASK-004 Mantener el proceso vivo y orquestar el cierre ordenado
+### [x] TASK-004 Mantener el proceso vivo y orquestar el cierre ordenado
 
 - **Cubre:** REQ-001, REQ-003, DEC-003, DEC-004
-- **Componente:** lifecycle-coordinator | por definir (analista técnico)
+- **Componente:** lifecycle-coordinator | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/lifecycle/LifecycleCoordinator.java
 - **Depende de:** TASK-002
 - **Alcance:** Implementar `lifecycle-coordinator` para que bloquee el hilo principal mientras la aplicación está activa y, al recibir la señal de cierre, cierre `application-context` de forma ordenada y libere los recursos gestionados.
 - **Hecho cuando:** el proceso permanece en segundo plano tras el arranque y, al invocarse el cierre, termina devolviendo un código de salida limpio en menos de 5 segundos.
