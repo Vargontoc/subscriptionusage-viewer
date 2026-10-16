@@ -22,10 +22,10 @@ Se divide la estructura base ejecutable en una tarea de andamiaje del proyecto S
   1. Ejecutar el comando de build sobre el proyecto.
   2. Comprobar que la build finaliza sin errores y el artefacto queda generado.
 
-### [ ] TASK-002 Configurar el contenedor Spring Boot como aplicación non-web
+### [x] TASK-002 Configurar el contenedor Spring Boot como aplicación non-web
 
 - **Cubre:** REQ-001, REQ-005, DEC-001
-- **Componente:** application-context | por definir (analista técnico)
+- **Componente:** application-context | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/context/ApplicationContextConfig.java
 - **Depende de:** TASK-001
 - **Alcance:** Configurar `application-context` para que se inicie como aplicación non-web (sin servidor web embebido) y permanezca registrado en el contexto de Spring hasta que se le ordene cerrarse.
 - **Hecho cuando:** al lanzar el ejecutable, el contexto de Spring Boot se inicializa, queda accesible para el resto de componentes y no expone ningún puerto de red.
