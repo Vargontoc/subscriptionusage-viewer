@@ -223,7 +223,7 @@ El trabajo se divide en 19 tareas: el hook de status line en Python (TASK-001 y 
   2. Sustituir el fichero por uno sin datos vigentes y esperar 10 segundos. Resultado: la ventana de Claude se oculta y aparece el texto neutro.
   3. Restaurar un fichero con datos vigentes y esperar 10 segundos. Resultado: Claude vuelve a mostrarse con esos datos.
 
-### [ ] TASK-017 Contrato: file-json - estado de límites de Claude
+### [x] TASK-017 Contrato: file-json - estado de límites de Claude
 
 - **Cubre:** REQ-001, REQ-008, REQ-011, DEC-001, DEC-003
 - **Componente:** statusline-hook | por definir (analista técnico)
@@ -236,7 +236,7 @@ El trabajo se divide en 19 tareas: el hook de status line en Python (TASK-001 y 
   - Caso de error o límite: el contrato recoge el comportamiento ante fichero ausente, incompleto o con formato inválido (REQ-008) y ante un fallo de escritura del hook (REQ-011).
 - **Prueba manual:** repasar que cada campo (`written_at`, `five_hour`, `seven_day`, `used_percentage`, `resets_at`) y la ruta por defecto aparecen en el contrato y coinciden con lo implementado en TASK-001 y TASK-005.
 
-### [ ] TASK-018 Contrato: stdio - entrada y salida de la status line
+### [x] TASK-018 Contrato: stdio - entrada y salida de la status line
 
 - **Cubre:** REQ-011, REQ-012, DEC-002
 - **Componente:** statusline-hook | por definir (analista técnico)
