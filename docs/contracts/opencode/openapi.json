@@ -1,0 +1,84 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "OpenCode Go - usage (subconjunto minimo)",
+    "version": "0.1.0",
+    "description": "Subconjunto reducido a lo imprescindible para el monitor: un unico endpoint que informa del consumo de la suscripcion OpenCode Go en las ventanas de 5 horas, semanal y mensual. NO es una especificacion oficial: el esquema se ha inferido de documentacion y clientes de terceros (ver x-notes) y debe validarse contra la respuesta real."
+  },
+  "servers": [
+    { "url": "https://opencode.ai" }
+  ],
+  "paths": {
+    "/zen/go/v1/usage": {
+      "get": {
+        "operationId": "go.usage",
+        "summary": "Consumo de la suscripcion Go por ventana",
+        "description": "Devuelve el porcentaje consumido y el instante de reinicio de cada ventana. Autenticacion con la API key del plan Go (sin cookie ni workspace id).",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Ventanas de uso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GoUsage" }
+              }
+            }
+          },
+          "401": { "description": "API key ausente o invalida" },
+          "403": { "description": "Key valida pero sin suscripcion Go (EntitlementError)" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer" }
+    },
+    "schemas": {
+      "GoUsage": {
+        "type": "object",
+        "properties": {
+          "usage": {
+            "type": "object",
+            "description": "Una entrada por ventana. Una ventana puede faltar en la respuesta.",
+            "properties": {
+              "rolling": { "$ref": "#/components/schemas/Window" },
+              "weekly": { "$ref": "#/components/schemas/Window" },
+              "monthly": { "$ref": "#/components/schemas/Window" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "required": ["usage"],
+        "additionalProperties": true
+      },
+      "Window": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "rate-limited"]
+          },
+          "percent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Porcentaje consumido de la ventana (0 a 100)."
+          },
+          "resetsAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Instante ISO-8601 en que se reinicia la ventana."
+          }
+        },
+        "required": ["percent"],
+        "additionalProperties": true
+      }
+    }
+  },
+  "x-notes": [
+    "rolling = ventana de 5 horas; weekly = semanal; monthly = mensual.",
+    "Las fuentes consultadas no coinciden al 100% en los nombres de campo: unas indican usage.<ventana>.percent y resetsAt (ISO-8601), otra indica usagePercent y resetInSec (segundos hasta el reinicio). El cliente debe aceptar ambas variantes y comprobar con una respuesta real.",
+    "Limites del plan segun la documentacion de OpenCode: 12 USD por 5 h, 30 USD por semana y 60 USD por mes."
+  ]
+}
