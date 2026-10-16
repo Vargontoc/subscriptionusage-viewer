@@ -8,10 +8,10 @@ Se divide la estructura base ejecutable en una tarea de andamiaje del proyecto S
 
 ## Tareas
 
-### [ ] TASK-001 Crear el esqueleto del proyecto Spring Boot non-web
+### [x] TASK-001 Crear el esqueleto del proyecto Spring Boot non-web
 
 - **Cubre:** REQ-001, NFR-002, DEC-001
-- **Componente:** application-launcher | por definir (analista técnico)
+- **Componente:** application-launcher | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/launcher/ApplicationLauncher.java
 - **Depende de:** -
 - **Alcance:** Crear la estructura mínima del proyecto (fichero de build, clase con método `main` que arranque Spring Boot en modo `WebApplicationType.NONE`) y declarar Java 21 como versión de compilación y ejecución.
 - **Hecho cuando:** existe un módulo compilable que, al ejecutarse, lanza el método `main` sin errores de configuración ni de versión de Java, según el criterio de aceptación de REQ-001.
