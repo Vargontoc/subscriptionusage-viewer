@@ -42,3 +42,70 @@ La aplicación arranca de forma autónoma y se queda activa en segundo plano, mo
 
 Muestra cuánto de la suscripción a Claude se ha consumido en la sesión de 5 horas y en la semana, cuánto falta para que cada límite se reinicie y cómo ha evolucionado el consumo mientras la aplicación está abierta. Los datos se leen de lo que Claude Code comunica durante su uso y se refrescan solos cada 10 segundos. Si no hay datos vigentes, la ventana de Claude se oculta sin mostrar errores.
 <!-- sdd:end -->
+
+## Guía de uso
+
+### Requisitos
+
+- Windows con entorno gráfico (la aplicación vive en la bandeja del sistema).
+- Java 21 y Maven 3.9+ (solo para compilar).
+- Python 3 y Claude Code, para alimentar los datos de uso (ver [Alimentar los datos](#alimentar-los-datos)).
+
+### Compilar
+
+Desde la raíz del repositorio:
+
+```powershell
+mvn -f desktop/app/pom.xml clean package
+```
+
+Genera `desktop/app/target/app-0.0.1-SNAPSHOT.jar`, un JAR ejecutable con todo incluido. Para saltarte los tests: añade `-DskipTests`.
+
+### Lanzar
+
+Con consola (verás el registro; `Ctrl+C` la cierra):
+
+```powershell
+java -jar desktop/app/target/app-0.0.1-SNAPSHOT.jar
+```
+
+Sin consola, en segundo plano:
+
+```powershell
+javaw -jar desktop/app/target/app-0.0.1-SNAPSHOT.jar
+```
+
+Al arrancar aparece un icono en la bandeja del sistema (puede quedar oculto en el desbordamiento de iconos, junto al reloj). Desde su menú puedes abrir la ventana de uso o cerrar la aplicación.
+
+### Configuración opcional
+
+Sin configuración usa valores por defecto. Para cambiarlos, crea un `config/application.yml` en el directorio desde el que lanzas la aplicación (Spring Boot lo carga solo) con solo las propiedades que quieras sobrescribir. Por ejemplo:
+
+```yaml
+app:
+  usage-poll-interval: "30s"
+```
+
+También puedes pasarlas por línea de comandos, p. ej. `--app.usage-poll-interval=30s`.
+
+| Propiedad | Por defecto | Qué hace |
+|---|---|---|
+| `app.name` | `Subscription Usage Viewer` | Nombre mostrado. |
+| `app.tray-icon-path` | `icons/app-icon.png` | Icono de la bandeja. |
+| `app.usage-state-file` | `~/.claude/statusline-state.json` | Fichero del que se leen los datos de uso. |
+| `app.usage-poll-interval` | `10s` | Frecuencia de lectura. |
+
+### Alimentar los datos
+
+La aplicación no pide credenciales: lee el fichero `~/.claude/statusline-state.json`, que debe escribir un pequeño script (hook) ejecutado por la *status line* de Claude Code, configurada en `~/.claude/settings.json`:
+
+```json
+"statusLine": {
+  "type": "command",
+  "command": "python <ruta-absoluta-al-hook>"
+}
+```
+
+El hook debe guardar el bloque `rate_limits` que Claude Code recibe por stdin. El comportamiento esperado está en [docs/contracts/stdio/desktop/app/statusline.md](docs/contracts/stdio/desktop/app/statusline.md) y el formato del fichero en [docs/contracts/file-json/desktop/app/statusline-state.md](docs/contracts/file-json/desktop/app/statusline-state.md). El hook no forma parte de este repositorio.
+
+Hasta que Claude Code escriba datos vigentes (basta con enviar un mensaje en una sesión), la ventana de Claude permanece oculta.

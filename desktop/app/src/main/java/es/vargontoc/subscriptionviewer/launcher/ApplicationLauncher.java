@@ -24,6 +24,9 @@ public class ApplicationLauncher {
     public static void main(String[] args) throws InterruptedException {
         ConfigurableApplicationContext context = new SpringApplicationBuilder(ApplicationContextConfig.class)
                 .web(WebApplicationType.NONE)
+                // Spring Boot activa java.awt.headless por defecto, lo que
+                // deshabilita la bandeja del sistema y las ventanas Swing.
+                .headless(false)
                 .run(args);
 
         Thread shutdownHook = new Thread(() -> closeContext(context));

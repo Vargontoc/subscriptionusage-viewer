@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -36,6 +37,13 @@ public class UsagePoller implements SmartLifecycle {
     private final UsageSnapshotPublisher publisher;
     private final Clock clock;
     private final ScheduledExecutorService executor;
+    // Las lecturas no pueden ir al executor de planificación: runCycle ya ocupa su
+    // único hilo y la lectura quedaría en cola hasta agotar el timeout.
+    private final ExecutorService readExecutor = Executors.newCachedThreadPool(r -> {
+        Thread thread = new Thread(r, "usage-reader");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     private volatile boolean running = false;
 
@@ -90,6 +98,7 @@ public class UsagePoller implements SmartLifecycle {
         }
         running = false;
         executor.shutdown();
+        readExecutor.shutdownNow();
         try {
             if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
                 executor.shutdownNow();
@@ -114,7 +123,7 @@ public class UsagePoller implements SmartLifecycle {
     }
 
     private Optional<UsageReading> readWithTimeout(UsageSource source) {
-        Future<Optional<UsageReading>> future = executor.submit(source::read);
+        Future<Optional<UsageReading>> future = readExecutor.submit(source::read);
         try {
             return future.get(SOURCE_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {

@@ -1,6 +1,0 @@
-# Ejemplo de fichero de configuración externo.
-# Colocar este fichero junto al JAR o pasar la ubicación con
-# --spring.config.location=classpath:/,file:./config/application.yml
-app:
-  name: "External"
-  tray-icon-path: "icons/external-icon.png"
