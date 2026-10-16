@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
@@ -30,8 +31,9 @@ class TrayIndicatorUnsupportedTest {
 
         TrayIconFactory trayIconFactory = mock(TrayIconFactory.class);
         TrayMenu trayMenu = mock(TrayMenu.class);
+        ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
 
-        TrayIndicator indicator = new TrayIndicator(configurationProvider, trayIconFactory, trayMenu) {
+        TrayIndicator indicator = new TrayIndicator(configurationProvider, trayIconFactory, trayMenu, eventPublisher) {
             @Override
             boolean isSystemTraySupported() {
                 return false;
@@ -50,7 +52,7 @@ class TrayIndicatorUnsupportedTest {
                 .as("No debe haberse creado ningún TrayIcon")
                 .isNull();
 
-        verifyNoInteractions(trayIconFactory);
+        verifyNoInteractions(trayIconFactory, eventPublisher);
 
         assertThat(output.getOut())
                 .as("Debe registrarse un aviso indicando que la bandeja no está disponible")

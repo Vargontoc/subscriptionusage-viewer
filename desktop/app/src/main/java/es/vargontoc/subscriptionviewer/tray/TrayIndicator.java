@@ -1,8 +1,10 @@
 package es.vargontoc.subscriptionviewer.tray;
 
 import es.vargontoc.subscriptionviewer.config.ConfigurationProvider;
+import es.vargontoc.subscriptionviewer.startup.TrayReadyEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 
@@ -32,16 +34,19 @@ public class TrayIndicator implements SmartLifecycle {
     private final ConfigurationProvider configurationProvider;
     private final TrayIconFactory trayIconFactory;
     private final TrayMenu trayMenu;
+    private final ApplicationEventPublisher eventPublisher;
 
     private volatile boolean running = false;
     private volatile TrayIcon trayIcon;
 
     public TrayIndicator(ConfigurationProvider configurationProvider,
                          TrayIconFactory trayIconFactory,
-                         TrayMenu trayMenu) {
+                         TrayMenu trayMenu,
+                         ApplicationEventPublisher eventPublisher) {
         this.configurationProvider = configurationProvider;
         this.trayIconFactory = trayIconFactory;
         this.trayMenu = trayMenu;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -62,6 +67,7 @@ public class TrayIndicator implements SmartLifecycle {
 
             log.info("Icono añadido a la bandeja del sistema.");
             this.running = true;
+            eventPublisher.publishEvent(new TrayReadyEvent(this));
         } catch (IllegalStateException e) {
             log.error("No se ha podido cargar el icono de bandeja; el indicador no se mostrará.", e);
         } catch (AWTException e) {

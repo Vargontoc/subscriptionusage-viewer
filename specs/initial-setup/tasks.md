@@ -97,10 +97,10 @@ Se divide la estructura base ejecutable en una tarea de andamiaje del proyecto S
   2. Hacer clic derecho sobre el icono y comprobar que aparece una opción de cierre.
   3. Seleccionar la opción de cierre y comprobar que la aplicación termina sin dejar procesos huérfanos.
 
-### [ ] TASK-007 Registrar el mensaje de aplicación lista al finalizar el arranque
+### [x] TASK-007 Registrar el mensaje de aplicación lista al finalizar el arranque
 
 - **Cubre:** REQ-005, DEC-001
-- **Componente:** startup-reporter | por definir (analista técnico)
+- **Componente:** startup-reporter | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/startup/StartupReporter.java
 - **Depende de:** TASK-005
 - **Alcance:** Hacer que `startup-reporter` escriba un mensaje de log indicando que la aplicación está lista una vez completados el contexto Spring, el coordinador de ciclo de vida y el icono de bandeja.
 - **Hecho cuando:** tras un arranque correcto, los logs contienen un mensaje inequívoco de que la aplicación está lista.
