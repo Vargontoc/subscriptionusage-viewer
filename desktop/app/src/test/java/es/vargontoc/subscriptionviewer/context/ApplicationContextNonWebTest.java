@@ -6,6 +6,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.Arrays;
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -28,9 +31,9 @@ class ApplicationContextNonWebTest {
 
     @Test
     void noWebServerFactoryBeanIsPresent() {
-        assertThat(context.getBeanProvider(org.springframework.boot.web.server.WebServerFactory.class).getIfAvailable())
+        assertThat(webServerFactoryBeanNames(context))
                 .as("No web server factory should be registered in non-web mode")
-                .isNull();
+                .isEmpty();
     }
 
     @Test
@@ -39,9 +42,23 @@ class ApplicationContextNonWebTest {
                 .properties("spring.main.web-application-type=servlet")
                 .run()) {
             assertThat(servletContext.isActive()).isTrue();
-            assertThat(servletContext.getBeanProvider(org.springframework.boot.web.server.WebServerFactory.class).getIfAvailable())
+            assertThat(webServerFactoryBeanNames(servletContext))
                     .as("No web server factory should be registered even when servlet mode is forced without web starter")
-                    .isNull();
+                    .isEmpty();
         }
+    }
+
+    /**
+     * Nombres de los beans cuyo tipo es una fábrica de servidor web. Se compara por
+     * nombre de clase porque el tipo {@code WebServerFactory} no está en el classpath
+     * sin el starter web (en Spring Boot 4 vive en un módulo separado).
+     */
+    private static List<String> webServerFactoryBeanNames(ConfigurableApplicationContext ctx) {
+        return Arrays.stream(ctx.getBeanDefinitionNames())
+                .filter(name -> {
+                    Class<?> type = ctx.getType(name);
+                    return type != null && type.getSimpleName().endsWith("WebServerFactory");
+                })
+                .toList();
     }
 }

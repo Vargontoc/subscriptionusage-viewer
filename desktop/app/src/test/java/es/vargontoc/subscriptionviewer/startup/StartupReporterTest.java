@@ -1,11 +1,11 @@
 package es.vargontoc.subscriptionviewer.startup;
 
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
-import es.vargontoc.subscriptionviewer.context.ApplicationContextConfig;
+import java.time.Duration;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.Mockito.mock;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,12 +19,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
-import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.time.Duration;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import es.vargontoc.subscriptionviewer.context.ApplicationContextConfig;
 
 /**
  * Pruebas de {@link StartupReporter}.
@@ -39,8 +38,7 @@ import static org.mockito.Mockito.mock;
 @DirtiesContext
 class StartupReporterTest {
 
-    @Autowired
-    private StartupReporter startupReporter;
+
 
     /**
      * Configuración de test que publica un {@link TrayReadyEvent} cuando el
@@ -90,7 +88,7 @@ class StartupReporterTest {
 
             assertThat(appender.list)
                     .as("El mensaje de listo no debe emitirse sin la señal de bandeja")
-                    .extracting(ILoggingEvent::getFormattedMessage)
+                    .extracting(i -> i.getFormattedMessage())
                     .noneMatch(message -> message.contains("Aplicación lista"));
         } finally {
             detachAppender(appender);
@@ -109,7 +107,7 @@ class StartupReporterTest {
 
             assertThat(appender.list)
                     .as("El mensaje de listo debe emitirse tras recibir ambas señales")
-                    .extracting(ILoggingEvent::getFormattedMessage)
+                    .extracting(i -> i.getFormattedMessage())
                     .anyMatch(message -> message.contains("Aplicación lista"));
         } finally {
             detachAppender(appender);

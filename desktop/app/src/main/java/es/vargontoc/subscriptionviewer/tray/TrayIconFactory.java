@@ -1,12 +1,11 @@
 package es.vargontoc.subscriptionviewer.tray;
 
-import org.springframework.stereotype.Component;
-
 import java.awt.Image;
-import java.awt.SystemTray;
 import java.awt.Toolkit;
 import java.awt.TrayIcon;
 import java.net.URL;
+
+import org.springframework.stereotype.Component;
 
 /**
  * Fábrica de {@link TrayIcon} para el indicador de bandeja del sistema.
