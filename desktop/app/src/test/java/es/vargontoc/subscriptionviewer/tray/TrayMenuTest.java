@@ -1,6 +1,7 @@
 package es.vargontoc.subscriptionviewer.tray;
 
 import es.vargontoc.subscriptionviewer.lifecycle.LifecycleCoordinator;
+import es.vargontoc.subscriptionviewer.ui.UsageWindow;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
 
@@ -17,8 +18,9 @@ import static org.mockito.Mockito.verify;
 /**
  * Pruebas del menú contextual de la bandeja del sistema.
  *
- * <p>Verifican que el menú expone la opción de cierre y que, al seleccionarla,
- * se delega correctamente en {@link LifecycleCoordinator#requestShutdown()}.</p>
+ * <p>Verifican que el menú expone la opción de mostrar uso antes de la opción
+ * de cierre, que ambas delegan correctamente y que la ventana se reutiliza al
+ * repetir la acción de mostrar.</p>
  *
  * <p>AWT requiere un entorno gráfico para crear {@link PopupMenu} y
  * {@link MenuItem}; por tanto el test se omite en entornos headless.</p>
@@ -31,28 +33,70 @@ class TrayMenuTest {
     }
 
     @Test
-    void popupMenuContainsExitItem() {
+    void popupMenuContainsShowUsageBeforeExitItem() {
         LifecycleCoordinator coordinator = mock(LifecycleCoordinator.class);
-        TrayMenu trayMenu = new TrayMenu(coordinator);
+        UsageWindow usageWindow = mock(UsageWindow.class);
+        TrayMenu trayMenu = new TrayMenu(coordinator, usageWindow);
 
         PopupMenu popupMenu = trayMenu.getPopupMenu();
 
-        assertThat(popupMenu.getItemCount())
-                .as("El menú debe contener al menos un elemento")
-                .isGreaterThanOrEqualTo(1);
+        assertThat(popupMenu.getItemCount()).isEqualTo(2);
 
-        MenuItem exitItem = popupMenu.getItem(0);
-        assertThat(exitItem.getLabel())
-                .as("El primer elemento debe ser la opción de cierre")
-                .isEqualTo("Cerrar");
+        MenuItem showUsageItem = popupMenu.getItem(0);
+        assertThat(showUsageItem.getLabel()).isEqualTo("Mostrar uso");
+
+        MenuItem exitItem = popupMenu.getItem(1);
+        assertThat(exitItem.getLabel()).isEqualTo("Cerrar");
+    }
+
+    @Test
+    void selectingShowUsageItemShowsWindow() {
+        LifecycleCoordinator coordinator = mock(LifecycleCoordinator.class);
+        UsageWindow usageWindow = mock(UsageWindow.class);
+        TrayMenu trayMenu = new TrayMenu(coordinator, usageWindow);
+
+        MenuItem showUsageItem = trayMenu.getPopupMenu().getItem(0);
+
+        ActionEvent event = new ActionEvent(
+                showUsageItem,
+                ActionEvent.ACTION_PERFORMED,
+                showUsageItem.getActionCommand());
+
+        for (ActionListener listener : showUsageItem.getActionListeners()) {
+            listener.actionPerformed(event);
+        }
+
+        verify(usageWindow).show();
+    }
+
+    @Test
+    void selectingShowUsageItemTwiceReusesWindow() {
+        LifecycleCoordinator coordinator = mock(LifecycleCoordinator.class);
+        UsageWindow usageWindow = mock(UsageWindow.class);
+        TrayMenu trayMenu = new TrayMenu(coordinator, usageWindow);
+
+        MenuItem showUsageItem = trayMenu.getPopupMenu().getItem(0);
+
+        ActionEvent event = new ActionEvent(
+                showUsageItem,
+                ActionEvent.ACTION_PERFORMED,
+                showUsageItem.getActionCommand());
+
+        for (ActionListener listener : showUsageItem.getActionListeners()) {
+            listener.actionPerformed(event);
+            listener.actionPerformed(event);
+        }
+
+        verify(usageWindow).show();
     }
 
     @Test
     void selectingExitItemRequestsShutdown() {
         LifecycleCoordinator coordinator = mock(LifecycleCoordinator.class);
-        TrayMenu trayMenu = new TrayMenu(coordinator);
+        UsageWindow usageWindow = mock(UsageWindow.class);
+        TrayMenu trayMenu = new TrayMenu(coordinator, usageWindow);
 
-        MenuItem exitItem = trayMenu.getPopupMenu().getItem(0);
+        MenuItem exitItem = trayMenu.getPopupMenu().getItem(1);
 
         ActionEvent event = new ActionEvent(
                 exitItem,

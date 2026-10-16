@@ -8,7 +8,7 @@ El trabajo se divide en 19 tareas: el hook de status line en Python (TASK-001 y 
 
 ## Tareas
 
-### [ ] TASK-001 Persistir rate_limits desde el hook
+### [x] TASK-001 Persistir rate_limits desde el hook
 
 - **Cubre:** REQ-011, DEC-001, DEC-002, DEC-003
 - **Componente:** statusline-hook | por definir (analista técnico)
@@ -22,7 +22,7 @@ El trabajo se divide en 19 tareas: el hook de status line en Python (TASK-001 y 
   1. Configurar en `~/.claude/settings.json` la entrada `statusLine` para que ejecute el hook con ruta absoluta y `python`, abrir una sesión de Claude Code con suscripción y enviar un mensaje. Resultado: aparece `~/.claude/statusline-state.json` con `written_at` y las dos ventanas con valores. Si el JSON real de Claude Code no incluye `rate_limits`, la prueba falla y la viabilidad de la feature debe revisarse (supuesto S1).
   2. Abrir el fichero generado. Resultado: solo contiene `written_at`, `five_hour` y `seven_day`, y dentro de ellos `used_percentage` y `resets_at`; no aparecen rutas, identificadores de sesión ni costes.
 
-### [ ] TASK-002 Encadenar la status line original y emitir la salida
+### [x] TASK-002 Encadenar la status line original y emitir la salida
 
 - **Cubre:** REQ-011, REQ-012, DEC-002
 - **Componente:** statusline-hook | por definir (analista técnico)
@@ -37,7 +37,7 @@ El trabajo se divide en 19 tareas: el hook de status line en Python (TASK-001 y 
   2. Quitar el comando original de la configuración del hook y enviar un mensaje. Resultado: la status line muestra la línea mínima con los porcentajes de sesión y semanal.
   3. Sustituir temporalmente el comando original por una ruta inexistente y enviar un mensaje. Resultado: `~/.claude/statusline-state.json` se actualiza tras el mensaje (REQ-012, criterio de fallo del original).
 
-### [ ] TASK-003 Propiedades de ruta del fichero e intervalo de lectura
+### [x] TASK-003 Propiedades de ruta del fichero e intervalo de lectura
 
 - **Cubre:** REQ-004, DEC-004
 - **Componente:** configuration-provider | src/main/java/es/vargontoc/subscriptionviewer/config
@@ -49,10 +49,10 @@ El trabajo se divide en 19 tareas: el hook de status line en Python (TASK-001 y 
   - Caso de error o límite: sin configuración explícita, la aplicación arranca con los valores por defecto y no requiere ninguna propiedad.
 - **Prueba manual:** no aplica: la configuración no tiene comportamiento observable por sí sola; su efecto se verifica en TASK-009 y en la prueba manual de TASK-016.
 
-### [ ] TASK-004 Abstracción de fuente de uso por proveedor
+### [x] TASK-004 Abstracción de fuente de uso por proveedor
 
 - **Cubre:** REQ-010, DEC-006
-- **Componente:** usage-source | por definir (analista técnico)
+- **Componente:** usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage
 - **Depende de:** -
 - **Alcance:** definir el contrato interno que cada proveedor implementa para entregar una lectura de uso (por ventana, porcentaje, `resets_at` y hora de registro) o ausencia de datos, convirtiendo cualquier fallo en ausencia.
 - **Hecho cuando:** existe la abstracción y una implementación de prueba que lanza un error o devuelve ausencia no afecta a otra implementación registrada.
@@ -61,10 +61,10 @@ El trabajo se divide en 19 tareas: el hook de status line en Python (TASK-001 y 
   - Caso de error o límite: una implementación que lanza una excepción o devuelve ausencia no provoca excepción en el consumidor, que recibe ausencia de datos para ese proveedor.
 - **Prueba manual:** no aplica: abstracción interna sin interfaz propia; su efecto se verifica en TASK-009 y en TASK-016.
 
-### [ ] TASK-005 Lectura y validación del fichero de estado de Claude
+### [x] TASK-005 Lectura y validación del fichero de estado de Claude
 
 - **Cubre:** REQ-001, REQ-002, REQ-005, REQ-008, DEC-003, DEC-006
-- **Componente:** claude-usage-source | por definir (analista técnico)
+- **Componente:** claude-usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/claude
 - **Depende de:** TASK-003, TASK-004
 - **Alcance:** implementar la fuente de Claude que lee el fichero de estado en la ruta configurada, valida su contenido y devuelve por ventana el porcentaje, `resets_at` y `written_at`, o ausencia si el fichero falta, es ilegible o no es utilizable.
 - **Hecho cuando:** se cumplen los criterios de aceptación de REQ-001 (valores iguales a los del fichero), REQ-002 (40 % y 15 % con el fichero de ejemplo), REQ-005 (hora de registro leída) y REQ-008 (fichero ausente, incompleto o con formato inválido devuelve ausencia sin error visible).
@@ -75,10 +75,10 @@ El trabajo se divide en 19 tareas: el hook de status line en Python (TASK-001 y 
   1. Colocar en la ruta configurada un fichero con JSON mal formado y arrancar la aplicación. Resultado: no aparece ningún cuadro de error ni aviso visible.
   2. Sustituir el fichero por uno válido con `five_hour` al 40 % y `seven_day` al 15 %. Resultado: en la siguiente lectura la aplicación ya no lo considera inválido (se verifica visualmente en TASK-011).
 
-### [ ] TASK-006 Cálculo de tiempo restante y vigencia de cada ventana
+### [x] TASK-006 Cálculo de tiempo restante y vigencia de cada ventana
 
 - **Cubre:** REQ-003, REQ-008, DEC-005
-- **Componente:** countdown-evaluator | por definir (analista técnico)
+- **Componente:** countdown-evaluator | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage
 - **Depende de:** TASK-005
 - **Alcance:** calcular, frente a la hora actual, el tiempo restante hasta `resets_at` de cada ventana y si la ventana sigue vigente, sin depender de nuevas lecturas.
 - **Hecho cuando:** se cumplen el criterio de REQ-003 (2 h 10 min con `resets_at` a esa distancia y disminución de un minuto sin lecturas) y el de REQ-008 sobre ventanas caducadas.
@@ -87,10 +87,10 @@ El trabajo se divide en 19 tareas: el hook de status line en Python (TASK-001 y 
   - Caso de error o límite: con `resets_at` ya pasado, la ventana de sesión no está vigente aunque `written_at` sea reciente; la ventana semanal con `resets_at` futuro sigue vigente en el mismo instante.
 - **Prueba manual:** no aplica: cálculo interno sin interfaz propia; su resultado visible se verifica en TASK-012.
 
-### [ ] TASK-007 Historial en memoria de la evolución por ventana
+### [x] TASK-007 Historial en memoria de la evolución por ventana
 
 - **Cubre:** REQ-006, REQ-007, DEC-007
-- **Componente:** usage-history | por definir (analista técnico)
+- **Componente:** usage-history | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage
 - **Depende de:** TASK-005
 - **Alcance:** acumular en memoria, por proveedor y ventana, un punto con porcentaje y hora de registro solo cuando la hora de registro es posterior a la última representada, con un tope de puntos que descarta los más antiguos.
 - **Hecho cuando:** se cumplen los criterios de REQ-006 (un punto por actualización y ventana, ordenados en el tiempo, sin duplicados si el fichero no cambia) y el de REQ-007 (una instancia nueva empieza vacía).
@@ -99,10 +99,10 @@ El trabajo se divide en 19 tareas: el hook de status line en Python (TASK-001 y 
   - Caso de error o límite: una lectura con el mismo `written_at` o uno anterior no añade ningún punto; al superar el tope, se descartan los puntos más antiguos y se conservan los más recientes; una instancia nueva no contiene puntos.
 - **Prueba manual:** no aplica: historial sin interfaz propia; su resultado visible se verifica en TASK-013.
 
-### [ ] TASK-008 Estado publicado por proveedor y notificación a la vista
+### [x] TASK-008 Estado publicado por proveedor y notificación a la vista
 
 - **Cubre:** REQ-002, REQ-009, REQ-010, NFR-001, DEC-006
-- **Componente:** usage-snapshot-publisher | por definir (analista técnico)
+- **Componente:** usage-snapshot-publisher | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage
 - **Depende de:** TASK-004
 - **Alcance:** guardar el último estado conocido de cada proveedor y notificar cada cambio a la vista en el hilo de interfaz, sin incluir en el estado a los proveedores sin datos.
 - **Hecho cuando:** se cumplen el criterio de REQ-010 de aislamiento (un proveedor sin datos no afecta al otro), el de REQ-009 (ninguna lectura vigente produce un estado sin proveedores) y NFR-001 en lo relativo a la notificación en el hilo de interfaz.
@@ -111,10 +111,10 @@ El trabajo se divide en 19 tareas: el hook de status line en Python (TASK-001 y 
   - Caso de error o límite: una fuente que devuelve ausencia en una lectura posterior deja a ese proveedor sin datos en el estado publicado y no altera el estado del otro proveedor; sin ningún proveedor con datos, el estado publicado está vacío.
 - **Prueba manual:** no aplica: estado interno sin interfaz propia; su resultado visible se verifica en TASK-011 y en TASK-016.
 
-### [ ] TASK-009 Planificador de lecturas en hilo de fondo
+### [x] TASK-009 Planificador de lecturas en hilo de fondo
 
 - **Cubre:** REQ-004, REQ-010, NFR-001, DEC-004, DEC-006
-- **Componente:** usage-poller | por definir (analista técnico)
+- **Componente:** usage-poller | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage
 - **Depende de:** TASK-003, TASK-004, TASK-007, TASK-008
 - **Alcance:** planificador en hilo de fondo que, con retardo fijo de 10 segundos contado desde el fin de una lectura hasta el inicio de la siguiente, pide a cada fuente su lectura de forma aislada y entrega los resultados a usage-history y a usage-snapshot-publisher, sin solapar lecturas.
 - **Hecho cuando:** se cumplen el criterio de REQ-004 (lecturas repetidas cada 10 segundos sin acción del usuario), el de REQ-010 de aislamiento entre fuentes y NFR-001 (las lecturas no se ejecutan en el hilo de interfaz).
@@ -123,7 +123,7 @@ El trabajo se divide en 19 tareas: el hook de status line en Python (TASK-001 y 
   - Caso de error o límite: una fuente que lanza una excepción o tarda más de 5 segundos no impide la lectura de la otra fuente; si una lectura dura más que el intervalo, la siguiente no se solapa con ella.
 - **Prueba manual:** no aplica: planificador sin interfaz propia; su resultado visible se verifica en TASK-016.
 
-### [ ] TASK-010 Parada del planificador en el cierre ordenado
+### [x] TASK-010 Parada del planificador en el cierre ordenado
 
 - **Cubre:** REQ-004, REQ-007, DEC-004
 - **Componente:** lifecycle-coordinator | src/main/java/es/vargontoc/subscriptionviewer/lifecycle/LifecycleCoordinator.java
@@ -137,10 +137,10 @@ El trabajo se divide en 19 tareas: el hook de status line en Python (TASK-001 y 
   1. Arrancar la aplicación y cerrarla desde el menú de la bandeja. Resultado: el proceso deja de aparecer en el Administrador de tareas.
   2. Arrancar de nuevo la aplicación. Resultado: el historial de evolución empieza vacío (REQ-007), lo que se confirma en TASK-013.
 
-### [ ] TASK-011 Ventana de uso: tarjetas por proveedor y texto neutro
+### [x] TASK-011 Ventana de uso: tarjetas por proveedor y texto neutro
 
 - **Cubre:** REQ-002, REQ-005, REQ-009, REQ-010, DEC-008
-- **Componente:** usage-window | por definir (analista técnico)
+- **Componente:** usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui
 - **Depende de:** TASK-008
 - **Alcance:** ventana de escritorio Swing con una tarjeta por proveedor que muestra el porcentaje de la ventana de sesión y de la semanal, la hora de datos y, si ningún proveedor tiene datos, un texto informativo neutro.
 - **Hecho cuando:** se cumplen los criterios de REQ-002 (40 % y 15 % en sus ventanas), REQ-005 (hora de registro visible), REQ-009 (texto neutro sin términos de error, fallo o advertencia) y REQ-010 (solo se muestran proveedores con datos, sin secciones vacías).
@@ -151,7 +151,7 @@ El trabajo se divide en 19 tareas: el hook de status line en Python (TASK-001 y 
   1. Con la aplicación en ejecución y un fichero de estado de prueba con 40 % de sesión, 15 % semanal y `written_at` a las 10:32:15 local, abrir la ventana desde la bandeja (opción de TASK-014). Resultado: se ven 40 % y 15 % en sus ventanas y la hora de datos 10:32:15.
   2. Sustituir el fichero por uno sin datos vigentes y esperar 10 segundos. Resultado: la ventana muestra un texto informativo neutro, sin términos de error, fallo o advertencia.
 
-### [ ] TASK-012 Ventana de uso: cuenta atrás y ocultación de ventanas caducadas
+### [x] TASK-012 Ventana de uso: cuenta atrás y ocultación de ventanas caducadas
 
 - **Cubre:** REQ-003, REQ-008, DEC-005, DEC-008
 - **Componente:** usage-window | por definir (analista técnico)
@@ -165,7 +165,7 @@ El trabajo se divide en 19 tareas: el hook de status line en Python (TASK-001 y 
   1. Con la ventana abierta y un fichero de prueba con `resets_at` a 2 h 10 min en el futuro, anotar el tiempo mostrado, cerrar Claude Code para que el fichero no cambie y esperar un minuto. Resultado: el tiempo restante ha disminuido un minuto.
   2. Editar el fichero para poner `resets_at` de la sesión en una hora pasada y esperar 2 segundos. Resultado: la ventana de sesión desaparece sin ningún mensaje de error.
 
-### [ ] TASK-013 Ventana de uso: gráfico de evolución
+### [x] TASK-013 Ventana de uso: gráfico de evolución
 
 - **Cubre:** REQ-006, DEC-007, DEC-008
 - **Componente:** usage-window | por definir (analista técnico)
@@ -179,7 +179,7 @@ El trabajo se divide en 19 tareas: el hook de status line en Python (TASK-001 y 
   1. Abrir la ventana justo después de arrancar la aplicación. Resultado: el gráfico aparece vacío y sin errores.
   2. Mantener Claude Code en uso durante varias actualizaciones del fichero sin reiniciar la aplicación. Resultado: aparece un punto nuevo por ventana en cada actualización, ordenados en el tiempo.
 
-### [ ] TASK-014 Opción de mostrar el uso en el menú de bandeja
+### [x] TASK-014 Opción de mostrar el uso en el menú de bandeja
 
 - **Cubre:** REQ-002, DEC-008
 - **Componente:** tray-menu | src/main/java/es/vargontoc/subscriptionviewer/tray/TrayMenu.java
@@ -194,10 +194,10 @@ El trabajo se divide en 19 tareas: el hook de status line en Python (TASK-001 y 
   2. Repetir con la ventana ya abierta. Resultado: no aparece una segunda ventana (propuesto).
   3. Elegir la opción de cierre. Resultado: la aplicación se cierra como antes.
 
-### [ ] TASK-015 Integración: hook y fuente de Claude a través del fichero de estado
+### [x] TASK-015 Integración: hook y fuente de Claude a través del fichero de estado
 
 - **Cubre:** REQ-001, REQ-011, DEC-001, DEC-003
-- **Componente:** statusline-hook | por definir (analista técnico); claude-usage-source | por definir (analista técnico)
+- **Componente:** statusline-hook | ~/.claude/statusline-dump.py; claude-usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/claude
 - **Depende de:** TASK-001, TASK-005
 - **Alcance:** verificar que el fichero escrito por el hook es leído por la fuente de Claude con los mismos valores y que una lectura concurrente con una escritura nunca obtiene contenido parcial.
 - **Hecho cuando:** se cumplen el criterio de REQ-001 (los valores mostrados coinciden con los `rate_limits` de la última ejecución del hook) y el de REQ-011 de atomicidad (la aplicación nunca obtiene contenido parcial).
@@ -208,10 +208,10 @@ El trabajo se divide en 19 tareas: el hook de status line en Python (TASK-001 y 
   1. Ejecutar el hook desde una terminal, pasando por stdin un JSON de prueba con `rate_limits`, y apuntar la ruta de estado a un fichero de prueba. Resultado: el fichero contiene esos valores y `written_at`.
   2. Abrir la aplicación con esa misma ruta de estado. Resultado: la fuente de Claude lo lee sin errores visibles (los valores concretos se confirman en la ventana de TASK-011).
 
-### [ ] TASK-016 Integración: actualización en vivo de la ventana de uso
+### [x] TASK-016 Integración: actualización en vivo de la ventana de uso
 
 - **Cubre:** REQ-004, REQ-005, REQ-006, DEC-004, DEC-007
-- **Componente:** usage-snapshot-publisher | por definir (analista técnico); usage-window | por definir (analista técnico)
+- **Componente:** usage-snapshot-publisher | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageSnapshotPublisher.java; usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageWindow.java
 - **Depende de:** TASK-009, TASK-012, TASK-013
 - **Alcance:** verificar que los cambios que el planificador publica llegan a la ventana abierta y se reflejan sin acción del usuario, incluidos los nuevos puntos del gráfico y la ocultación de ventanas sin datos vigentes.
 - **Hecho cuando:** se cumplen el criterio de REQ-004 (los valores reflejan el nuevo consumo tras 10 segundos sin acción), el criterio de REQ-006 de aparición de un nuevo punto sin reiniciar y el de REQ-005 (hora de datos actualizada).
@@ -249,7 +249,7 @@ El trabajo se divide en 19 tareas: el hook de status line en Python (TASK-001 y 
   - Caso de error o límite: el contrato recoge el comportamiento cuando el comando original falla, cuando no hay `rate_limits` y cuando falla la escritura del fichero de estado.
 - **Prueba manual:** repasar que la entrada, la encadenación con el comando original y la salida aparecen en el contrato y coinciden con lo implementado en TASK-002.
 
-### [ ] TASK-019 Verificación transversal de NFR-002: sin conexiones propias ni credenciales
+### [x] TASK-019 Verificación transversal de NFR-002: sin conexiones propias ni credenciales
 
 - **Cubre:** NFR-002, DEC-001
 - **Componente:** transversal | no aplica: NFR transversal que cruza statusline-hook, claude-usage-source y usage-poller

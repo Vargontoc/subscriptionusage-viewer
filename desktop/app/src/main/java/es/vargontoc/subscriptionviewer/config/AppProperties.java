@@ -2,6 +2,8 @@ package es.vargontoc.subscriptionviewer.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.time.Duration;
+
 /**
  * Propiedades externalizadas de la aplicación bajo el prefijo {@code app}.
  *
@@ -21,6 +23,16 @@ public class AppProperties {
      */
     private String trayIconPath = "icons/app-icon.png";
 
+    /**
+     * Ruta del fichero de estado de uso generado por el hook de Claude Code.
+     */
+    private String usageStateFile = "~/.claude/statusline-state.json";
+
+    /**
+     * Intervalo entre lecturas del fichero de estado.
+     */
+    private Duration usagePollInterval = Duration.ofSeconds(10);
+
     public String getName() {
         return name;
     }
@@ -35,5 +47,21 @@ public class AppProperties {
 
     public void setTrayIconPath(String trayIconPath) {
         this.trayIconPath = trayIconPath;
+    }
+
+    public String getUsageStateFile() {
+        return usageStateFile;
+    }
+
+    public void setUsageStateFile(String usageStateFile) {
+        this.usageStateFile = usageStateFile;
+    }
+
+    public Duration getUsagePollInterval() {
+        return usagePollInterval;
+    }
+
+    public void setUsagePollInterval(Duration usagePollInterval) {
+        this.usagePollInterval = usagePollInterval;
     }
 }

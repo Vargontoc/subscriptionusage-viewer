@@ -7,10 +7,15 @@ import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 
+import es.vargontoc.subscriptionviewer.usage.UsagePoller;
+
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 /**
  * Pruebas del coordinador de ciclo de vida.
@@ -53,6 +58,28 @@ class LifecycleCoordinatorTest {
 
             shutdownThread.join();
         }
+    }
+
+    @Test
+    void stopShutsDownUsagePollerBeforeReleasingLatch() {
+        UsagePoller poller = mock(UsagePoller.class);
+        LifecycleCoordinator coordinator = new LifecycleCoordinator(poller);
+
+        coordinator.stop();
+
+        verify(poller).stop();
+        assertThat(coordinator.isRunning()).isFalse();
+    }
+
+    @Test
+    void requestShutdownDoesNotStopPollerButReleasesLatch() throws InterruptedException {
+        UsagePoller poller = mock(UsagePoller.class);
+        LifecycleCoordinator coordinator = new LifecycleCoordinator(poller);
+
+        coordinator.requestShutdown();
+
+        verify(poller, times(0)).stop();
+        assertThat(coordinator.waitForShutdown(100, TimeUnit.MILLISECONDS)).isTrue();
     }
 
     @Test

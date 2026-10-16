@@ -1,5 +1,6 @@
 package es.vargontoc.subscriptionviewer.lifecycle;
 
+import es.vargontoc.subscriptionviewer.usage.UsagePoller;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 
@@ -22,7 +23,12 @@ import java.util.concurrent.TimeUnit;
 public class LifecycleCoordinator implements SmartLifecycle {
 
     private final CountDownLatch shutdownLatch = new CountDownLatch(1);
+    private final UsagePoller usagePoller;
     private volatile boolean running = false;
+
+    public LifecycleCoordinator(UsagePoller usagePoller) {
+        this.usagePoller = usagePoller;
+    }
 
     /**
      * Bloquea el hilo invocador hasta que se solicite el cierre de la aplicación.
@@ -64,6 +70,7 @@ public class LifecycleCoordinator implements SmartLifecycle {
 
     @Override
     public void stop() {
+        usagePoller.stop();
         requestShutdown();
         running = false;
     }

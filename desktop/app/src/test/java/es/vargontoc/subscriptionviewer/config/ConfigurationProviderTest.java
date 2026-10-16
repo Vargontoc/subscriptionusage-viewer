@@ -9,6 +9,8 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.io.ClassPathResource;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,6 +34,8 @@ class ConfigurationProviderTest {
 
             assertThat(provider.getAppName()).isEqualTo("Subscription Usage Viewer");
             assertThat(provider.getTrayIconPath()).isEqualTo("icons/app-icon.png");
+            assertThat(provider.getUsageStateFile().toString()).endsWith(".claude" + java.io.File.separator + "statusline-state.json");
+            assertThat(provider.getUsagePollInterval()).isEqualTo(Duration.ofSeconds(10));
         });
     }
 
@@ -43,6 +47,22 @@ class ConfigurationProviderTest {
                     ConfigurationProvider provider = context.getBean(ConfigurationProvider.class);
 
                     assertThat(provider.getAppName()).isEqualTo("External");
+                    assertThat(provider.getUsageStateFile().toString()).endsWith("custom-status.json");
+                    assertThat(provider.getUsagePollInterval()).isEqualTo(Duration.ofSeconds(30));
+                });
+    }
+
+    @Test
+    void shouldExpandTildeInUsageStateFile() {
+        contextRunner
+                .withInitializer(loadYaml("config/application-external.yml"))
+                .run(context -> {
+                    ConfigurationProvider provider = context.getBean(ConfigurationProvider.class);
+
+                    Path stateFile = provider.getUsageStateFile();
+                    assertThat(stateFile).isAbsolute();
+                    assertThat(stateFile.toString()).doesNotContain("~");
+                    assertThat(stateFile.toString()).startsWith(System.getProperty("user.home"));
                 });
     }
 

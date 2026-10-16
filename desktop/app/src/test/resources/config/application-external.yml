@@ -1,2 +1,4 @@
 app:
   name: "External"
+  usage-state-file: "~/custom-status.json"
+  usage-poll-interval: "30s"

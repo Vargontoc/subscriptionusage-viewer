@@ -1,0 +1,74 @@
+package es.vargontoc.subscriptionviewer.usage;
+
+import org.junit.jupiter.api.Test;
+
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * Pruebas unitarias de {@link CountdownEvaluator}.
+ */
+class CountdownEvaluatorTest {
+
+    private static final Instant NOW = Instant.parse("2026-10-16T10:00:00Z");
+    private static final Instant RESETS_AT = NOW.plus(Duration.ofHours(2).plusMinutes(10));
+
+    @Test
+    void shouldReturnTwoHoursAndTenMinutesWhenResetIsInTheFuture() {
+        Clock clock = Clock.fixed(NOW, ZoneId.systemDefault());
+        CountdownEvaluator evaluator = new CountdownEvaluator(clock);
+
+        CountdownResult result = evaluator.evaluate(RESETS_AT);
+
+        assertThat(result.valid()).isTrue();
+        assertThat(result.remainingTime()).isEqualTo(Duration.ofHours(2).plusMinutes(10));
+    }
+
+    @Test
+    void shouldReturnTwoHoursAndNineMinutesAfterOneMinutePasses() {
+        Clock clock = Clock.fixed(NOW.plus(Duration.ofMinutes(1)), ZoneId.systemDefault());
+        CountdownEvaluator evaluator = new CountdownEvaluator(clock);
+
+        CountdownResult result = evaluator.evaluate(RESETS_AT);
+
+        assertThat(result.valid()).isTrue();
+        assertThat(result.remainingTime()).isEqualTo(Duration.ofHours(2).plusMinutes(9));
+    }
+
+    @Test
+    void shouldReturnNotValidWhenWindowHasExpired() {
+        Clock clock = Clock.fixed(RESETS_AT.plus(Duration.ofSeconds(1)), ZoneId.systemDefault());
+        CountdownEvaluator evaluator = new CountdownEvaluator(clock);
+
+        CountdownResult result = evaluator.evaluate(RESETS_AT);
+
+        assertThat(result.valid()).isFalse();
+        assertThat(result.remainingTime()).isEqualTo(Duration.ZERO);
+    }
+
+    @Test
+    void shouldReturnValidWhenWindowIsInTheFuture() {
+        Clock clock = Clock.fixed(NOW, ZoneId.systemDefault());
+        CountdownEvaluator evaluator = new CountdownEvaluator(clock);
+
+        CountdownResult result = evaluator.evaluate(NOW.plus(Duration.ofDays(7)));
+
+        assertThat(result.valid()).isTrue();
+        assertThat(result.remainingTime()).isEqualTo(Duration.ofDays(7));
+    }
+
+    @Test
+    void shouldReturnZeroWhenResetIsExactlyNow() {
+        Clock clock = Clock.fixed(RESETS_AT, ZoneId.systemDefault());
+        CountdownEvaluator evaluator = new CountdownEvaluator(clock);
+
+        CountdownResult result = evaluator.evaluate(RESETS_AT);
+
+        assertThat(result.valid()).isFalse();
+        assertThat(result.remainingTime()).isEqualTo(Duration.ZERO);
+    }
+}

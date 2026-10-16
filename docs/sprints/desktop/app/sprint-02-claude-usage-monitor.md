@@ -1,6 +1,6 @@
 # Sprint 02: claude-usage-monitor - desktop/app
 
-Estado: borrador
+Estado: aprobado
 
 ## Alcance
 

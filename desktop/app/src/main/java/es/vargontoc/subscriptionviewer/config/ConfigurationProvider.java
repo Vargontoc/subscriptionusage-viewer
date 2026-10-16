@@ -7,6 +7,9 @@ import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 
+import java.nio.file.Path;
+import java.time.Duration;
+
 /**
  * Proveedor de configuración que expone las propiedades externalizadas
  * al resto de componentes de la aplicación.
@@ -31,6 +34,8 @@ public class ConfigurationProvider {
     @PostConstruct
     public void logResolvedProperties() {
         log.info("Propiedad app.name resuelta: {}", getAppName());
+        log.info("Propiedad app.usage-state-file resuelta: {}", getUsageStateFile());
+        log.info("Propiedad app.usage-poll-interval resuelta: {}", getUsagePollInterval());
     }
 
     /**
@@ -52,6 +57,35 @@ public class ConfigurationProvider {
     }
 
     /**
+     * Devuelve la ruta del fichero de estado de uso, expandiendo {@code ~}
+     * por el directorio de usuario.
+     *
+     * @return {@code Path} absoluto del fichero de estado
+     * @throws IllegalStateException si la propiedad no está configurada
+     */
+    public Path getUsageStateFile() {
+        String file = appProperties.getUsageStateFile();
+        if (file == null || file.isBlank()) {
+            throw new IllegalStateException("La propiedad app.usage-state-file no puede estar vacia");
+        }
+        return Path.of(expandTilde(file)).toAbsolutePath().normalize();
+    }
+
+    /**
+     * Devuelve el intervalo entre lecturas del fichero de estado.
+     *
+     * @return {@code Duration} positivo
+     * @throws IllegalStateException si el intervalo no es positivo
+     */
+    public Duration getUsagePollInterval() {
+        Duration interval = appProperties.getUsagePollInterval();
+        if (interval == null || interval.isNegative() || interval.isZero()) {
+            throw new IllegalStateException("La propiedad app.usage-poll-interval debe ser positiva");
+        }
+        return interval;
+    }
+
+    /**
      * Resuelve una propiedad genérica del entorno de Spring.
      *
      * @param key clave de la propiedad
@@ -59,5 +93,15 @@ public class ConfigurationProvider {
      */
     public String getProperty(String key) {
         return environment.getProperty(key);
+    }
+
+    private String expandTilde(String path) {
+        if (path.startsWith("~/")) {
+            return System.getProperty("user.home") + path.substring(1);
+        }
+        if ("~".equals(path)) {
+            return System.getProperty("user.home");
+        }
+        return path;
     }
 }

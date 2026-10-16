@@ -9,3 +9,5 @@ spring:
 app:
   name: "Subscription Usage Viewer"
   tray-icon-path: "icons/app-icon.png"
+  usage-state-file: "~/.claude/statusline-state.json"
+  usage-poll-interval: "10s"
