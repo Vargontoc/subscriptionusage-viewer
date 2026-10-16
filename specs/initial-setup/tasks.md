@@ -67,10 +67,10 @@ Se divide la estructura base ejecutable en una tarea de andamiaje del proyecto S
   2. Provocar el cierre desde el mecanismo que conectará el menú de bandeja (por ejemplo, llamando al método de apagado mediante reflexión o punto de prueba).
   3. Comprobar que el proceso termina en menos de 5 segundos y no queda ningún proceso hijo huérfano.
 
-### [ ] TASK-005 Mostrar el icono de la aplicación en la bandeja del sistema
+### [x] TASK-005 Mostrar el icono de la aplicación en la bandeja del sistema
 
 - **Cubre:** REQ-002, DEC-002
-- **Componente:** tray-indicator | por definir (analista técnico)
+- **Componente:** tray-indicator | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/tray/TrayIndicator.java
 - **Depende de:** TASK-004
 - **Alcance:** Hacer que `tray-indicator` inicialice un icono en `java.awt.SystemTray` cuando el sistema lo soporte, registre un shutdown hook que lo libere en caso de cierre abrupto y, si la bandeja no está disponible, emita un aviso sin abortar la aplicación.
 - **Hecho cuando:** tras el arranque con soporte de bandeja, aparece un icono representando la aplicación y el icono se elimina de la bandeja al cerrarse la aplicación.

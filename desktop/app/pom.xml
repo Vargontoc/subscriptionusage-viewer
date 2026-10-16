@@ -49,6 +49,21 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <!-- La bandeja del sistema requiere un entorno gráfico.
+                             En los tests se fuerza el modo headless para evitar
+                             que los hilos de AWT bloqueen la finalización de la
+                             JVM en entornos sin pantalla (CI). Los tests que
+                             requieren bandeja se omiten cuando headless es true. -->
+                        <java.awt.headless>true</java.awt.headless>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
