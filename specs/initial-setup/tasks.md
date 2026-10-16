@@ -82,10 +82,10 @@ Se divide la estructura base ejecutable en una tarea de andamiaje del proyecto S
   2. Comprobar que aparece un icono de la aplicación en la bandeja.
   3. Cerrar la aplicación y comprobar que el icono desaparece de la bandeja.
 
-### [ ] TASK-006 Añadir el menú contextual con la opción de cierre
+### [x] TASK-006 Añadir el menú contextual con la opción de cierre
 
 - **Cubre:** REQ-002, REQ-003, DEC-004
-- **Componente:** tray-menu | por definir (analista técnico)
+- **Componente:** tray-menu | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/tray/TrayMenu.java
 - **Depende de:** TASK-005
 - **Alcance:** Implementar `tray-menu` como menú contextual del icono de bandeja con, al menos, una opción de cierre que delegue en `lifecycle-coordinator` para iniciar el apagado ordenado.
 - **Hecho cuando:** al hacer clic derecho sobre el icono de bandeja se muestra la opción de cierre y al seleccionarla la aplicación termina de forma ordenada.

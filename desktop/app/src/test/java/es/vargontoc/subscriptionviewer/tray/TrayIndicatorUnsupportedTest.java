@@ -29,8 +29,9 @@ class TrayIndicatorUnsupportedTest {
         when(configurationProvider.getTrayIconPath()).thenReturn("icons/app-icon.png");
 
         TrayIconFactory trayIconFactory = mock(TrayIconFactory.class);
+        TrayMenu trayMenu = mock(TrayMenu.class);
 
-        TrayIndicator indicator = new TrayIndicator(configurationProvider, trayIconFactory) {
+        TrayIndicator indicator = new TrayIndicator(configurationProvider, trayIconFactory, trayMenu) {
             @Override
             boolean isSystemTraySupported() {
                 return false;

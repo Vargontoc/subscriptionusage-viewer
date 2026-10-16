@@ -7,6 +7,7 @@ import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 
 import java.awt.AWTException;
+import java.awt.GraphicsEnvironment;
 import java.awt.SystemTray;
 import java.awt.TrayIcon;
 
@@ -30,13 +31,17 @@ public class TrayIndicator implements SmartLifecycle {
 
     private final ConfigurationProvider configurationProvider;
     private final TrayIconFactory trayIconFactory;
+    private final TrayMenu trayMenu;
 
     private volatile boolean running = false;
     private volatile TrayIcon trayIcon;
 
-    public TrayIndicator(ConfigurationProvider configurationProvider, TrayIconFactory trayIconFactory) {
+    public TrayIndicator(ConfigurationProvider configurationProvider,
+                         TrayIconFactory trayIconFactory,
+                         TrayMenu trayMenu) {
         this.configurationProvider = configurationProvider;
         this.trayIconFactory = trayIconFactory;
+        this.trayMenu = trayMenu;
     }
 
     @Override
@@ -50,6 +55,7 @@ public class TrayIndicator implements SmartLifecycle {
             String tooltip = configurationProvider.getAppName();
             String iconPath = configurationProvider.getTrayIconPath();
             this.trayIcon = trayIconFactory.createTrayIcon(tooltip, iconPath);
+            this.trayIcon.setPopupMenu(trayMenu.getPopupMenu());
 
             SystemTray.getSystemTray().add(trayIcon);
             registerShutdownHook();
@@ -131,6 +137,6 @@ public class TrayIndicator implements SmartLifecycle {
      * @return {@code true} si {@link SystemTray#isSupported()} es {@code true}
      */
     boolean isSystemTraySupported() {
-        return SystemTray.isSupported();
+        return !GraphicsEnvironment.isHeadless() && SystemTray.isSupported();
     }
 }
