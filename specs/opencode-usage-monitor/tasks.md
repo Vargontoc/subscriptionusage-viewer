@@ -8,7 +8,7 @@ El trabajo se divide en cimientos compartidos (configuración, clasificación de
 
 ## Tareas
 
-### [ ] TASK-001 Propiedades de configuración de OpenCode
+### [x] TASK-001 Propiedades de configuración de OpenCode
 
 - **Cubre:** REQ-006, NFR-005, DEC-003, DEC-004
 - **Componente:** configuration-provider | src/main/java/es/vargontoc/subscriptionviewer/config

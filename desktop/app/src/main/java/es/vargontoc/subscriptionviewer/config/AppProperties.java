@@ -33,6 +33,9 @@ public class AppProperties {
      */
     private Duration usagePollInterval = Duration.ofSeconds(10);
 
+    /** Propiedades de consulta del proveedor OpenCode. */
+    private final OpenCodeProperties opencode = new OpenCodeProperties();
+
     public String getName() {
         return name;
     }
@@ -63,5 +66,40 @@ public class AppProperties {
 
     public void setUsagePollInterval(Duration usagePollInterval) {
         this.usagePollInterval = usagePollInterval;
+    }
+
+    public OpenCodeProperties getOpencode() {
+        return opencode;
+    }
+
+    /** Configuración externalizada bajo {@code subscription-viewer.opencode}. */
+    public static class OpenCodeProperties {
+        private String usageUrl = "https://opencode.ai/zen/go/v1/usage";
+        private Duration usagePollInterval = Duration.ofSeconds(60);
+        private Duration backoffMaxInterval = Duration.ofSeconds(300);
+
+        public String getUsageUrl() {
+            return usageUrl;
+        }
+
+        public void setUsageUrl(String usageUrl) {
+            this.usageUrl = usageUrl;
+        }
+
+        public Duration getUsagePollInterval() {
+            return usagePollInterval;
+        }
+
+        public void setUsagePollInterval(Duration usagePollInterval) {
+            this.usagePollInterval = usagePollInterval;
+        }
+
+        public Duration getBackoffMaxInterval() {
+            return backoffMaxInterval;
+        }
+
+        public void setBackoffMaxInterval(Duration backoffMaxInterval) {
+            this.backoffMaxInterval = backoffMaxInterval;
+        }
     }
 }

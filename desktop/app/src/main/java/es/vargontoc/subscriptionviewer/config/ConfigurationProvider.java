@@ -29,6 +29,7 @@ public class ConfigurationProvider {
     public ConfigurationProvider(AppProperties appProperties, Environment environment) {
         this.appProperties = appProperties;
         this.environment = environment;
+        loadOpenCodeProperties();
     }
 
     @PostConstruct
@@ -36,6 +37,9 @@ public class ConfigurationProvider {
         log.info("Propiedad app.name resuelta: {}", getAppName());
         log.info("Propiedad app.usage-state-file resuelta: {}", getUsageStateFile());
         log.info("Propiedad app.usage-poll-interval resuelta: {}", getUsagePollInterval());
+        log.info("Propiedad subscription-viewer.opencode.usage-url resuelta: {}", getOpenCodeUsageUrl());
+        log.info("Propiedad subscription-viewer.opencode.usage-poll-interval resuelta: {}", getOpenCodeUsagePollInterval());
+        log.info("Propiedad subscription-viewer.opencode.backoff-max-interval resuelta: {}", getOpenCodeBackoffMaxInterval());
     }
 
     /**
@@ -83,6 +87,67 @@ public class ConfigurationProvider {
             throw new IllegalStateException("La propiedad app.usage-poll-interval debe ser positiva");
         }
         return interval;
+    }
+
+    public String getOpenCodeUsageUrl() {
+        String url = appProperties.getOpencode().getUsageUrl();
+        if (url == null || url.isBlank()) {
+            throw new IllegalStateException("La propiedad subscription-viewer.opencode.usage-url no puede estar vacia");
+        }
+        return url;
+    }
+
+    public Duration getOpenCodeUsagePollInterval() {
+        Duration interval = appProperties.getOpencode().getUsagePollInterval();
+        if (interval == null || interval.isNegative() || interval.isZero()) {
+            throw new IllegalStateException("El intervalo de OpenCode debe ser positivo");
+        }
+        return interval.compareTo(Duration.ofSeconds(10)) < 0
+                ? Duration.ofSeconds(10) : interval;
+    }
+
+    public Duration getOpenCodeBackoffMaxInterval() {
+        Duration interval = appProperties.getOpencode().getBackoffMaxInterval();
+        if (interval == null || interval.isNegative() || interval.isZero()) {
+            throw new IllegalStateException("El tope de backoff de OpenCode debe ser positivo");
+        }
+        return interval;
+    }
+
+    private void loadOpenCodeProperties() {
+        AppProperties.OpenCodeProperties properties = appProperties.getOpencode();
+        String usageUrl = environment.getProperty("subscription-viewer.opencode.usage-url");
+        String pollInterval = environment.getProperty("subscription-viewer.opencode.usage-poll-interval");
+        String backoffInterval = environment.getProperty("subscription-viewer.opencode.backoff-max-interval");
+        if (usageUrl != null) {
+            properties.setUsageUrl(usageUrl);
+        }
+        if (pollInterval != null) {
+            properties.setUsagePollInterval(parseDuration(pollInterval));
+        }
+        if (backoffInterval != null) {
+            properties.setBackoffMaxInterval(parseDuration(backoffInterval));
+        }
+    }
+
+    private Duration parseDuration(String value) {
+        String normalized = value.trim().toLowerCase();
+        if (normalized.matches("-?\\d+")) {
+            return Duration.ofSeconds(Long.parseLong(normalized));
+        }
+        if (normalized.endsWith("ms")) {
+            return Duration.ofMillis(Long.parseLong(normalized.substring(0, normalized.length() - 2)));
+        }
+        if (normalized.endsWith("s")) {
+            return Duration.ofSeconds(Long.parseLong(normalized.substring(0, normalized.length() - 1)));
+        }
+        if (normalized.endsWith("m")) {
+            return Duration.ofMinutes(Long.parseLong(normalized.substring(0, normalized.length() - 1)));
+        }
+        if (normalized.endsWith("h")) {
+            return Duration.ofHours(Long.parseLong(normalized.substring(0, normalized.length() - 1)));
+        }
+        return Duration.parse(value);
     }
 
     /**

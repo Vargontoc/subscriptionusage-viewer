@@ -35,8 +35,19 @@ class ConfigurationProviderTest {
             assertThat(provider.getAppName()).isEqualTo("Subscription Usage Viewer");
             assertThat(provider.getTrayIconPath()).isEqualTo("icons/app-icon.png");
             assertThat(provider.getUsageStateFile().toString()).endsWith(".claude" + java.io.File.separator + "statusline-state.json");
-            assertThat(provider.getUsagePollInterval()).isEqualTo(Duration.ofSeconds(10));
+             assertThat(provider.getUsagePollInterval()).isEqualTo(Duration.ofSeconds(10));
+             assertThat(provider.getOpenCodeUsagePollInterval()).isEqualTo(Duration.ofSeconds(60));
+             assertThat(provider.getOpenCodeBackoffMaxInterval()).isEqualTo(Duration.ofSeconds(300));
+             assertThat(provider.getOpenCodeUsageUrl()).isEqualTo("https://opencode.ai/zen/go/v1/usage");
         });
+    }
+
+    @Test
+    void shouldNormalizeOpenCodePollIntervalToTenSeconds() {
+        contextRunner
+                .withPropertyValues("subscription-viewer.opencode.usage-poll-interval=5s")
+                .run(context -> assertThat(context.getBean(ConfigurationProvider.class)
+                        .getOpenCodeUsagePollInterval()).isEqualTo(Duration.ofSeconds(10)));
     }
 
     @Test
