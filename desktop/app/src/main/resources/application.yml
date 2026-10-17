@@ -18,3 +18,4 @@ subscription-viewer:
     usage-url: "https://opencode.ai/zen/go/v1/usage"
     usage-poll-interval: "60s"
     backoff-max-interval: "300s"
+      

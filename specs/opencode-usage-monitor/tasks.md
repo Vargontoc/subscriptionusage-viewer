@@ -22,7 +22,7 @@ El trabajo se divide en cimientos compartidos (configuración, clasificación de
   1. Eliminar las propiedades de OpenCode de `application.yml` y arrancar la aplicación. Resultado: arranca sin error con los valores por defecto.
   2. Configurar un intervalo de OpenCode de 5 y arrancar la aplicación. Resultado: arranca sin error y el intervalo efectivo no baja de 10 s.
 
-### [ ] TASK-022 Valor secreto de la API key
+### [x] TASK-022 Valor secreto de la API key
 
 - **Cubre:** NFR-006, DEC-010
 - **Componente:** configuration-provider | src/main/java/es/vargontoc/subscriptionviewer/config

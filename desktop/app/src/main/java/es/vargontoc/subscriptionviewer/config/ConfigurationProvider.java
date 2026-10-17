@@ -114,11 +114,20 @@ public class ConfigurationProvider {
         return interval;
     }
 
+    /**
+     * Devuelve la clave encapsulada de OpenCode, o {@code null} si no está
+     * configurada.
+     */
+    public OpenCodeApiKey getOpenCodeApiKey() {
+        return appProperties.getOpencode().getApiKey();
+    }
+
     private void loadOpenCodeProperties() {
         AppProperties.OpenCodeProperties properties = appProperties.getOpencode();
         String usageUrl = environment.getProperty("subscription-viewer.opencode.usage-url");
         String pollInterval = environment.getProperty("subscription-viewer.opencode.usage-poll-interval");
         String backoffInterval = environment.getProperty("subscription-viewer.opencode.backoff-max-interval");
+        String apiKey = environment.getProperty("subscription-viewer.opencode.api-key");
         if (usageUrl != null) {
             properties.setUsageUrl(usageUrl);
         }
@@ -127,6 +136,9 @@ public class ConfigurationProvider {
         }
         if (backoffInterval != null) {
             properties.setBackoffMaxInterval(parseDuration(backoffInterval));
+        }
+        if (apiKey != null) {
+            properties.setApiKey(apiKey);
         }
     }
 

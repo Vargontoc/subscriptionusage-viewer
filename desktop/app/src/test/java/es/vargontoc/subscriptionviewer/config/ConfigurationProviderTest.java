@@ -39,6 +39,7 @@ class ConfigurationProviderTest {
              assertThat(provider.getOpenCodeUsagePollInterval()).isEqualTo(Duration.ofSeconds(60));
              assertThat(provider.getOpenCodeBackoffMaxInterval()).isEqualTo(Duration.ofSeconds(300));
              assertThat(provider.getOpenCodeUsageUrl()).isEqualTo("https://opencode.ai/zen/go/v1/usage");
+             assertThat(provider.getOpenCodeApiKey()).isNull();
         });
     }
 
@@ -61,6 +62,14 @@ class ConfigurationProviderTest {
                     assertThat(provider.getUsageStateFile().toString()).endsWith("custom-status.json");
                     assertThat(provider.getUsagePollInterval()).isEqualTo(Duration.ofSeconds(30));
                 });
+    }
+
+    @Test
+    void shouldExposeConfiguredOpenCodeApiKey() {
+        contextRunner
+                .withPropertyValues("subscription-viewer.opencode.api-key=SENTINEL-KEY-12345")
+                .run(context -> assertThat(context.getBean(ConfigurationProvider.class)
+                        .getOpenCodeApiKey().value()).isEqualTo("SENTINEL-KEY-12345"));
     }
 
     @Test

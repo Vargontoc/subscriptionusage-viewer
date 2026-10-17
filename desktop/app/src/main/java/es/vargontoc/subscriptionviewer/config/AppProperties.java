@@ -77,6 +77,7 @@ public class AppProperties {
         private String usageUrl = "https://opencode.ai/zen/go/v1/usage";
         private Duration usagePollInterval = Duration.ofSeconds(60);
         private Duration backoffMaxInterval = Duration.ofSeconds(300);
+        private OpenCodeApiKey apiKey;
 
         public String getUsageUrl() {
             return usageUrl;
@@ -100,6 +101,25 @@ public class AppProperties {
 
         public void setBackoffMaxInterval(Duration backoffMaxInterval) {
             this.backoffMaxInterval = backoffMaxInterval;
+        }
+
+        public OpenCodeApiKey getApiKey() {
+            return apiKey;
+        }
+
+        public void setApiKey(String apiKey) {
+            this.apiKey = new OpenCodeApiKey(apiKey);
+        }
+
+        /**
+         * No incluye la clave, ni siquiera su representación enmascarada,
+         * para evitar que un volcado de propiedades la trate como dato visible.
+         */
+        @Override
+        public String toString() {
+            return "OpenCodeProperties[usageUrl=" + usageUrl
+                    + ", usagePollInterval=" + usagePollInterval
+                    + ", backoffMaxInterval=" + backoffMaxInterval + "]";
         }
     }
 }

@@ -44,10 +44,10 @@ class ClaudeUsageStateFileIntegrationTest {
                   }
                 }
                 """;
+        Instant before = Instant.now().truncatedTo(ChronoUnit.MILLIS);
         Path stateFile = tempDir.resolve("statusline-dump.json");
         Files.writeString(stateFile, json);
 
-        Instant before = Instant.now().truncatedTo(ChronoUnit.MILLIS);
         ClaudeUsageSource source = createSource(stateFile);
         Optional<UsageReading> result = source.read();
         Instant after = Instant.now().truncatedTo(ChronoUnit.MILLIS);
