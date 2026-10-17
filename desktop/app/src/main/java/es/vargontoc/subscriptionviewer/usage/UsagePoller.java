@@ -7,8 +7,12 @@ import org.springframework.stereotype.Component;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -22,9 +26,9 @@ import java.util.concurrent.TimeoutException;
  *
  * <p>Consulta cada {@link UsageSource} de forma aislada con un tiempo de espera
  * máximo, actualiza el historial con lecturas presentes y publica el resultado
- * por proveedor. Usa un único ejecutor programado con retardo fijo contado desde
- * el fin de cada ciclo, de modo que una lectura lenta retrasa la siguiente pero
- * no la solapa.</p>
+ * por proveedor. Cada fuente tiene su propia cadencia y la siguiente lectura se
+ * programa al finalizar la anterior, de modo que una lectura lenta no se solapa.
+ </p>
  */
 @Component
 public class UsagePoller implements SmartLifecycle {
@@ -46,6 +50,10 @@ public class UsagePoller implements SmartLifecycle {
     });
 
     private volatile boolean running = false;
+    private final Map<String, ScheduledFuture<?>> scheduled = new ConcurrentHashMap<>();
+    private final Map<String, Boolean> paused = new ConcurrentHashMap<>();
+    private final Map<String, Integer> transientFailures = new ConcurrentHashMap<>();
+    private static final String OPENCODE = "opencode";
 
     /**
      * Constructor para producción.
@@ -87,8 +95,19 @@ public class UsagePoller implements SmartLifecycle {
             return;
         }
         running = true;
-        Duration interval = configurationProvider.getUsagePollInterval();
-        executor.scheduleWithFixedDelay(this::runCycle, interval.toMillis(), interval.toMillis(), TimeUnit.MILLISECONDS);
+        if (sources.isEmpty()) {
+            // Compatibilidad con el planificador antiguo y con instalaciones sin fuentes.
+            Duration interval = configurationProvider.getUsagePollInterval();
+            executor.scheduleWithFixedDelay(() -> { }, interval.toMillis(), interval.toMillis(), TimeUnit.MILLISECONDS);
+            return;
+        }
+        for (UsageSource source : sources) {
+            if (isOpenCode(source) && !configurationProvider.hasOpenCodeApiKey()) {
+                publisher.publish(source.getProviderId(), UsageReadResult.claveAusente(), clock.instant());
+                continue;
+            }
+            scheduleNext(source, intervalFor(source));
+        }
     }
 
     @Override
@@ -97,6 +116,7 @@ public class UsagePoller implements SmartLifecycle {
             return;
         }
         running = false;
+        scheduled.values().forEach(future -> future.cancel(false));
         executor.shutdown();
         readExecutor.shutdownNow();
         try {
@@ -116,23 +136,70 @@ public class UsagePoller implements SmartLifecycle {
 
     void runCycle() {
         for (UsageSource source : sources) {
-            Optional<UsageReading> reading = readWithTimeout(source);
+            UsageReadResult result = readWithTimeout(source);
+            Optional<UsageReading> reading = result.datos();
             reading.ifPresent(usageHistory::add);
             publisher.publish(source.getProviderId(), reading);
         }
     }
 
-    private Optional<UsageReading> readWithTimeout(UsageSource source) {
-        Future<Optional<UsageReading>> future = readExecutor.submit(source::read);
+    private boolean isOpenCode(UsageSource source) {
+        return OPENCODE.equalsIgnoreCase(source.getProviderId())
+                || source.getProviderId().toLowerCase().contains("opencode");
+    }
+
+    private Duration intervalFor(UsageSource source) {
+        return isOpenCode(source)
+                ? configurationProvider.getOpenCodeUsagePollInterval()
+                : configurationProvider.getUsagePollInterval();
+    }
+
+    private void scheduleNext(UsageSource source, Duration delay) {
+        if (!running || paused.getOrDefault(source.getProviderId(), false)) return;
+        ScheduledFuture<?> future = executor.schedule(() -> poll(source),
+                Math.max(0, delay.toMillis()), TimeUnit.MILLISECONDS);
+        scheduled.put(source.getProviderId(), future);
+    }
+
+    private void poll(UsageSource source) {
+        if (!running || paused.getOrDefault(source.getProviderId(), false)) return;
+        readExecutor.submit(() -> {
+            UsageReadResult result = readWithTimeout(source);
+            Instant completedAt = clock.instant();
+            result.datos().ifPresent(usageHistory::add);
+            publisher.publish(source.getProviderId(), result, completedAt);
+
+            if (result.estado() == UsageReadResult.Estado.CLAVE_INVALIDA
+                    || result.estado() == UsageReadResult.Estado.SIN_SUSCRIPCION) {
+                paused.put(source.getProviderId(), true);
+                return;
+            }
+            Duration next = intervalFor(source);
+            if (isOpenCode(source)) {
+                if (result.estado() == UsageReadResult.Estado.FALLO_TRANSITORIO) {
+                    int failures = transientFailures.merge(source.getProviderId(), 1, Integer::sum);
+                    long seconds = Math.min(intervalFor(source).toSeconds() * (1L << Math.min(failures - 1, 2)),
+                            configurationProvider.getOpenCodeBackoffMaxInterval().toSeconds());
+                    next = Duration.ofSeconds(seconds);
+                } else if (result.estado() == UsageReadResult.Estado.DATOS) {
+                    transientFailures.remove(source.getProviderId());
+                }
+            }
+            scheduleNext(source, next);
+        });
+    }
+
+    private UsageReadResult readWithTimeout(UsageSource source) {
+        Future<UsageReadResult> future = readExecutor.submit(source::read);
         try {
             return future.get(SOURCE_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             future.cancel(true);
-            return Optional.empty();
+            return UsageReadResult.falloTransitorio(e);
         } catch (ExecutionException | TimeoutException e) {
             future.cancel(true);
-            return Optional.empty();
+            return UsageReadResult.falloTransitorio(e);
         }
     }
 }

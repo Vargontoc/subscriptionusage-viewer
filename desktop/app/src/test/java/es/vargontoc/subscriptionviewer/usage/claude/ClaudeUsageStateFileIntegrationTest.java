@@ -4,6 +4,7 @@ import tools.jackson.databind.ObjectMapper;
 import es.vargontoc.subscriptionviewer.config.AppProperties;
 import es.vargontoc.subscriptionviewer.config.ConfigurationProvider;
 import es.vargontoc.subscriptionviewer.usage.UsageReading;
+import es.vargontoc.subscriptionviewer.usage.UsageReadResult;
 import es.vargontoc.subscriptionviewer.usage.UsageWindowType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -49,10 +50,10 @@ class ClaudeUsageStateFileIntegrationTest {
         Files.writeString(stateFile, json);
 
         ClaudeUsageSource source = createSource(stateFile);
-        Optional<UsageReading> result = source.read();
+        UsageReadResult result = source.read();
         Instant after = Instant.now().truncatedTo(ChronoUnit.MILLIS);
 
-        assertThat(result).isPresent();
+        assertThat(result.isPresent()).isTrue();
         UsageReading reading = result.get();
         assertThat(reading.providerId()).isEqualTo("claude");
         assertThat(reading.writtenAt()).isAfterOrEqualTo(before).isBeforeOrEqualTo(after);
@@ -81,7 +82,7 @@ class ClaudeUsageStateFileIntegrationTest {
         Files.writeString(stateFile, validJson);
         ClaudeUsageSource source = createSource(stateFile);
 
-        assertThat(source.read()).isPresent();
+        assertThat(source.read().isPresent()).isTrue();
 
         String partialJson = """
                 {
@@ -90,8 +91,8 @@ class ClaudeUsageStateFileIntegrationTest {
                 """;
         Files.writeString(stateFile, partialJson);
 
-        Optional<UsageReading> afterUpdate = source.read();
-        assertThat(afterUpdate).isEmpty();
+        UsageReadResult afterUpdate = source.read();
+        assertThat(afterUpdate.isEmpty()).isTrue();
     }
 
     @Test
@@ -108,7 +109,7 @@ class ClaudeUsageStateFileIntegrationTest {
         Files.writeString(stateFile, validJson);
         ClaudeUsageSource source = createSource(stateFile);
 
-        assertThat(source.read()).isPresent();
+        assertThat(source.read().isPresent()).isTrue();
 
         String mixedJson = """
                 {
@@ -120,8 +121,8 @@ class ClaudeUsageStateFileIntegrationTest {
                 """;
         Files.writeString(stateFile, mixedJson);
 
-        Optional<UsageReading> afterUpdate = source.read();
-        assertThat(afterUpdate).isEmpty();
+        UsageReadResult afterUpdate = source.read();
+        assertThat(afterUpdate.isEmpty()).isTrue();
     }
 
     private ClaudeUsageSource createSource(Path stateFile) {

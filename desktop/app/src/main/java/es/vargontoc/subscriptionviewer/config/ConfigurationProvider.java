@@ -3,6 +3,8 @@ package es.vargontoc.subscriptionviewer.config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.PropertySource;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
@@ -25,6 +27,7 @@ public class ConfigurationProvider {
 
     private final AppProperties appProperties;
     private final Environment environment;
+    private String openCodeApiKeyOrigin = "ninguno";
 
     public ConfigurationProvider(AppProperties appProperties, Environment environment) {
         this.appProperties = appProperties;
@@ -40,6 +43,8 @@ public class ConfigurationProvider {
         log.info("Propiedad subscription-viewer.opencode.usage-url resuelta: {}", getOpenCodeUsageUrl());
         log.info("Propiedad subscription-viewer.opencode.usage-poll-interval resuelta: {}", getOpenCodeUsagePollInterval());
         log.info("Propiedad subscription-viewer.opencode.backoff-max-interval resuelta: {}", getOpenCodeBackoffMaxInterval());
+        log.info("OpenCode: clave configurada: {}; origen: {}",
+                hasOpenCodeApiKey() ? "sí" : "no", openCodeApiKeyOrigin);
     }
 
     /**
@@ -122,12 +127,22 @@ public class ConfigurationProvider {
         return appProperties.getOpencode().getApiKey();
     }
 
+    /** Indica si la fuente de OpenCode puede autenticarse, sin exponer el secreto. */
+    public boolean hasOpenCodeApiKey() {
+        OpenCodeApiKey key = getOpenCodeApiKey();
+        return key != null && key.value() != null && !key.value().isBlank();
+    }
+
+    /** Devuelve el origen de la clave para el estado de arranque, nunca su valor. */
+    public String getOpenCodeApiKeyOrigin() {
+        return openCodeApiKeyOrigin;
+    }
+
     private void loadOpenCodeProperties() {
         AppProperties.OpenCodeProperties properties = appProperties.getOpencode();
         String usageUrl = environment.getProperty("subscription-viewer.opencode.usage-url");
         String pollInterval = environment.getProperty("subscription-viewer.opencode.usage-poll-interval");
         String backoffInterval = environment.getProperty("subscription-viewer.opencode.backoff-max-interval");
-        String apiKey = environment.getProperty("subscription-viewer.opencode.api-key");
         if (usageUrl != null) {
             properties.setUsageUrl(usageUrl);
         }
@@ -137,9 +152,49 @@ public class ConfigurationProvider {
         if (backoffInterval != null) {
             properties.setBackoffMaxInterval(parseDuration(backoffInterval));
         }
-        if (apiKey != null) {
-            properties.setApiKey(apiKey);
+        // No se usa environment.getProperty(...) para la primera lectura: las
+        // variables de entorno tienen reglas de enlace relajado y podrían
+        // invertir la precedencia requerida. Se inspecciona primero el valor
+        // explícito de las fuentes de configuración (YAML/test properties).
+        String fileApiKey = findExplicitApiKeyProperty();
+        if (isConfiguredApiKey(fileApiKey)) {
+            properties.setApiKey(fileApiKey.trim());
+            openCodeApiKeyOrigin = "application.yml";
+            return;
         }
+
+        String environmentApiKey = environment.getProperty("OPENCODE_API_KEY");
+        if (!isConfiguredApiKey(environmentApiKey)) {
+            environmentApiKey = System.getenv("OPENCODE_API_KEY");
+        }
+        if (isConfiguredApiKey(environmentApiKey)) {
+            properties.setApiKey(environmentApiKey.trim());
+            openCodeApiKeyOrigin = "entorno";
+        }
+    }
+
+    private String findExplicitApiKeyProperty() {
+        if (!(environment instanceof ConfigurableEnvironment configurableEnvironment)) {
+            return environment.getProperty("subscription-viewer.opencode.api-key");
+        }
+        for (PropertySource<?> source : configurableEnvironment.getPropertySources()) {
+            // SystemEnvironmentPropertySource puede resolver nombres relajados
+            // y por ello no representa el valor del YAML.
+            if ("systemEnvironment".equals(source.getName())
+                    || source.getName().toLowerCase().contains("systemenvironment")) {
+                continue;
+            }
+            Object value = source.getProperty("subscription-viewer.opencode.api-key");
+            if (value != null) {
+                return value.toString();
+            }
+        }
+        return null;
+    }
+
+    private boolean isConfiguredApiKey(String value) {
+        return value != null && !value.isBlank()
+                && !"<YOUR_OPENCODE_API_KEY>".equals(value.trim());
     }
 
     private Duration parseDuration(String value) {

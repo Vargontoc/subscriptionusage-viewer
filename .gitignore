@@ -2,4 +2,6 @@
 .claude
 .opencode
 .vscode
+
+.env
 desktop/app/target

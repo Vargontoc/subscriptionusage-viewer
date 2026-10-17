@@ -14,6 +14,7 @@ import java.awt.RenderingHints;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,14 +69,14 @@ public class UsageChartPanel extends JPanel {
         if (minTime == null || maxTime == null) {
             return;
         }
-        long timeSpan = maxTime.getEpochSecond() - minTime.getEpochSecond();
+        double timeSpan = secondsBetween(minTime, maxTime);
         if (timeSpan <= 0) {
-            timeSpan = 1;
+            timeSpan = 1.0;
         }
 
         for (Map.Entry<UsageHistory.Key, List<UsageHistoryPoint>> entry : series.entrySet()) {
             List<UsageHistoryPoint> points = entry.getValue();
-            if (points.size() < 2) {
+            if (points.isEmpty()) {
                 continue;
             }
             Color color = colorFor(entry.getKey().type());
@@ -107,7 +108,7 @@ public class UsageChartPanel extends JPanel {
      */
     List<ScreenPoint> projectSeries(String providerId, UsageWindowType type) {
         List<UsageHistoryPoint> points = series.getOrDefault(new UsageHistory.Key(providerId, type), List.of());
-        if (points.size() < 2) {
+        if (points.isEmpty()) {
             return List.of();
         }
 
@@ -122,9 +123,9 @@ public class UsageChartPanel extends JPanel {
         if (minTime == null || maxTime == null) {
             return List.of();
         }
-        long timeSpan = maxTime.getEpochSecond() - minTime.getEpochSecond();
+        double timeSpan = secondsBetween(minTime, maxTime);
         if (timeSpan <= 0) {
-            timeSpan = 1;
+            timeSpan = 1.0;
         }
 
         List<ScreenPoint> result = new ArrayList<>(points.size());
@@ -142,8 +143,8 @@ public class UsageChartPanel extends JPanel {
     }
 
     private Point toScreen(UsageHistoryPoint point, int left, int top, int width, int height,
-                           Instant minTime, long timeSpan) {
-        double timeRatio = (double) (point.writtenAt().getEpochSecond() - minTime.getEpochSecond()) / timeSpan;
+                           Instant minTime, double timeSpan) {
+        double timeRatio = secondsBetween(minTime, point.writtenAt()) / timeSpan;
         int x = left + (int) Math.round(timeRatio * width);
         int y = top + height - (int) Math.round((point.usedPercentage() / 100.0) * height);
         return new Point(x, y);
@@ -165,17 +166,28 @@ public class UsageChartPanel extends JPanel {
                 .orElse(null);
     }
 
+    private double secondsBetween(Instant start, Instant end) {
+        return (end.getEpochSecond() - start.getEpochSecond())
+                + (end.getNano() - start.getNano()) / 1_000_000_000.0;
+    }
+
     private Color colorFor(UsageWindowType type) {
         return switch (type) {
             case FIVE_HOUR -> FIVE_HOUR_COLOR;
             case SEVEN_DAY -> SEVEN_DAY_COLOR;
+            case ROLLING -> FIVE_HOUR_COLOR;
+            case WEEKLY, MONTHLY -> SEVEN_DAY_COLOR;
         };
     }
 
     private Map<UsageHistory.Key, List<UsageHistoryPoint>> copySeries(
             Map<UsageHistory.Key, List<UsageHistoryPoint>> source) {
         Map<UsageHistory.Key, List<UsageHistoryPoint>> copy = new HashMap<>();
-        source.forEach((key, points) -> copy.put(key, List.copyOf(points)));
+        source.forEach((key, points) -> {
+            List<UsageHistoryPoint> ordered = new ArrayList<>(points);
+            ordered.sort(Comparator.comparing(UsageHistoryPoint::writtenAt));
+            copy.put(key, List.copyOf(ordered));
+        });
         return Collections.unmodifiableMap(copy);
     }
 

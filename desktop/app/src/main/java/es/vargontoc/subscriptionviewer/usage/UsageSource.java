@@ -7,7 +7,7 @@ import java.util.Optional;
  *
  * <p>Cada implementación representa un proveedor distinto (Claude, OpenAI, etc.).
  * El método {@link #read()} encapsula cualquier fallo interno y lo convierte en
- * ausencia de datos, de modo que el consumidor no necesita conocer el origen
+ * un resultado clasificado, de modo que el consumidor no necesita conocer el origen
  * ni manejar excepciones de una fuente concreta.</p>
  */
 public interface UsageSource {
@@ -24,15 +24,16 @@ public interface UsageSource {
      *
      * <p>Las implementaciones deben sobreescribir {@link #doRead()}.
      * Este método envuelve la llamada para que cualquier excepción se
-     * traduzca en {@link Optional#empty()}.</p>
+     * traduzca en {@link UsageReadResult.Estado#FALLO_TRANSITORIO}.</p>
      *
-     * @return lectura de uso o {@link Optional#empty()} si no hay datos o falla
+     * @return resultado clasificado de la lectura
      */
-    default Optional<UsageReading> read() {
+    default UsageReadResult read() {
         try {
-            return doRead();
+            return doRead().map(UsageReadResult::datos)
+                    .orElseGet(() -> UsageReadResult.falloTransitorio(null));
         } catch (Exception e) {
-            return Optional.empty();
+            return UsageReadResult.falloTransitorio(e);
         }
     }
 

@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class UsageHistoryTest {
 
     private static final String PROVIDER = "claude";
+    private static final String OPENCODE_PROVIDER = "opencode";
     private static final Instant T1 = Instant.parse("2026-10-16T10:00:00Z");
     private static final Instant T2 = Instant.parse("2026-10-16T10:00:10Z");
     private static final Instant T3 = Instant.parse("2026-10-16T10:00:20Z");
@@ -33,6 +34,55 @@ class UsageHistoryTest {
         assertThat(series.get(1).writtenAt()).isEqualTo(T2);
         assertThat(series.get(2).usedPercentage()).isEqualTo(30);
         assertThat(series.get(2).writtenAt()).isEqualTo(T3);
+    }
+
+    @Test
+    void shouldAddOpenCodePointWhenPercentageOrResetChanges() {
+        UsageHistory history = new UsageHistory();
+        Instant reset1 = Instant.parse("2026-10-16T15:00:00Z");
+        Instant reset2 = Instant.parse("2026-10-16T16:00:00Z");
+
+        history.add(new UsageReading(OPENCODE_PROVIDER, T1, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 10, reset1))));
+        history.add(new UsageReading(OPENCODE_PROVIDER, T2, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 20, reset1))));
+        history.add(new UsageReading(OPENCODE_PROVIDER, T3, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 20, reset2))));
+
+        assertThat(history.getSeries(OPENCODE_PROVIDER, UsageWindowType.FIVE_HOUR))
+                .extracting(UsageHistoryPoint::usedPercentage)
+                .containsExactly(10, 20, 20);
+        assertThat(history.getSeries(OPENCODE_PROVIDER, UsageWindowType.FIVE_HOUR))
+                .extracting(UsageHistoryPoint::writtenAt)
+                .containsExactly(T1, T2, T3);
+    }
+
+    @Test
+    void shouldNotDuplicateOpenCodeValuesWhenQueryTimeChanges() {
+        UsageHistory history = new UsageHistory();
+        Instant reset = Instant.parse("2026-10-16T15:00:00Z");
+
+        history.add(new UsageReading(OPENCODE_PROVIDER, T1, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 10, reset))));
+        history.add(new UsageReading(OPENCODE_PROVIDER, T2, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 10, reset))));
+
+        assertThat(history.getSeries(OPENCODE_PROVIDER, UsageWindowType.FIVE_HOUR)).hasSize(1);
+    }
+
+    @Test
+    void shouldKeepMostRecentOpenCodePointsWhenLimitIsExceeded() {
+        UsageHistory history = new UsageHistory();
+        Instant reset = Instant.parse("2026-10-16T15:00:00Z");
+
+        for (int i = 0; i < UsageHistory.MAX_POINTS_PER_SERIES + 5; i++) {
+            history.add(new UsageReading(OPENCODE_PROVIDER, T1.plusSeconds(i), List.of(
+                    new UsageWindowReading(UsageWindowType.FIVE_HOUR, i, reset))));
+        }
+
+        assertThat(history.getSeries(OPENCODE_PROVIDER, UsageWindowType.FIVE_HOUR)).hasSize(UsageHistory.MAX_POINTS_PER_SERIES);
+        assertThat(history.getSeries(OPENCODE_PROVIDER, UsageWindowType.FIVE_HOUR).get(0).usedPercentage())
+                .isEqualTo(5);
     }
 
     @Test

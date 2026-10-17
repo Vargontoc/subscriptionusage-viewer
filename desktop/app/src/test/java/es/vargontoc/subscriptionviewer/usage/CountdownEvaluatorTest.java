@@ -62,6 +62,39 @@ class CountdownEvaluatorTest {
     }
 
     @Test
+    void shouldFormatLongWindowInDays() {
+        Clock clock = Clock.fixed(NOW, ZoneId.systemDefault());
+        CountdownEvaluator evaluator = new CountdownEvaluator(clock);
+
+        CountdownResult result = evaluator.evaluate(NOW.plus(Duration.ofDays(2)));
+
+        assertThat(result.valid()).isTrue();
+        assertThat(result.formattedRemainingTime()).isEqualTo("2 días");
+    }
+
+    @Test
+    void shouldKeepShortWindowHoursAndMinutesFormat() {
+        Clock clock = Clock.fixed(NOW, ZoneId.systemDefault());
+        CountdownEvaluator evaluator = new CountdownEvaluator(clock);
+
+        CountdownResult result = evaluator.evaluate(NOW.plus(Duration.ofHours(3)));
+
+        assertThat(result.formattedRemainingTime()).isEqualTo("3h 0m");
+    }
+
+    @Test
+    void shouldTreatMissingWindowAsExpired() {
+        Clock clock = Clock.fixed(NOW, ZoneId.systemDefault());
+        CountdownEvaluator evaluator = new CountdownEvaluator(clock);
+
+        CountdownResult result = evaluator.evaluate(null);
+
+        assertThat(result.valid()).isFalse();
+        assertThat(result.remainingTime()).isEqualTo(Duration.ZERO);
+        assertThat(result.formattedRemainingTime()).isEmpty();
+    }
+
+    @Test
     void shouldReturnZeroWhenResetIsExactlyNow() {
         Clock clock = Clock.fixed(RESETS_AT, ZoneId.systemDefault());
         CountdownEvaluator evaluator = new CountdownEvaluator(clock);

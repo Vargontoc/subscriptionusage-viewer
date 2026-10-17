@@ -73,6 +73,92 @@ class UsageSnapshotPublisherTest {
         assertThat(last.readingOf(CLAUDE).get().windows().get(1).usedPercentage()).isEqualTo(16);
     }
 
+    @Test
+    void successfulReadPublishesCorrectStateAndQueryTime() {
+        UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
+        publisher.publish(CLAUDE, UsageReadResult.datos(readingOf(CLAUDE, 20, 5)), NOW);
+
+        UsageProviderState state = publisher.getCurrentSnapshot().stateOf(CLAUDE).orElseThrow();
+        assertThat(state.estado()).isEqualTo(UsageProviderState.Estado.CORRECTO);
+        assertThat(state.reading()).isNotNull();
+        assertThat(state.lastSuccessfulQuery()).isEqualTo(NOW);
+    }
+
+    @Test
+    void transientFailureKeepsDataAndSuccessfulTimeButMarksItStale() {
+        UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
+        publisher.publish(CLAUDE, UsageReadResult.datos(readingOf(CLAUDE, 20, 5)), NOW);
+        publisher.publish(CLAUDE, UsageReadResult.falloTransitorio(new RuntimeException("network")),
+                NOW.plusSeconds(60));
+
+        UsageProviderState state = publisher.getCurrentSnapshot().stateOf(CLAUDE).orElseThrow();
+        assertThat(state.estado()).isEqualTo(UsageProviderState.Estado.DESACTUALIZADO);
+        assertThat(state.reading().windows().get(0).usedPercentage()).isEqualTo(20);
+        assertThat(state.lastSuccessfulQuery()).isEqualTo(NOW);
+
+        publisher.publish(CLAUDE, UsageReadResult.datos(readingOf(CLAUDE, 21, 5)), NOW.plusSeconds(120));
+        assertThat(publisher.getCurrentSnapshot().stateOf(CLAUDE).orElseThrow().estado())
+                .isEqualTo(UsageProviderState.Estado.CORRECTO);
+    }
+
+    @Test
+    void invalidKeyKeepsPreviousData() {
+        UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
+        publisher.publish(CLAUDE, UsageReadResult.datos(readingOf(CLAUDE, 20, 5)), NOW);
+        publisher.publish(CLAUDE, UsageReadResult.claveInvalida(), NOW.plusSeconds(1));
+
+        UsageProviderState state = publisher.getCurrentSnapshot().stateOf(CLAUDE).orElseThrow();
+        assertThat(state.estado()).isEqualTo(UsageProviderState.Estado.CLAVE_INVALIDA);
+        assertThat(state.reading().windows().get(0).usedPercentage()).isEqualTo(20);
+        assertThat(state.lastSuccessfulQuery()).isEqualTo(NOW);
+    }
+
+    @Test
+    void missingKeyHasNoDataOrSuccessfulTime() {
+        UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
+        publisher.publish("opencode", UsageReadResult.claveAusente(), NOW);
+
+        UsageProviderState state = publisher.getCurrentSnapshot().stateOf("opencode").orElseThrow();
+        assertThat(state.estado()).isEqualTo(UsageProviderState.Estado.CLAVE_AUSENTE);
+        assertThat(state.reading()).isNull();
+        assertThat(state.lastSuccessfulQuery()).isNull();
+    }
+
+    @Test
+    void initialTransientFailureHasNoDataAndIsNotReportedAsStale() {
+        UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
+        publisher.publish("opencode", UsageReadResult.falloTransitorio(new RuntimeException("x")), NOW);
+
+        UsageProviderState state = publisher.getCurrentSnapshot().stateOf("opencode").orElseThrow();
+        assertThat(state.estado()).isEqualTo(UsageProviderState.Estado.SIN_DATOS);
+        assertThat(state.reading()).isNull();
+        assertThat(state.lastSuccessfulQuery()).isNull();
+    }
+
+    @Test
+    void providersAreIsolated() {
+        UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
+        publisher.publish(CLAUDE, UsageReadResult.datos(readingOf(CLAUDE, 20, 5)), NOW);
+        publisher.publish("opencode", UsageReadResult.datos(readingOf("opencode", 30, 7)), NOW);
+        publisher.publish("opencode", UsageReadResult.falloTransitorio(new RuntimeException("x")), NOW);
+
+        assertThat(publisher.getCurrentSnapshot().stateOf(CLAUDE).orElseThrow().estado())
+                .isEqualTo(UsageProviderState.Estado.CORRECTO);
+        assertThat(publisher.getCurrentSnapshot().stateOf(CLAUDE).orElseThrow().reading().providerId())
+                .isEqualTo(CLAUDE);
+    }
+
+    @Test
+    void publishedStateDoesNotContainCredentials() {
+        String secret = "sentinel-api-key-123";
+        UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
+        publisher.publish("opencode", UsageReadResult.claveInvalida(), NOW);
+        String published = publisher.getCurrentSnapshot().toString();
+
+        assertThat(published).doesNotContain(secret);
+        assertThat(published).doesNotContain("sentinel");
+    }
+
     private UsageReading readingOf(String providerId, int fiveHour, int sevenDay) {
         return new UsageReading(
                 providerId,

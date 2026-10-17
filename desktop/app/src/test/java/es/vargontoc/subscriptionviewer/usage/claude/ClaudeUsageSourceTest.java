@@ -4,6 +4,7 @@ import tools.jackson.databind.ObjectMapper;
 import es.vargontoc.subscriptionviewer.config.AppProperties;
 import es.vargontoc.subscriptionviewer.config.ConfigurationProvider;
 import es.vargontoc.subscriptionviewer.usage.UsageReading;
+import es.vargontoc.subscriptionviewer.usage.UsageReadResult;
 import es.vargontoc.subscriptionviewer.usage.UsageWindowType;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.env.Environment;
@@ -38,9 +39,9 @@ class ClaudeUsageSourceTest {
                 """;
         ClaudeUsageSource source = createSource(json, FILE_TIME);
 
-        Optional<UsageReading> result = source.read();
+        UsageReadResult result = source.read();
 
-        assertThat(result).isPresent();
+        assertThat(result.isPresent()).isTrue();
         UsageReading reading = result.get();
         assertThat(reading.providerId()).isEqualTo("claude");
         assertThat(reading.writtenAt()).isEqualTo(Instant.ofEpochSecond(1792175400));
@@ -63,9 +64,9 @@ class ClaudeUsageSourceTest {
                 """;
         ClaudeUsageSource source = createSource(json, FILE_TIME);
 
-        Optional<UsageReading> result = source.read();
+        UsageReadResult result = source.read();
 
-        assertThat(result).isPresent();
+        assertThat(result.isPresent()).isTrue();
         assertThat(result.get().windows().get(0).usedPercentage()).isEqualTo(7);
         assertThat(result.get().windows().get(1).usedPercentage()).isEqualTo(11);
     }
@@ -74,18 +75,18 @@ class ClaudeUsageSourceTest {
     void shouldReturnEmptyWhenFileIsMissing() {
         ClaudeUsageSource source = createSource(new FixedStateFileLoader(Optional.empty()));
 
-        Optional<UsageReading> result = source.read();
+        UsageReadResult result = source.read();
 
-        assertThat(result).isEmpty();
+        assertThat(result.isEmpty()).isTrue();
     }
 
     @Test
     void shouldReturnEmptyWhenJsonIsMalformed() {
         ClaudeUsageSource source = createSource("esto no es json", FILE_TIME);
 
-        Optional<UsageReading> result = source.read();
+        UsageReadResult result = source.read();
 
-        assertThat(result).isEmpty();
+        assertThat(result.isEmpty()).isTrue();
     }
 
     @Test
@@ -98,9 +99,9 @@ class ClaudeUsageSourceTest {
                 """;
         ClaudeUsageSource source = createSource(json, FILE_TIME);
 
-        Optional<UsageReading> result = source.read();
+        UsageReadResult result = source.read();
 
-        assertThat(result).isPresent();
+        assertThat(result.isPresent()).isTrue();
         assertThat(result.get().windows()).hasSize(1);
         assertThat(result.get().windows().get(0).type()).isEqualTo(UsageWindowType.SEVEN_DAY);
     }
@@ -115,9 +116,9 @@ class ClaudeUsageSourceTest {
                 """;
         ClaudeUsageSource source = createSource(json, FILE_TIME);
 
-        Optional<UsageReading> result = source.read();
+        UsageReadResult result = source.read();
 
-        assertThat(result).isEmpty();
+        assertThat(result.isEmpty()).isTrue();
     }
 
     @Test
@@ -130,9 +131,9 @@ class ClaudeUsageSourceTest {
                 """;
         ClaudeUsageSource source = createSource(json, FILE_TIME);
 
-        Optional<UsageReading> result = source.read();
+        UsageReadResult result = source.read();
 
-        assertThat(result).isPresent();
+        assertThat(result.isPresent()).isTrue();
         assertThat(result.get().writtenAt()).isEqualTo(FILE_TIME);
     }
 
@@ -147,9 +148,9 @@ class ClaudeUsageSourceTest {
                 """;
         ClaudeUsageSource source = createSource(json, FILE_TIME);
 
-        Optional<UsageReading> result = source.read();
+        UsageReadResult result = source.read();
 
-        assertThat(result).isPresent();
+        assertThat(result.isPresent()).isTrue();
         assertThat(result.get().writtenAt()).isEqualTo(FILE_TIME);
     }
 
@@ -163,9 +164,9 @@ class ClaudeUsageSourceTest {
                 """;
         ClaudeUsageSource source = createSource(json, FILE_TIME);
 
-        Optional<UsageReading> result = source.read();
+        UsageReadResult result = source.read();
 
-        assertThat(result).isEmpty();
+        assertThat(result.isEmpty()).isTrue();
     }
 
     @Test
@@ -185,9 +186,9 @@ class ClaudeUsageSourceTest {
                 """;
         ClaudeUsageSource source = createSource(json, FILE_TIME);
 
-        Optional<UsageReading> result = source.read();
+        UsageReadResult result = source.read();
 
-        assertThat(result).isPresent();
+        assertThat(result.isPresent()).isTrue();
         UsageReading reading = result.get();
         assertThat(reading.windows()).hasSize(2);
         assertThat(reading.windows().get(0).usedPercentage()).isEqualTo(7);

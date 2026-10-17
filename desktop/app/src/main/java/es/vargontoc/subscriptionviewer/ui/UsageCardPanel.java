@@ -3,6 +3,7 @@ package es.vargontoc.subscriptionviewer.ui;
 import es.vargontoc.subscriptionviewer.usage.CountdownEvaluator;
 import es.vargontoc.subscriptionviewer.usage.CountdownResult;
 import es.vargontoc.subscriptionviewer.usage.UsageReading;
+import es.vargontoc.subscriptionviewer.usage.UsageProviderState;
 import es.vargontoc.subscriptionviewer.usage.UsageWindowReading;
 import es.vargontoc.subscriptionviewer.usage.UsageWindowType;
 
@@ -15,6 +16,8 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.EnumMap;
+import java.util.Map;
 
 /**
  * Tarjeta visual con la información de uso de un proveedor.
@@ -28,8 +31,8 @@ public class UsageCardPanel extends JPanel {
 
     private final CountdownEvaluator evaluator;
     private final JLabel providerLabel;
-    private final JLabel fiveHourLabel;
-    private final JLabel sevenDayLabel;
+    private final Map<UsageWindowType, JLabel> windowLabels = new EnumMap<>(UsageWindowType.class);
+    private final JLabel statusLabel;
     private final JLabel writtenAtLabel;
 
     /**
@@ -44,13 +47,16 @@ public class UsageCardPanel extends JPanel {
         setBorder(BorderFactory.createTitledBorder(capitalize(providerId)));
 
         providerLabel = new JLabel(capitalize(providerId));
-        fiveHourLabel = new JLabel();
-        sevenDayLabel = new JLabel();
+        statusLabel = new JLabel();
         writtenAtLabel = new JLabel();
 
         add(providerLabel);
-        add(fiveHourLabel);
-        add(sevenDayLabel);
+        for (UsageWindowType type : UsageWindowType.values()) {
+            JLabel label = new JLabel();
+            windowLabels.put(type, label);
+            add(label);
+        }
+        add(statusLabel);
         add(writtenAtLabel);
     }
 
@@ -63,6 +69,47 @@ public class UsageCardPanel extends JPanel {
      * @param reading lectura del proveedor
      */
     public void update(UsageReading reading) {
+        updateLegacy(reading);
+    }
+
+    /** Actualiza la tarjeta desde el estado publicado, nunca desde credenciales. */
+    public void update(UsageProviderState state) {
+        UsageReading reading = state.reading();
+        providerLabel.setText(capitalize(reading != null ? reading.providerId() : "OpenCode"));
+
+        if (reading != null && "claude".equalsIgnoreCase(reading.providerId())
+                && state.estado() == UsageProviderState.Estado.CORRECTO) {
+            updateLegacy(reading);
+            statusLabel.setText("");
+            return;
+        }
+
+        windowLabels.values().forEach(label -> label.setText(""));
+        if (reading != null) {
+            for (UsageWindowReading window : reading.windows()) {
+                CountdownResult result = evaluator.evaluate(window.resetsAt());
+                if (!result.valid()) {
+                    continue;
+                }
+                JLabel label = windowLabels.get(window.type());
+                if (label != null) {
+                    label.setText(windowName(window.type()) + ": " + percentageText(window.usedPercentage())
+                            + " (" + result.formattedRemainingTime() + ")");
+                }
+            }
+        }
+
+        statusLabel.setText(statusText(state.estado()));
+        if (state.lastSuccessfulQuery() == null) {
+            writtenAtLabel.setText("");
+        } else {
+            LocalDateTime localTime = LocalDateTime.ofInstant(state.lastSuccessfulQuery(), ZoneId.systemDefault());
+            writtenAtLabel.setText("Última actualización: " + localTime.format(TIME_FORMATTER));
+        }
+    }
+
+    /** Compatibilidad con el renderizado histórico de Claude. */
+    private void updateLegacy(UsageReading reading) {
         providerLabel.setText(capitalize(reading.providerId()));
 
         String fiveHourText = null;
@@ -79,8 +126,8 @@ public class UsageCardPanel extends JPanel {
                 sevenDayText = "Semanal: " + text;
             }
         }
-        fiveHourLabel.setText(fiveHourText != null ? fiveHourText : "");
-        sevenDayLabel.setText(sevenDayText != null ? sevenDayText : "");
+        windowLabels.get(UsageWindowType.FIVE_HOUR).setText(fiveHourText != null ? fiveHourText : "");
+        windowLabels.get(UsageWindowType.SEVEN_DAY).setText(sevenDayText != null ? sevenDayText : "");
 
         LocalDateTime localTime = LocalDateTime.ofInstant(reading.writtenAt(), ZoneId.systemDefault());
         writtenAtLabel.setText("Datos de: " + localTime.format(TIME_FORMATTER));
@@ -92,7 +139,30 @@ public class UsageCardPanel extends JPanel {
      * @return {@code true} si hay alguna ventana visible
      */
     public boolean hasVisibleWindows() {
-        return !fiveHourLabel.getText().isEmpty() || !sevenDayLabel.getText().isEmpty();
+        return windowLabels.values().stream().anyMatch(label -> !label.getText().isEmpty());
+    }
+
+    public boolean hasMessage() {
+        return !statusLabel.getText().isEmpty();
+    }
+
+    private String statusText(UsageProviderState.Estado estado) {
+        return switch (estado) {
+            case CLAVE_AUSENTE -> "Falta la API key. Configúrala en application.yml o OPENCODE_API_KEY";
+            case CLAVE_INVALIDA -> "Clave inválida o ausente";
+            case SIN_SUSCRIPCION -> "Suscripción no activa";
+            case DESACTUALIZADO -> "Datos desactualizados";
+            case SIN_DATOS -> "No hay datos de uso disponibles en este momento.";
+            case CORRECTO -> "";
+        };
+    }
+
+    private String windowName(UsageWindowType type) {
+        return switch (type) {
+            case FIVE_HOUR, ROLLING -> "Rolling";
+            case SEVEN_DAY, WEEKLY -> "Semanal";
+            case MONTHLY -> "Mensual";
+        };
     }
 
     private String percentageText(int percentage) {

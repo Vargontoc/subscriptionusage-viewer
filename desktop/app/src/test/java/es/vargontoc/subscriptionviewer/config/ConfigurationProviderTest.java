@@ -73,6 +73,49 @@ class ConfigurationProviderTest {
     }
 
     @Test
+    void shouldUseEnvironmentWhenYamlDoesNotDefineTheKey() {
+        contextRunner
+                .withPropertyValues("OPENCODE_API_KEY=ENV-KEY-123")
+                .run(context -> {
+                    ConfigurationProvider provider = context.getBean(ConfigurationProvider.class);
+
+                    assertThat(provider.getOpenCodeApiKey().value()).isEqualTo("ENV-KEY-123");
+                    assertThat(provider.getOpenCodeApiKeyOrigin()).isEqualTo("entorno");
+                    assertThat(provider.hasOpenCodeApiKey()).isTrue();
+                });
+    }
+
+    @Test
+    void shouldPreferYamlOverEnvironment() {
+        contextRunner
+                .withPropertyValues(
+                        "subscription-viewer.opencode.api-key=YAML-KEY-123",
+                        "OPENCODE_API_KEY=ENV-KEY-456")
+                .run(context -> {
+                    ConfigurationProvider provider = context.getBean(ConfigurationProvider.class);
+
+                    assertThat(provider.getOpenCodeApiKey().value()).isEqualTo("YAML-KEY-123");
+                    assertThat(provider.getOpenCodeApiKeyOrigin()).isEqualTo("application.yml");
+                });
+    }
+
+    @Test
+    void shouldTreatEmptyAndExampleMarkerAsMissing() {
+        contextRunner
+                .withPropertyValues("subscription-viewer.opencode.api-key= ")
+                .run(context -> assertThat(context.getBean(ConfigurationProvider.class).hasOpenCodeApiKey())
+                        .isFalse());
+
+        contextRunner
+                .withPropertyValues("subscription-viewer.opencode.api-key=<YOUR_OPENCODE_API_KEY>")
+                .run(context -> {
+                    ConfigurationProvider provider = context.getBean(ConfigurationProvider.class);
+                    assertThat(provider.getOpenCodeApiKey()).isNull();
+                    assertThat(provider.getOpenCodeApiKeyOrigin()).isEqualTo("ninguno");
+                });
+    }
+
+    @Test
     void shouldExpandTildeInUsageStateFile() {
         contextRunner
                 .withInitializer(loadYaml("config/application-external.yml"))

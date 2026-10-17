@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
   main:
     web-application-type: none
     banner-mode: off
@@ -18,4 +20,5 @@ subscription-viewer:
     usage-url: "https://opencode.ai/zen/go/v1/usage"
     usage-poll-interval: "60s"
     backoff-max-interval: "300s"
+    api-key: ${OPENCODE_API_KEY:fake}
       

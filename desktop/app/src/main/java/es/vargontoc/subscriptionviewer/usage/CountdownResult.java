@@ -9,4 +9,31 @@ import java.time.Duration;
  * @param valid         {@code true} si la ventana aún no ha caducado
  */
 public record CountdownResult(Duration remainingTime, boolean valid) {
+
+    /**
+     * Devuelve una representación breve para la presentación de la cuenta atrás.
+     * Las ventanas de al menos un día se expresan en días; las cortas conservan
+     * el formato de horas y minutos usado por Claude.
+     *
+     * @return tiempo restante formateado en español
+     */
+    public String formattedRemainingTime() {
+        if (!valid) {
+            return "";
+        }
+        long days = remainingTime.toDays();
+        if (days > 0) {
+            return days + (days == 1 ? " día" : " días");
+        }
+        long hours = remainingTime.toHours();
+        long minutes = remainingTime.toMinutesPart();
+        if (hours > 0) {
+            return hours + "h " + minutes + "m";
+        }
+        long seconds = remainingTime.toSecondsPart();
+        if (minutes > 0) {
+            return minutes + "m " + seconds + "s";
+        }
+        return seconds + "s";
+    }
 }

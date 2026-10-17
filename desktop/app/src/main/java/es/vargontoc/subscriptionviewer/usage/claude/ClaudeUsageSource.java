@@ -2,6 +2,7 @@ package es.vargontoc.subscriptionviewer.usage.claude;
 
 import tools.jackson.databind.ObjectMapper;
 import es.vargontoc.subscriptionviewer.config.ConfigurationProvider;
+import es.vargontoc.subscriptionviewer.usage.UsageReadResult;
 import es.vargontoc.subscriptionviewer.usage.UsageReading;
 import es.vargontoc.subscriptionviewer.usage.UsageSource;
 import es.vargontoc.subscriptionviewer.usage.UsageWindowReading;
@@ -43,6 +44,21 @@ public class ClaudeUsageSource implements UsageSource {
         return PROVIDER_ID;
     }
 
+    /**
+     * Realiza la lectura usando el resultado clasificado común.  Los errores
+     * de lectura o de parseo se mantienen encapsulados y no alcanzan al
+     * consumidor de la fuente.
+     */
+    @Override
+    public UsageReadResult read() {
+        try {
+            return doRead().map(UsageReadResult::datos)
+                    .orElseGet(() -> UsageReadResult.falloTransitorio(null));
+        } catch (Exception e) {
+            return UsageReadResult.falloTransitorio(e);
+        }
+    }
+
     @Override
     public Optional<UsageReading> doRead() throws Exception {
         Optional<StateFileContent> loaded = stateFileLoader.load(configurationProvider.getUsageStateFile());
@@ -51,6 +67,9 @@ public class ClaudeUsageSource implements UsageSource {
         }
 
         StateFileContent content = loaded.get();
+        if (content.text() == null || content.text().isBlank()) {
+            return Optional.empty();
+        }
         ClaudeStateFileDto dto = objectMapper.readValue(content.text(), ClaudeStateFileDto.class);
 
         Instant writtenAt = resolveWrittenAt(dto, content.writtenAt());

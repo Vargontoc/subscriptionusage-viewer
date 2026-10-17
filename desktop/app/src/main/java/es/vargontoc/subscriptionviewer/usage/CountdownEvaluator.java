@@ -30,7 +30,7 @@ public class CountdownEvaluator {
      */
     public CountdownResult evaluate(Instant resetsAt) {
         Instant now = clock.instant();
-        if (resetsAt.isAfter(now)) {
+        if (resetsAt != null && resetsAt.isAfter(now)) {
             return new CountdownResult(Duration.between(now, resetsAt), true);
         }
         return new CountdownResult(Duration.ZERO, false);

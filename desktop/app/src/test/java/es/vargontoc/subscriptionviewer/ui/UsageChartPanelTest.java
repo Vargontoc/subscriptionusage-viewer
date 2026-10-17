@@ -2,6 +2,8 @@ package es.vargontoc.subscriptionviewer.ui;
 
 import es.vargontoc.subscriptionviewer.usage.UsageHistory;
 import es.vargontoc.subscriptionviewer.usage.UsageHistoryPoint;
+import es.vargontoc.subscriptionviewer.usage.UsageReading;
+import es.vargontoc.subscriptionviewer.usage.UsageWindowReading;
 import es.vargontoc.subscriptionviewer.usage.UsageWindowType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,6 +60,44 @@ class UsageChartPanelTest {
 
         List<UsageChartPanel.ScreenPoint> screen = chart.projectSeries("claude", UsageWindowType.FIVE_HOUR);
         assertThat(screen).isEmpty();
+    }
+
+    @Test
+    void shouldShowOnePointPerChangedOpenCodeReadingInTimeOrder() {
+        UsageHistory history = new UsageHistory();
+        for (int i = 0; i < 3; i++) {
+            Instant writtenAt = T0.plusSeconds(i * 300L);
+            history.add(new UsageReading("opencode", writtenAt, List.of(
+                    new UsageWindowReading(UsageWindowType.ROLLING, 10 + i * 10,
+                            writtenAt.plusSeconds(1_000)),
+                    new UsageWindowReading(UsageWindowType.WEEKLY, 20 + i * 10,
+                            writtenAt.plusSeconds(2_000)))));
+        }
+
+        UsageChartPanel chart = new UsageChartPanel();
+        chart.setSize(400, 300);
+        chart.updateSeries(history.getAllSeries());
+
+        assertThat(chart.projectSeries("opencode", UsageWindowType.ROLLING)).hasSize(3);
+        assertThat(chart.projectSeries("opencode", UsageWindowType.WEEKLY)).hasSize(3);
+        assertThat(chart.projectSeries("opencode", UsageWindowType.ROLLING).get(0).x())
+                .isLessThan(chart.projectSeries("opencode", UsageWindowType.ROLLING).get(1).x());
+    }
+
+    @Test
+    void shouldNotShowDuplicateOpenCodeReading() {
+        UsageHistory history = new UsageHistory();
+        Instant reset = T0.plusSeconds(1_000);
+        history.add(new UsageReading("opencode", T0,
+                List.of(new UsageWindowReading(UsageWindowType.ROLLING, 25, reset))));
+        history.add(new UsageReading("opencode", T0.plusSeconds(300),
+                List.of(new UsageWindowReading(UsageWindowType.ROLLING, 25, reset))));
+
+        UsageChartPanel chart = new UsageChartPanel();
+        chart.setSize(400, 300);
+        chart.updateSeries(history.getAllSeries());
+
+        assertThat(chart.projectSeries("opencode", UsageWindowType.ROLLING)).hasSize(1);
     }
 
     @Test

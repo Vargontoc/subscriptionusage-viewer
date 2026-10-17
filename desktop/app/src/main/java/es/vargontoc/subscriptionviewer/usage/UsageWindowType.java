@@ -5,5 +5,8 @@ package es.vargontoc.subscriptionviewer.usage;
  */
 public enum UsageWindowType {
     FIVE_HOUR,
-    SEVEN_DAY
+    SEVEN_DAY,
+    ROLLING,
+    WEEKLY,
+    MONTHLY
 }

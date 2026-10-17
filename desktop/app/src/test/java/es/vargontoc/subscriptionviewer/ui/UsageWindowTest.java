@@ -162,6 +162,31 @@ class UsageWindowTest {
         assertThat(window.getCardsPanel().getComponentCount()).isEqualTo(1);
     }
 
+    @Test
+    void shouldRefreshOpenCodeChartFromInMemoryHistoryOnSnapshot() throws Exception {
+        UsageSnapshotPublisher publisher = new UsageSnapshotPublisher();
+        UsageHistory history = new UsageHistory();
+        UsageWindow window = new UsageWindow(publisher, evaluator, history);
+        window.subscribe();
+
+        for (int i = 0; i < 3; i++) {
+            Instant at = WRITTEN_AT.plusSeconds(i * 60L);
+            history.add(new UsageReading("opencode", at, List.of(
+                    new UsageWindowReading(UsageWindowType.ROLLING, 10 + i, at.plusSeconds(600)),
+                    new UsageWindowReading(UsageWindowType.WEEKLY, 20 + i, at.plusSeconds(1_200)))));
+        }
+        window.onSnapshotChanged(new UsageSnapshot(java.util.Map.of("opencode",
+                new UsageReading("opencode", WRITTEN_AT.plusSeconds(120), List.of(
+                        new UsageWindowReading(UsageWindowType.ROLLING, 12, WRITTEN_AT.plusSeconds(600)),
+                        new UsageWindowReading(UsageWindowType.WEEKLY, 22, WRITTEN_AT.plusSeconds(1_200)))))));
+        drainEdt();
+
+        assertThat(window.getChartPanel()
+                .projectSeries("opencode", UsageWindowType.ROLLING)).hasSize(3);
+        assertThat(window.getChartPanel()
+                .projectSeries("opencode", UsageWindowType.WEEKLY)).hasSize(3);
+    }
+
     private void drainEdt() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
         });

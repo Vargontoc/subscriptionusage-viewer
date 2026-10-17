@@ -35,7 +35,7 @@ El trabajo se divide en cimientos compartidos (configuración, clasificación de
 - **Prueba manual:**
   1. no aplica: tipo interno sin comportamiento observable por sí solo; su efecto se verifica en TASK-024.
 
-### [ ] TASK-021 Resolución de la API key desde application.yml o entorno
+### [x] TASK-021 Resolución de la API key desde application.yml o entorno
 
 - **Cubre:** REQ-002, REQ-010, REQ-012, NFR-006, DEC-007, DEC-010
 - **Componente:** configuration-provider | src/main/java/es/vargontoc/subscriptionviewer/config
@@ -53,7 +53,7 @@ El trabajo se divide en cimientos compartidos (configuración, clasificación de
   2. Quitar la clave de `application.yml`, dejar la variable y arrancar. Resultado: el log indica origen entorno; la aplicación arranca sin pedir clave en la interfaz.
   3. Quitar ambas y arrancar. Resultado: la aplicación arranca sin error y sin ningún campo para introducir la clave.
 
-### [ ] TASK-023 Exclusión git y fichero de ejemplo de la API key
+### [x] TASK-023 Exclusión git y fichero de ejemplo de la API key
 
 - **Cubre:** REQ-002, NFR-006, DEC-010
 - **Componente:** secret-config-files | por definir (analista técnico)
@@ -69,10 +69,10 @@ El trabajo se divide en cimientos compartidos (configuración, clasificación de
   2. Abrir el ejemplo versionado. Resultado: solo contiene el marcador, sin clave.
   3. Crear el fichero local con una clave de prueba y arrancar. Resultado: el log indica origen `application.yml` local.
 
-### [ ] TASK-002 Resultado clasificado en usage-source
+### [x] TASK-002 Resultado clasificado en usage-source
 
 - **Cubre:** REQ-010, REQ-011, REQ-012, DEC-005
-- **Componente:** usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageSource.java
+- **Componente:** usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageSource.java; desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageReadResult.java
 - **Depende de:** -
 - **Alcance:** Ampliar la abstracción de fuente para devolver datos o una causa clasificada (clave ausente, clave inválida, sin suscripción, fallo transitorio) sin propagar excepciones al llamador.
 - **Hecho cuando:** las causas de REQ-010 y REQ-011 se pueden expresar como resultados distintos y las fuentes existentes compilan contra la nueva abstracción.
@@ -84,7 +84,7 @@ El trabajo se divide en cimientos compartidos (configuración, clasificación de
 - **Prueba manual:**
   1. no aplica: cambio interno de abstracción sin comportamiento observable por sí solo; su efecto se verifica en TASK-011 y TASK-013.
 
-### [ ] TASK-003 Adaptación de claude-usage-source al resultado clasificado
+### [x] TASK-003 Adaptación de claude-usage-source al resultado clasificado
 
 - **Cubre:** REQ-012, DEC-005
 - **Componente:** claude-usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/claude
@@ -98,10 +98,10 @@ El trabajo se divide en cimientos compartidos (configuración, clasificación de
   1. Con Claude configurado y un fichero de estado válido, arrancar la aplicación. Resultado: la tarjeta de Claude muestra los mismos porcentajes y tiempos que antes del cambio.
   2. Sustituir el fichero de estado por contenido inválido y esperar un ciclo de lectura. Resultado: la tarjeta de Claude no falla y la aplicación sigue en ejecución.
 
-### [ ] TASK-005 Normalización de las dos variantes del contrato de OpenCode
+### [x] TASK-005 Normalización de las dos variantes del contrato de OpenCode
 
 - **Cubre:** REQ-003, REQ-004, REQ-005, DEC-009
-- **Componente:** opencode-usage-source | por definir (analista técnico)
+- **Componente:** opencode-usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/OpenCodeUsageSource.java
 - **Depende de:** TASK-002
 - **Alcance:** Convertir una respuesta de uso en ventanas `rolling`, `weekly` y `monthly` con porcentaje e instante de reinicio, aceptando la variante `percent`/`resetsAt` y la variante `usagePercent`/`resetInSec`, ignorando propiedades desconocidas y omitiendo las ventanas ausentes.
 - **Hecho cuando:** los criterios de aceptación de REQ-004 se cumplen para las dos variantes y la ausencia de `weekly` no produce fallo.
@@ -115,10 +115,10 @@ El trabajo se divide en cimientos compartidos (configuración, clasificación de
   1. Guardar una respuesta real de OpenCode (obtenida con una clave propia) como fichero de prueba y procesarla con la fuente. Resultado: se obtienen las ventanas presentes con porcentaje e instante de reinicio.
   2. Anotar las propiedades desconocidas de la respuesta real, si las hay. Resultado: no provocan fallo y el resultado sigue siendo válido.
 
-### [ ] TASK-006 Consulta HTTP y clasificación de fallos de OpenCode
+### [x] TASK-006 Consulta HTTP y clasificación de fallos de OpenCode
 
 - **Cubre:** REQ-002, REQ-003, REQ-010, REQ-011, NFR-002, NFR-004, NFR-006, DEC-002, DEC-004, DEC-010
-- **Componente:** opencode-usage-source | por definir (analista técnico)
+- **Componente:** opencode-usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/OpenCodeUsageSource.java
 - **Depende de:** TASK-001, TASK-005, TASK-021, TASK-022
 - **Alcance:** Hacer la petición `GET` de uso con la cabecera `Authorization: Bearer` usando la clave que entrega configuration-provider, con tiempos de espera acotados, y clasificar el resultado como datos, clave inválida o ausente (401), sin suscripción (403) o fallo transitorio (red, tiempo de espera, 5xx y 429). No registra petición, cabeceras ni cuerpo, y los fallos se registran con categoría y código de estado, nunca con el mensaje de excepción del cliente.
 - **Hecho cuando:** los criterios de aceptación de REQ-010 y REQ-011 se cumplen a nivel de resultado de la fuente y la petición lleva la cabecera con la clave resuelta.
@@ -134,7 +134,7 @@ El trabajo se divide en cimientos compartidos (configuración, clasificación de
   2. Poner una clave falsa en `application.yml` y ejecutar la consulta. Resultado: el resultado es "clave inválida o ausente".
   3. Desconectar la red y ejecutar la consulta. Resultado: el resultado es fallo transitorio, sin excepción visible.
 
-### [ ] TASK-019 Contrato: http - consumo de uso de OpenCode Go
+### [x] TASK-019 Contrato: http - consumo de uso de OpenCode Go
 
 - **Cubre:** REQ-002, REQ-003, REQ-004, REQ-010, NFR-006, DEC-002, DEC-009
 - **Componente:** opencode-usage-source | por definir (analista técnico)
@@ -149,7 +149,7 @@ El trabajo se divide en cimientos compartidos (configuración, clasificación de
 - **Prueba manual:**
   1. Repasar que aparecen la petición, la respuesta en la variante `percent`/`resetsAt`, la respuesta en la variante `usagePercent`/`resetInSec`, el 401 y el 403, y que cada una coincide con lo implementado en TASK-006.
 
-### [ ] TASK-007 Historial: deduplicación por valores para OpenCode
+### [x] TASK-007 Historial: deduplicación por valores para OpenCode
 
 - **Cubre:** REQ-008, REQ-009, DEC-006
 - **Componente:** usage-history | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageHistory.java
@@ -164,7 +164,7 @@ El trabajo se divide en cimientos compartidos (configuración, clasificación de
 - **Prueba manual:**
   1. no aplica: lógica en memoria sin interfaz propia; su efecto visible se comprueba en TASK-014.
 
-### [ ] TASK-008 Cuenta atrás: ventanas variables, días y reinicio vencido
+### [x] TASK-008 Cuenta atrás: ventanas variables, días y reinicio vencido
 
 - **Cubre:** REQ-005
 - **Componente:** countdown-evaluator | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/CountdownEvaluator.java
@@ -178,10 +178,10 @@ El trabajo se divide en cimientos compartidos (configuración, clasificación de
 - **Prueba manual:**
   1. no aplica: cálculo sin interfaz propia; su efecto visible se comprueba en TASK-013.
 
-### [ ] TASK-009 Publicador: estado por proveedor y desactualización
+### [x] TASK-009 Publicador: estado por proveedor y desactualización
 
 - **Cubre:** REQ-007, REQ-009, REQ-010, REQ-011, REQ-012, NFR-004, NFR-006, DEC-005, DEC-008
-- **Componente:** usage-snapshot-publisher | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageSnapshotPublisher.java
+- **Componente:** usage-snapshot-publisher | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageSnapshotPublisher.java; desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageProviderState.java
 - **Depende de:** TASK-002
 - **Alcance:** Mantener por proveedor el último dato válido, la hora de la última consulta exitosa y el estado de lectura (correcto, desactualizado, clave ausente, clave inválida, sin suscripción, sin datos), y notificar los cambios a la vista en el hilo de interfaz. No recibe ni almacena la clave.
 - **Hecho cuando:** tras un fallo de red el último dato se conserva marcado como desactualizado, y tras una lectura exitosa el estado vuelve a correcto con su hora.
@@ -196,7 +196,7 @@ El trabajo se divide en cimientos compartidos (configuración, clasificación de
 - **Prueba manual:**
   1. no aplica: estado interno; su efecto visible se comprueba en TASK-013.
 
-### [ ] TASK-010 Planificador: intervalo por fuente, backoff y pausa
+### [x] TASK-010 Planificador: intervalo por fuente, backoff y pausa
 
 - **Cubre:** REQ-003, REQ-006, REQ-010, REQ-011, REQ-012, NFR-003, NFR-004, NFR-005, DEC-003, DEC-004, DEC-007
 - **Componente:** usage-poller | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsagePoller.java
@@ -216,10 +216,10 @@ El trabajo se divide en cimientos compartidos (configuración, clasificación de
   1. Con clave válida, arrancar la aplicación y contar durante 3 minutos las peticiones a `opencode.ai` con un proxy o herramienta de red del desarrollador. Resultado: como máximo 6 peticiones por minuto.
   2. Con clave inválida en `application.yml`, arrancar la aplicación y contar las peticiones durante 3 minutos. Resultado: una sola petición inicial y ninguna después.
 
-### [ ] TASK-011 Integración: usage-poller con opencode-usage-source
+### [x] TASK-011 Integración: usage-poller con opencode-usage-source
 
 - **Cubre:** REQ-003, REQ-010, REQ-011, DEC-004, DEC-005
-- **Componente:** usage-poller | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsagePoller.java; opencode-usage-source | por definir (analista técnico)
+- **Componente:** usage-poller | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsagePoller.java; opencode-usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/OpenCodeUsageSource.java
 - **Depende de:** TASK-006, TASK-010
 - **Alcance:** Conectar el planificador con la fuente real de OpenCode para que cada lectura llegue clasificada al historial y al publicador, y para que, sin clave, el publicador reciba el estado "clave ausente" sin peticiones.
 - **Hecho cuando:** una lectura real de OpenCode llega al publicador y al historial con su causa clasificada, y sin clave el estado "clave ausente" llega al publicador sin ninguna petición.
@@ -231,7 +231,7 @@ El trabajo se divide en cimientos compartidos (configuración, clasificación de
 - **Prueba manual:**
   1. Con clave válida, arrancar la aplicación y observar el tráfico hacia `opencode.ai`. Resultado: una petición cada 60 s, con la cabecera `Authorization`.
 
-### [ ] TASK-013 Ventana: tarjetas, estados y hora de actualización
+### [x] TASK-013 Ventana: tarjetas, estados y hora de actualización
 
 - **Cubre:** REQ-002, REQ-005, REQ-006, REQ-007, REQ-010, REQ-011, REQ-012, DEC-007, DEC-008
 - **Componente:** usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageWindow.java
@@ -252,7 +252,7 @@ El trabajo se divide en cimientos compartidos (configuración, clasificación de
   4. Quitar la clave de `application.yml` y de `OPENCODE_API_KEY` y arrancar. Resultado: la tarjeta de OpenCode indica que falta la API key y dónde definirla; no hay campo para introducirla.
   5. Pulsar "mostrar uso" en el menú contextual del icono. Resultado: la ventana de uso se abre como antes.
 
-### [ ] TASK-014 Ventana: gráfico de evolución
+### [x] TASK-014 Ventana: gráfico de evolución
 
 - **Cubre:** REQ-008, REQ-009, DEC-006
 - **Componente:** usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageWindow.java
@@ -268,10 +268,10 @@ El trabajo se divide en cimientos compartidos (configuración, clasificación de
   2. Esperar un ciclo sin cambios en el consumo. Resultado: no aparecen puntos nuevos.
   3. Cerrar la aplicación y volver a abrirla. Resultado: el gráfico empieza vacío.
 
-### [ ] TASK-017 Lanzador de arranque en segundo plano
+### [x] TASK-017 Lanzador de arranque en segundo plano
 
 - **Cubre:** REQ-001, NFR-001, NFR-002, DEC-001
-- **Componente:** background-launcher | por definir (analista técnico)
+- **Componente:** background-launcher | desktop/app/scripts/start-background.cmd; desktop/app/scripts/start-background.sh
 - **Depende de:** -
 - **Alcance:** Lanzador que inicia la aplicación desacoplada de la terminal y devuelve el control al usuario de inmediato.
 - **Hecho cuando:** la terminal queda libre, el proceso sigue en ejecución y la interfaz está disponible en menos de 30 s.
@@ -283,10 +283,10 @@ El trabajo se divide en cimientos compartidos (configuración, clasificación de
   2. Medir el tiempo hasta que aparece el icono de bandeja. Resultado: menos de 30 s.
   3. Cerrar la terminal. Resultado: la aplicación sigue en ejecución.
 
-### [ ] TASK-024 Protección de la API key de extremo a extremo (NFR transversal)
+### [x] TASK-024 Protección de la API key de extremo a extremo (NFR transversal)
 
 - **Cubre:** NFR-006, REQ-002, DEC-010
-- **Componente:** application-launcher | src/main/java/es/vargontoc/subscriptionviewer/launcher/ApplicationLauncher.java (verificación de la aplicación completa)
+- **Componente:** application-launcher | src/main/java/es/vargontoc/subscriptionviewer/launcher/ApplicationLauncher.java (verificación de la aplicación completa); prueba: desktop/app/src/test/java/es/vargontoc/subscriptionviewer/launcher/OpenCodeApiKeyProtectionIntegrationTest.java
 - **Depende de:** TASK-011, TASK-013, TASK-021, TASK-022, TASK-023
 - **Alcance:** Verificar con una clave centinela reconocible, en la aplicación completa, que la clave nunca aparece en los logs ni en la interfaz, en los escenarios de clave válida, ausente, 401, 403 y fallo de red.
 - **Hecho cuando:** en todos los escenarios no aparecen ni el valor de la clave ni la cabecera `Authorization` en los logs capturados ni en los textos de la interfaz, y el fichero local está ignorado por git.
@@ -300,10 +300,10 @@ El trabajo se divide en cimientos compartidos (configuración, clasificación de
   2. Con clave inválida, observar la tarjeta de OpenCode tras el 401. Resultado: el mensaje no contiene la clave ni parte de ella.
   3. Buscar la clave de prueba en el repositorio y en el estado de git. Resultado: no aparece en ningún fichero versionado.
 
-### [ ] TASK-018 Consumo de recursos y respuesta de la interfaz (NFR transversal)
+### [x] TASK-018 Consumo de recursos y respuesta de la interfaz (NFR transversal)
 
 - **Cubre:** NFR-003, NFR-004
-- **Componente:** application-launcher | src/main/java/es/vargontoc/subscriptionviewer/launcher/ApplicationLauncher.java (medición de la aplicación completa)
+- **Componente:** application-launcher | src/main/java/es/vargontoc/subscriptionviewer/launcher/ApplicationLauncher.java; prueba: desktop/app/src/test/java/es/vargontoc/subscriptionviewer/launcher/OpenCodeResourceAndResponsivenessIntegrationTest.java; servidor lento: desktop/app/src/test/java/es/vargontoc/subscriptionviewer/launcher/SlowOpenCodeServer.java
 - **Depende de:** TASK-011, TASK-013, TASK-014, TASK-017
 - **Alcance:** Medir, con OpenCode configurado, el consumo de CPU y de heap en segundo plano, y la respuesta de la interfaz mientras una consulta tarda más de 5 s.
 - **Hecho cuando:** los criterios de NFR-003 y NFR-004 se cumplen con los valores medidos.

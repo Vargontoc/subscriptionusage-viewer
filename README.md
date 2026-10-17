@@ -14,6 +14,7 @@ Subscription Usage Viewer es una pequeña aplicación de escritorio que muestra 
 - Una ventana con el uso de la suscripción a Claude: el porcentaje consumido en la sesión de 5 horas y en la semana, y el tiempo que falta para que cada límite se reinicie.
 - Un gráfico con la evolución de ese consumo mientras la aplicación está abierta.
 - Lectura de los datos de uso que Claude Code entrega durante su funcionamiento, sin pedir credenciales al usuario.
+- Una tarjeta con el uso de la suscripción a OpenCode Go: el porcentaje consumido en las ventanas de 5 horas, semanal y mensual, y el tiempo que falta para cada reinicio.
 
 **No incluye:**
 - Uso simultáneo por varias personas ni funcionamiento en servidores: es una aplicación monousuario de desarrollo local.
@@ -28,9 +29,9 @@ Subscription Usage Viewer es una pequeña aplicación de escritorio que muestra 
 Es una sola aplicación de escritorio, formada por estas partes:
 - Un icono en la bandeja del sistema, con un menú para abrir la ventana de uso o cerrar la aplicación.
 - Una ventana que muestra el consumo de cada límite de Claude, el tiempo que falta para su reinicio y la evolución del consumo.
-- Un lector que consulta los datos cada 10 segundos en segundo plano, sin bloquear la ventana.
 - Un pequeño script que Claude Code ejecuta y que guarda en un fichero local los datos de uso que recibe. La aplicación lee ese fichero.
 - Una estructura preparada para añadir otros proveedores de AI en el futuro, cada uno mostrado por separado.
+- Un lector que consulta los datos de Claude cada 10 segundos y los de OpenCode cada minuto, en segundo plano y sin bloquear la ventana." Y añadir: "Un lanzador que deja la aplicación en segundo plano y devuelve el control a la terminal.
 
 ## Qué puede hacer hoy
 
@@ -41,6 +42,10 @@ La aplicación arranca de forma autónoma y se queda activa en segundo plano, mo
 ### claude-usage-monitor
 
 Muestra cuánto de la suscripción a Claude se ha consumido en la sesión de 5 horas y en la semana, cuánto falta para que cada límite se reinicie y cómo ha evolucionado el consumo mientras la aplicación está abierta. Los datos se leen de lo que Claude Code comunica durante su uso y se refrescan solos cada 10 segundos. Si no hay datos vigentes, la ventana de Claude se oculta sin mostrar errores.
+
+### opencode-usage-monitor
+
+Muestra el consumo de la suscripción a OpenCode Go en las ventanas de 5 horas, semanal y mensual, con el tiempo que falta para cada reinicio. Se actualiza sola cada minuto y el gráfico recoge su evolución mientras la aplicación está abierta. La clave de acceso se configura en el equipo y no en la ventana; si falta o no es válida, la ventana lo indica, y si no hay conexión muestra los últimos datos marcados como desactualizados.
 <!-- sdd:end -->
 
 ## Guía de uso

@@ -5,7 +5,6 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,10 +13,11 @@ import java.util.Objects;
 /**
  * Historial en memoria de la evolución de uso por proveedor y ventana.
  *
- * <p>Acumula puntos solo cuando el instante de registro es estrictamente
- * posterior al último representado. Cada serie tiene un tamaño máximo
- * documentado; al superarlo se descartan los puntos más antiguos. El historial
- * no persiste ni se reutiliza entre instancias.</p>
+ * <p>Claude se deduplica por instante de registro. OpenCode se deduplica por
+ * valores (porcentaje e instante de reinicio), ya que cada consulta tiene un
+ * instante de registro distinto. Cada serie tiene un tamaño máximo documentado;
+ * al superarlo se descartan los puntos más antiguos. El historial no persiste
+ * ni se reutiliza entre instancias.</p>
  */
 @Component
 public class UsageHistory {
@@ -32,15 +32,16 @@ public class UsageHistory {
     /**
      * Añade los puntos de una lectura al historial.
      *
-     * <p>Solo se conserva un punto por ventana cuando {@code writtenAt} es
-     * estrictamente posterior al último punto de esa serie.</p>
+     * <p>La deduplicación depende del proveedor. Las lecturas de OpenCode se
+     * comparan por porcentaje e instante de reinicio; las de Claude conservan
+     * la regla cronológica.</p>
      *
      * @param reading lectura de uso a incorporar
      */
     public void add(UsageReading reading) {
         Objects.requireNonNull(reading, "La lectura no puede ser nula");
         for (UsageWindowReading window : reading.windows()) {
-            add(reading.providerId(), window.type(), window.usedPercentage(), reading.writtenAt());
+            add(reading.providerId(), window.type(), window.usedPercentage(), window.resetsAt(), reading.writtenAt());
         }
     }
 
@@ -53,17 +54,36 @@ public class UsageHistory {
      * @param writtenAt      instante de registro
      */
     public void add(String providerId, UsageWindowType type, int usedPercentage, Instant writtenAt) {
+        add(providerId, type, usedPercentage, null, writtenAt);
+    }
+
+    /**
+     * Añade un punto incluyendo el instante de reinicio de la ventana.
+     */
+    public void add(String providerId, UsageWindowType type, int usedPercentage,
+                    Instant resetsAt, Instant writtenAt) {
         Key key = new Key(providerId, type);
         List<UsageHistoryPoint> points = series.computeIfAbsent(key, k -> new ArrayList<>());
 
-        if (!points.isEmpty() && !writtenAt.isAfter(points.get(points.size() - 1).writtenAt())) {
-            return;
+        if (!points.isEmpty()) {
+            UsageHistoryPoint last = points.get(points.size() - 1);
+            if (isOpenCode(providerId)) {
+                if (last.usedPercentage() == usedPercentage && Objects.equals(last.resetsAt(), resetsAt)) {
+                    return;
+                }
+            } else if (!writtenAt.isAfter(last.writtenAt())) {
+                return;
+            }
         }
 
-        points.add(new UsageHistoryPoint(usedPercentage, writtenAt));
+        points.add(new UsageHistoryPoint(usedPercentage, resetsAt, writtenAt));
         if (points.size() > MAX_POINTS_PER_SERIES) {
             points.remove(0);
         }
+    }
+
+    private boolean isOpenCode(String providerId) {
+        return "opencode".equalsIgnoreCase(providerId);
     }
 
     /**

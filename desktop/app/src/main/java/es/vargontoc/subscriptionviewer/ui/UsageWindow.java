@@ -6,6 +6,7 @@ import es.vargontoc.subscriptionviewer.usage.UsageReading;
 import es.vargontoc.subscriptionviewer.usage.UsageSnapshot;
 import es.vargontoc.subscriptionviewer.usage.UsageSnapshotListener;
 import es.vargontoc.subscriptionviewer.usage.UsageSnapshotPublisher;
+import es.vargontoc.subscriptionviewer.usage.UsageProviderState;
 import es.vargontoc.subscriptionviewer.usage.UsageWindowReading;
 import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Component;
@@ -145,6 +146,11 @@ public class UsageWindow implements UsageSnapshotListener {
 
         refreshTimer = new Timer(REFRESH_DELAY_MS, e -> updateContent(lastSnapshot));
         refreshTimer.setRepeats(true);
+
+        // Un snapshot puede haber llegado antes de crear la ventana (por ejemplo,
+        // mientras estaba oculta). Renderizarlo ahora evita perder también la
+        // actualización del gráfico al abrirla por primera vez.
+        updateContent(lastSnapshot);
     }
 
     private void updateContent(UsageSnapshot snapshot) {
@@ -155,18 +161,19 @@ public class UsageWindow implements UsageSnapshotListener {
         cards.clear();
 
         boolean anyCard = false;
-        for (UsageReading reading : snapshot.readings().values()) {
-            Optional<UsageReading> filtered = filterValidWindows(reading);
-            if (filtered.isEmpty()) {
-                continue;
-            }
-            UsageCardPanel card = new UsageCardPanel(filtered.get().providerId(), evaluator);
-            card.update(filtered.get());
-            if (!card.hasVisibleWindows()) {
+        Map<String, UsageProviderState> states = new HashMap<>(snapshot.providerStates());
+        // Compatibilidad con publicadores antiguos que aún solo entregan lecturas.
+        snapshot.readings().forEach((provider, reading) -> states.putIfAbsent(provider,
+                new UsageProviderState(UsageProviderState.Estado.CORRECTO, reading, reading.writtenAt())));
+        for (Map.Entry<String, UsageProviderState> entry : states.entrySet()) {
+            UsageProviderState state = entry.getValue();
+            UsageCardPanel card = new UsageProviderCardPanel(entry.getKey(), evaluator);
+            card.update(state);
+            if (!card.hasVisibleWindows() && !card.hasMessage()) {
                 continue;
             }
             cardsPanel.add(card);
-            cards.put(filtered.get().providerId(), card);
+            cards.put(entry.getKey(), card);
             anyCard = true;
         }
 

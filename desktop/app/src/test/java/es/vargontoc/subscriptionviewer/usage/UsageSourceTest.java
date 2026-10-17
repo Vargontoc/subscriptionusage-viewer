@@ -23,9 +23,9 @@ class UsageSourceTest {
     void shouldReturnReadingWithBothWindows() {
         UsageSource source = new FixedUsageSource("test-provider", 40, 15);
 
-        Optional<UsageReading> result = source.read();
+        UsageReadResult result = source.read();
 
-        assertThat(result).isPresent();
+        assertThat(result.estado()).isEqualTo(UsageReadResult.Estado.DATOS);
         UsageReading reading = result.get();
         assertThat(reading.providerId()).isEqualTo("test-provider");
         assertThat(reading.writtenAt()).isEqualTo(NOW);
@@ -42,18 +42,18 @@ class UsageSourceTest {
     void shouldReturnEmptyWhenSourceReturnsEmpty() {
         UsageSource source = new EmptyUsageSource("empty-provider");
 
-        Optional<UsageReading> result = source.read();
+        UsageReadResult result = source.read();
 
-        assertThat(result).isEmpty();
+        assertThat(result.estado()).isEqualTo(UsageReadResult.Estado.FALLO_TRANSITORIO);
     }
 
     @Test
     void shouldReturnEmptyWhenSourceThrows() {
         UsageSource source = new ThrowingUsageSource("failing-provider");
 
-        Optional<UsageReading> result = source.read();
+        UsageReadResult result = source.read();
 
-        assertThat(result).isEmpty();
+        assertThat(result.estado()).isEqualTo(UsageReadResult.Estado.FALLO_TRANSITORIO);
     }
 
     @Test
@@ -71,6 +71,16 @@ class UsageSourceTest {
 
         assertThat(readings).hasSize(1);
         assertThat(readings.get(0).providerId()).isEqualTo("working");
+    }
+
+    @Test
+    void shouldDistinguishClassifiedFailureCauses() {
+        assertThat(new ClassifiedSource(UsageReadResult.claveAusente()).read().estado())
+                .isEqualTo(UsageReadResult.Estado.CLAVE_AUSENTE);
+        assertThat(new ClassifiedSource(UsageReadResult.claveInvalida()).read().estado())
+                .isEqualTo(UsageReadResult.Estado.CLAVE_INVALIDA);
+        assertThat(new ClassifiedSource(UsageReadResult.sinSuscripcion()).read().estado())
+                .isEqualTo(UsageReadResult.Estado.SIN_SUSCRIPCION);
     }
 
     private static class FixedUsageSource implements UsageSource {
@@ -136,5 +146,13 @@ class UsageSourceTest {
         public Optional<UsageReading> doRead() {
             throw new RuntimeException("Simulated failure");
         }
+    }
+
+    private static class ClassifiedSource implements UsageSource {
+        private final UsageReadResult result;
+        ClassifiedSource(UsageReadResult result) { this.result = result; }
+        @Override public String getProviderId() { return "classified"; }
+        @Override public UsageReadResult read() { return result; }
+        @Override public Optional<UsageReading> doRead() { return Optional.empty(); }
     }
 }
