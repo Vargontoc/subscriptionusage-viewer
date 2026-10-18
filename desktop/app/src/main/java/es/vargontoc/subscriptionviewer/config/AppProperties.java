@@ -3,6 +3,9 @@ package es.vargontoc.subscriptionviewer.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Propiedades externalizadas de la aplicación bajo el prefijo {@code app}.
@@ -12,6 +15,10 @@ import java.time.Duration;
  */
 @ConfigurationProperties(prefix = "app")
 public class AppProperties {
+
+    /** Una entrada de la tabla de topes de OpenCode. */
+    public record ModelCap(String model, BigDecimal capUsd) {
+    }
 
     /**
      * Nombre visible de la aplicación.
@@ -74,10 +81,28 @@ public class AppProperties {
 
     /** Configuración externalizada bajo {@code subscription-viewer.opencode}. */
     public static class OpenCodeProperties {
+        /** Compatibilidad temporal con la configuración de v1; se retirará en TASK-021. */
         private String usageUrl = "https://opencode.ai/zen/go/v1/usage";
         private Duration usagePollInterval = Duration.ofSeconds(60);
+        private int cycleDay = 1;
+        private BigDecimal defaultCapUsd = BigDecimal.valueOf(60);
+        private Duration commandTimeout = Duration.ofSeconds(30);
+        private List<ModelCap> modelCaps = new ArrayList<>();
+        /** Compatibilidad temporal con la configuración de v1; se retirará en TASK-021. */
         private Duration backoffMaxInterval = Duration.ofSeconds(300);
+        /** Compatibilidad temporal con la configuración de v1; se retirará en TASK-021. */
         private OpenCodeApiKey apiKey;
+
+        public int getCycleDay() { return cycleDay; }
+        public void setCycleDay(int cycleDay) { this.cycleDay = cycleDay; }
+        public BigDecimal getDefaultCapUsd() { return defaultCapUsd; }
+        public void setDefaultCapUsd(BigDecimal defaultCapUsd) { this.defaultCapUsd = defaultCapUsd; }
+        public Duration getCommandTimeout() { return commandTimeout; }
+        public void setCommandTimeout(Duration commandTimeout) { this.commandTimeout = commandTimeout; }
+        public List<ModelCap> getModelCaps() { return modelCaps; }
+        public void setModelCaps(List<ModelCap> modelCaps) {
+            this.modelCaps = modelCaps == null ? new ArrayList<>() : new ArrayList<>(modelCaps);
+        }
 
         public String getUsageUrl() {
             return usageUrl;

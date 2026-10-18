@@ -33,22 +33,54 @@ class UsagePollerTest {
     private static final Instant NOW = Instant.parse("2026-10-16T10:00:00Z");
 
     @Test
-    void shouldScheduleCycleWithConfiguredInterval() {
+    void shouldStartFirstCycleImmediately() {
         ConfigurationProvider config = mock(ConfigurationProvider.class);
-        when(config.getUsagePollInterval()).thenReturn(Duration.ofSeconds(10));
+        when(config.hasOpenCodeApiKey()).thenReturn(true);
+        when(config.getOpenCodePollInterval()).thenReturn(Duration.ofSeconds(60));
         ScheduledExecutorService executor = mock(ScheduledExecutorService.class);
-        when(executor.scheduleWithFixedDelay(any(Runnable.class), anyLong(), anyLong(), any(TimeUnit.class)))
+        when(executor.schedule(any(Runnable.class), anyLong(), any(TimeUnit.class)))
                 .thenReturn(mock(ScheduledFuture.class));
 
-        UsagePoller poller = new UsagePoller(config, List.of(), mock(UsageHistory.class),
+        UsagePoller poller = new UsagePoller(config, List.of(fixedSource("opencode", 40, 15)), mock(UsageHistory.class),
                 mock(UsageSnapshotPublisher.class), Clock.systemUTC(), executor);
         poller.start();
 
         ArgumentCaptor<Long> initialDelay = ArgumentCaptor.forClass(Long.class);
-        ArgumentCaptor<Long> period = ArgumentCaptor.forClass(Long.class);
-        verify(executor).scheduleWithFixedDelay(any(Runnable.class), initialDelay.capture(), period.capture(), eq(TimeUnit.MILLISECONDS));
-        assertThat(initialDelay.getValue()).isEqualTo(10_000L);
-        assertThat(period.getValue()).isEqualTo(10_000L);
+        verify(executor).schedule(any(Runnable.class), initialDelay.capture(), eq(TimeUnit.MILLISECONDS));
+        assertThat(initialDelay.getValue()).isZero();
+    }
+
+    @Test
+    void shouldRetryFailureWithTheSameIntervalWithoutBackoff() {
+        ConfigurationProvider config = mock(ConfigurationProvider.class);
+        when(config.hasOpenCodeApiKey()).thenReturn(true);
+        when(config.getOpenCodePollInterval()).thenReturn(Duration.ofSeconds(10));
+        ScheduledExecutorService executor = mock(ScheduledExecutorService.class);
+        when(executor.schedule(any(Runnable.class), anyLong(), any(TimeUnit.class)))
+                .thenReturn(mock(ScheduledFuture.class));
+        UsageSource source = new UsageSource() {
+            @Override
+            public String getProviderId() {
+                return "opencode";
+            }
+
+            @Override
+            public Optional<UsageReading> doRead() {
+                return Optional.empty();
+            }
+        };
+        UsagePoller poller = new UsagePoller(config, List.of(source), mock(UsageHistory.class),
+                mock(UsageSnapshotPublisher.class), Clock.systemUTC(), executor);
+
+        poller.start();
+        ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
+        verify(executor).schedule(task.capture(), eq(0L), eq(TimeUnit.MILLISECONDS));
+        task.getValue().run();
+
+        ArgumentCaptor<Long> delays = ArgumentCaptor.forClass(Long.class);
+        verify(executor, org.mockito.Mockito.timeout(1_000).times(2))
+                .schedule(any(Runnable.class), delays.capture(), eq(TimeUnit.MILLISECONDS));
+        assertThat(delays.getAllValues()).containsExactly(0L, 10_000L);
     }
 
     @Test

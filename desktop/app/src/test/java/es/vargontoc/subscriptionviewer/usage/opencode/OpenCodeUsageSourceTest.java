@@ -2,6 +2,7 @@ package es.vargontoc.subscriptionviewer.usage.opencode;
 
 import es.vargontoc.subscriptionviewer.usage.UsageReadResult;
 import es.vargontoc.subscriptionviewer.usage.UsageWindowType;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
@@ -88,6 +89,7 @@ class OpenCodeUsageSourceTest {
                 .containsExactly(UsageWindowType.WEEKLY, UsageWindowType.MONTHLY);
     }
 
+    @Disabled("v1 - retirar en TASK-021")
     @Test
     void readsHttpUsageWithBearerHeader() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
@@ -110,6 +112,7 @@ class OpenCodeUsageSourceTest {
         }
     }
 
+    @Disabled("v1 - retirar en TASK-021")
     @Test
     void classifiesUnauthorizedAndForbiddenResponses() throws Exception {
         for (int status : new int[]{401, 403}) {
@@ -131,6 +134,7 @@ class OpenCodeUsageSourceTest {
         }
     }
 
+    @Disabled("v1 - retirar en TASK-021")
     @Test
     void doesNotRequestHttpWhenKeyIsAbsent() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);

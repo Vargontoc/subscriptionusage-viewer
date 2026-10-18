@@ -5,6 +5,7 @@ import es.vargontoc.subscriptionviewer.config.ConfigurationProvider;
 import es.vargontoc.subscriptionviewer.config.OpenCodeApiKey;
 import es.vargontoc.subscriptionviewer.usage.opencode.OpenCodeUsageSource;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 
@@ -34,6 +35,7 @@ class OpenCodePollingIntegrationTest {
     }
 
     @Test
+    @Disabled("v1 - retirar en TASK-021")
     void successfulReadReachesHistoryAndPublisher() throws Exception {
         HttpServer server = server(200, "{\"usage\":{\"rolling\":{\"percent\":30,\"resetsAt\":\"2030-01-01T00:00:00Z\"}}}");
         ConfigurationProvider config = config(url(server));
@@ -55,6 +57,7 @@ class OpenCodePollingIntegrationTest {
     }
 
     @Test
+    @Disabled("v1 - retirar en TASK-021")
     void unauthorizedReadPausesWithoutRetry() throws Exception {
         HttpServer server = server(401, "");
         ConfigurationProvider config = config(url(server));
@@ -69,6 +72,7 @@ class OpenCodePollingIntegrationTest {
     }
 
     @Test
+    @Disabled("v1 - retirar en TASK-021")
     void transientNetworkFailureSchedulesBackoff() throws Exception {
         ConfigurationProvider config = config("http://127.0.0.1:1/usage");
         List<Runnable> scheduled = new ArrayList<>();

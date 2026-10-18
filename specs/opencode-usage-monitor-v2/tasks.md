@@ -8,7 +8,7 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
 
 ## Tareas
 
-### [ ] TASK-001 Configuración de topes model-caps y propiedades de OpenCode
+### [x] TASK-001 Configuración de topes model-caps y propiedades de OpenCode
 
 - **Cubre:** REQ-004, REQ-007, REQ-009, NFR-005, NFR-006, DEC-005
 - **Componente:** configuration-provider | src/main/java/es/vargontoc/subscriptionviewer/config
@@ -22,10 +22,10 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
   1. Abrir `application.yml`. Resultado: aparecen las entradas marcador con un comentario que indica que añadir o cambiar un modelo es editar una sola línea (modelo y tope en dólares).
   2. Cambiar `cycle-day` a 20, reiniciar la aplicación. Resultado: arranca sin errores.
 
-### [ ] TASK-002 Cálculo de rangos de ventanas
+### [x] TASK-002 Cálculo de rangos de ventanas
 
 - **Cubre:** REQ-004, DEC-003
-- **Componente:** usage-window-ranges | por definir (analista técnico)
+- **Componente:** usage-window-ranges | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/UsageWindowRanges.java
 - **Depende de:** TASK-001
 - **Alcance:** Calcula, a partir de un único instante "ahora" y de la zona horaria local, los rangos `from` y `to` de las ventanas de 5 horas, 7 días y mes según el día de ciclo configurado, expresados en ISO-8601 UTC.
 - **Hecho cuando:** los ejemplos de REQ-004 producen exactamente los rangos indicados y las tres ventanas salen del mismo instante.
@@ -35,10 +35,10 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
 - **Prueba manual:**
   1. no aplica: cálculo interno sin comportamiento observable por el usuario; su efecto visible se verifica en TASK-020.
 
-### [ ] TASK-003 Interpretación del JSON de estadísticas de sesión
+### [x] TASK-003 Interpretación del JSON de estadísticas de sesión
 
 - **Cubre:** REQ-002, REQ-003, REQ-005, DEC-001
-- **Componente:** opencode-stats-parser | por definir (analista técnico)
+- **Componente:** opencode-stats-parser | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/OpenCodeStatsParser.java
 - **Depende de:** -
 - **Alcance:** Interpreta el texto de salida de `session.stats` y extrae de cada elemento de `models` el id, `providerID`, `variant`, `steps`, los tokens y `cost`, descartando los modelos que no son de `opencode-go` y las propiedades desconocidas.
 - **Hecho cuando:** REQ-002 (extracción) y REQ-005 se cumplen con los ejemplos de sus criterios y cualquier texto que no es JSON válido o que no contiene `models` se reporta como fallo.
@@ -48,10 +48,10 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
 - **Prueba manual:**
   1. Ejecutar en una terminal `opencode api experimental.session.stats --param from=<inicio> --param to=<fin> --param tools=none` con un rango real. Resultado: la salida es JSON con `models`, y los campos que aparecen coinciden con los que extrae el parser en las pruebas.
 
-### [ ] TASK-004 Ejecución del CLI con timeout y fallo silencioso
+### [x] TASK-004 Ejecución del CLI con timeout y fallo silencioso
 
 - **Cubre:** REQ-002, REQ-003, NFR-002, NFR-004, NFR-006, DEC-001
-- **Componente:** opencode-cli-runner | por definir (analista técnico)
+- **Componente:** opencode-cli-runner | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/OpenCodeCliRunner.java
 - **Depende de:** TASK-001
 - **Alcance:** Ejecuta `opencode` localizado por el PATH con los argumentos separados, lee stdout mientras el proceso corre, descarta stderr, aplica el timeout de 30 s y devuelve el texto o un fallo sin mensaje para el usuario.
 - **Hecho cuando:** la invocación lleva `api experimental.session.stats`, `--param from`, `--param to` y `--param tools=none`, y todo fallo (no encontrado, código distinto de 0, timeout, excepción, salida que supera el tope de tamaño de DEC-001) se resuelve como consulta fallida con un único registro de bajo nivel sin salida del CLI ni argumentos.
@@ -62,7 +62,7 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
   1. Con `opencode` instalado, lanzar la aplicación. Resultado: no aparece ningún mensaje de error.
   2. Quitar `opencode` del PATH de la terminal que lanza la aplicación y arrancarla. Resultado: la aplicación sigue en ejecución sin ningún mensaje de error.
 
-### [ ] TASK-005 Contrato: stdio - invocación de session.stats y salida JSON
+### [x] TASK-005 Contrato: stdio - invocación de session.stats y salida JSON
 
 - **Cubre:** REQ-002, REQ-003, DEC-001
 - **Componente:** opencode-cli-runner | por definir (analista técnico)
@@ -76,10 +76,10 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
   1. Comparar el contrato con la invocación de TASK-004. Resultado: el nombre del comando, los tres parámetros y `tools=none` coinciden.
   2. Comparar los campos de salida del contrato con los que extrae TASK-003. Resultado: coinciden todos.
 
-### [ ] TASK-006 Pruebas del CLI en Windows (.cmd)
+### [x] TASK-006 Pruebas del CLI en Windows (.cmd)
 
 - **Cubre:** REQ-002, REQ-003, NFR-006, DEC-001
-- **Componente:** opencode-cli-runner | por definir (analista técnico)
+- **Componente:** opencode-cli-runner | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/OpenCodeCliRunner.java
 - **Depende de:** TASK-004
 - **Alcance:** Validar en Windows que el runner localiza y ejecuta `opencode` cuando el ejecutable del PATH es un envoltorio `.cmd` (y `.ps1` si es el caso), que los argumentos ISO-8601 (dos puntos, `+`, `T`, `Z`) llegan sin alterar y que, si el envoltorio no existe, el fallo es silencioso.
 - **Hecho cuando:** en Windows el runner obtiene la salida de un `.cmd` de prueba situado en el PATH y los argumentos llegan intactos al envoltorio.
@@ -89,10 +89,10 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
 - **Prueba manual:**
   1. En Windows, con `opencode` disponible solo como `.cmd` en el PATH, ejecutar la prueba de integración con el CLI real (marcada para ejecución manual) desde la terminal. Resultado: devuelve el JSON con `models`.
 
-### [ ] TASK-007 Cálculo de porcentajes por modelo y total
+### [x] TASK-007 Cálculo de porcentajes por modelo y total
 
 - **Cubre:** REQ-005, REQ-006, REQ-007, REQ-016, DEC-004
-- **Componente:** opencode-usage-calculator | por definir (analista técnico)
+- **Componente:** opencode-usage-calculator | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/OpenCodeUsageCalculator.java
 - **Depende de:** TASK-001
 - **Alcance:** Suma el coste por modelo y ventana (todas sus `variant`), resuelve el tope del modelo (tabla o por defecto), calcula el porcentaje por modelo y ventana y el total agregado, saturados a 100 y sin redondear antes de presentar.
 - **Hecho cuando:** los ejemplos de REQ-006 y REQ-016 producen los porcentajes indicados.
@@ -102,7 +102,7 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
 - **Prueba manual:**
   1. no aplica: cálculo puro sin pantalla propia; su resultado visible se verifica en TASK-015 y TASK-020.
 
-### [ ] TASK-008 Ciclo de tres consultas en paralelo
+### [x] TASK-008 Ciclo de tres consultas en paralelo
 
 - **Cubre:** REQ-002, REQ-003, REQ-015, NFR-004, NFR-005, NFR-006, DEC-002
 - **Componente:** opencode-usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode
@@ -115,10 +115,10 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
 - **Prueba manual:**
   1. Con el CLI real, abrir el Administrador de tareas durante un ciclo y contar los procesos `opencode`. Resultado: no hay más de 3 simultáneos.
 
-### [ ] TASK-009 Integración: ciclo de OpenCode con el cálculo de porcentajes
+### [x] TASK-009 Integración: ciclo de OpenCode con el cálculo de porcentajes
 
 - **Cubre:** REQ-006, REQ-007, REQ-016, DEC-004
-- **Componente:** opencode-usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode ; opencode-usage-calculator | por definir (analista técnico)
+- **Componente:** opencode-usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode ; opencode-usage-calculator | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/OpenCodeUsageCalculator.java
 - **Depende de:** TASK-007, TASK-008
 - **Alcance:** El ciclo de la fuente entrega a los consumidores los porcentajes por modelo y total calculados con los topes de la configuración, en lugar del gasto crudo.
 - **Hecho cuando:** un ciclo con las tres consultas válidas devuelve porcentajes saturados por modelo y total, con el tope de la tabla o el de por defecto.
@@ -128,7 +128,7 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
 - **Prueba manual:**
   1. no aplica: integración interna; el resultado visible se verifica en TASK-015.
 
-### [ ] TASK-010 Planificador de refresco fijo sin solapamiento
+### [x] TASK-010 Planificador de refresco fijo sin solapamiento
 
 - **Cubre:** REQ-009, REQ-013, REQ-015, NFR-005, DEC-006
 - **Componente:** usage-poller | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsagePoller.java
@@ -284,6 +284,7 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
 - **Depende de:** TASK-001, TASK-002, TASK-003, TASK-004, TASK-005, TASK-006, TASK-007, TASK-008, TASK-009, TASK-010, TASK-011, TASK-012, TASK-013, TASK-014, TASK-015, TASK-016, TASK-017, TASK-018, TASK-019, TASK-020
 - **Alcance:** Retirar el cliente HTTP y la normalización `percent`/`usagePercent` de la fuente de OpenCode; la propiedad `api-key`, `OPENCODE_API_KEY`, su precedencia y su enmascarado en configuration-provider; `secret-config-files` (ejemplo de configuración y reglas de exclusión de la clave); la propiedad de backoff; el tratamiento de 401/403 y los estados de clave ausente, clave inválida y sin suscripción en usage-source, usage-poller, usage-snapshot-publisher y usage-window; los mensajes de autenticación; y las pruebas asociadas, incluida la verificación con clave centinela. Esta tarea es la única de limpieza de v1 (REQ-014) y se ejecuta cuando la v2 y la regresión de Claude están terminadas. Las referencias de README, mapa y contratos las actualiza el documentador después de esta tarea.
 - **Hecho cuando:** la búsqueda de `OPENCODE_API_KEY`, `Authorization: Bearer` y `/zen/go/v1/usage` en código y configuración no devuelve referencias activas, se compila y las pruebas pasan sin depender de código retirado, y la regresión de Claude (TASK-019) sigue en verde.
+- Retirar también todas las pruebas marcadas con `@Disabled("v1 - retirar en TASK-021")` en la suite, verificando que ninguna sigue presente tras la limpieza.
 - **Pruebas automáticas:**
   - Caso feliz: la compilación con Java 21 y la suite completa terminan en verde.
   - Caso de error o límite: una búsqueda de los tres literales en código y configuración no devuelve referencias activas; el arranque sin variable `OPENCODE_API_KEY` ni propiedad `api-key` funciona sin pedir ninguna clave; una propiedad `api-key` residual en `application.yml` no impide el arranque.

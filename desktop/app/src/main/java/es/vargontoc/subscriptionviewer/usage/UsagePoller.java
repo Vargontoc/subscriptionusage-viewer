@@ -51,9 +51,6 @@ public class UsagePoller implements SmartLifecycle {
 
     private volatile boolean running = false;
     private final Map<String, ScheduledFuture<?>> scheduled = new ConcurrentHashMap<>();
-    private final Map<String, Boolean> paused = new ConcurrentHashMap<>();
-    private final Map<String, Integer> transientFailures = new ConcurrentHashMap<>();
-    private static final String OPENCODE = "opencode";
 
     /**
      * Constructor para producción.
@@ -95,18 +92,16 @@ public class UsagePoller implements SmartLifecycle {
             return;
         }
         running = true;
-        if (sources.isEmpty()) {
-            // Compatibilidad con el planificador antiguo y con instalaciones sin fuentes.
-            Duration interval = configurationProvider.getUsagePollInterval();
-            executor.scheduleWithFixedDelay(() -> { }, interval.toMillis(), interval.toMillis(), TimeUnit.MILLISECONDS);
-            return;
-        }
         for (UsageSource source : sources) {
+            // La gestión de autenticación de v1 se conserva hasta TASK-021;
+            // esta tarea solo elimina su backoff y pausa tras los fallos.
             if (isOpenCode(source) && !configurationProvider.hasOpenCodeApiKey()) {
                 publisher.publish(source.getProviderId(), UsageReadResult.claveAusente(), clock.instant());
                 continue;
             }
-            scheduleNext(source, intervalFor(source));
+            // El primer ciclo se lanza al arrancar. Los siguientes se programan
+            // desde poll(), después de que termine la lectura de esta fuente.
+            scheduleNext(source, Duration.ZERO);
         }
     }
 
@@ -143,49 +138,37 @@ public class UsagePoller implements SmartLifecycle {
         }
     }
 
-    private boolean isOpenCode(UsageSource source) {
-        return OPENCODE.equalsIgnoreCase(source.getProviderId())
-                || source.getProviderId().toLowerCase().contains("opencode");
-    }
-
     private Duration intervalFor(UsageSource source) {
         return isOpenCode(source)
-                ? configurationProvider.getOpenCodeUsagePollInterval()
+                ? configurationProvider.getOpenCodePollInterval()
                 : configurationProvider.getUsagePollInterval();
     }
 
+    private boolean isOpenCode(UsageSource source) {
+        return "opencode".equalsIgnoreCase(source.getProviderId())
+                || source.getProviderId().toLowerCase().contains("opencode");
+    }
+
     private void scheduleNext(UsageSource source, Duration delay) {
-        if (!running || paused.getOrDefault(source.getProviderId(), false)) return;
+        if (!running) return;
         ScheduledFuture<?> future = executor.schedule(() -> poll(source),
                 Math.max(0, delay.toMillis()), TimeUnit.MILLISECONDS);
-        scheduled.put(source.getProviderId(), future);
+        if (future != null) {
+            scheduled.put(source.getProviderId(), future);
+        }
     }
 
     private void poll(UsageSource source) {
-        if (!running || paused.getOrDefault(source.getProviderId(), false)) return;
+        if (!running) return;
         readExecutor.submit(() -> {
             UsageReadResult result = readWithTimeout(source);
             Instant completedAt = clock.instant();
             result.datos().ifPresent(usageHistory::add);
             publisher.publish(source.getProviderId(), result, completedAt);
-
-            if (result.estado() == UsageReadResult.Estado.CLAVE_INVALIDA
-                    || result.estado() == UsageReadResult.Estado.SIN_SUSCRIPCION) {
-                paused.put(source.getProviderId(), true);
-                return;
-            }
-            Duration next = intervalFor(source);
-            if (isOpenCode(source)) {
-                if (result.estado() == UsageReadResult.Estado.FALLO_TRANSITORIO) {
-                    int failures = transientFailures.merge(source.getProviderId(), 1, Integer::sum);
-                    long seconds = Math.min(intervalFor(source).toSeconds() * (1L << Math.min(failures - 1, 2)),
-                            configurationProvider.getOpenCodeBackoffMaxInterval().toSeconds());
-                    next = Duration.ofSeconds(seconds);
-                } else if (result.estado() == UsageReadResult.Estado.DATOS) {
-                    transientFailures.remove(source.getProviderId());
-                }
-            }
-            scheduleNext(source, next);
+            // El retardo se cuenta desde el fin de la lectura. Así una fuente
+            // lenta no se solapa consigo misma y un fallo se reintenta con la
+            // misma cadencia, sin backoff ni pausa.
+            scheduleNext(source, intervalFor(source));
         });
     }
 

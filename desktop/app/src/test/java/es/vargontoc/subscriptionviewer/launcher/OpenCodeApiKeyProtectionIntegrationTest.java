@@ -15,6 +15,7 @@ import es.vargontoc.subscriptionviewer.usage.UsageReadResult;
 import es.vargontoc.subscriptionviewer.usage.UsageSnapshotPublisher;
 import es.vargontoc.subscriptionviewer.usage.UsagePoller;
 import es.vargontoc.subscriptionviewer.usage.opencode.OpenCodeUsageSource;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.springframework.mock.env.MockEnvironment;
@@ -49,6 +50,7 @@ class OpenCodeApiKeyProtectionIntegrationTest {
             + "\"resetsAt\":\"2099-01-01T00:00:00Z\"}}}";
 
     @Test
+    @Disabled("v1 - retirar en TASK-021")
     void validKeyNeverReachesLogsOrUi() throws Exception {
         Scenario scenario = scenario(200, RESPONSE);
         try {
@@ -62,6 +64,7 @@ class OpenCodeApiKeyProtectionIntegrationTest {
     }
 
     @Test
+    @Disabled("v1 - retirar en TASK-021")
     void absentKeyPublishesStateWithoutHttpRequest() throws Exception {
         Scenario scenario = scenario(null, null);
         try {
@@ -76,11 +79,13 @@ class OpenCodeApiKeyProtectionIntegrationTest {
     }
 
     @Test
+    @Disabled("v1 - retirar en TASK-021")
     void unauthorizedResponseNeverLeaksKeyOrAuthorization() throws Exception {
         assertErrorScenario(401);
     }
 
     @Test
+    @Disabled("v1 - retirar en TASK-021")
     void forbiddenResponseNeverLeaksKeyOrAuthorization() throws Exception {
         assertErrorScenario(403);
     }

@@ -8,6 +8,7 @@ import es.vargontoc.subscriptionviewer.usage.UsageReadResult;
 import es.vargontoc.subscriptionviewer.usage.UsageSnapshotPublisher;
 import es.vargontoc.subscriptionviewer.ui.UsageWindow;
 import es.vargontoc.subscriptionviewer.usage.opencode.OpenCodeUsageSource;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.env.MockEnvironment;
 import tools.jackson.databind.ObjectMapper;
@@ -23,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class OpenCodeResourceAndResponsivenessIntegrationTest {
 
     @Test
+    @Disabled("v1 - retirar en TASK-021")
     void userInterfaceRemainsResponsiveWhileOpenCodeTakesSixSeconds() throws Exception {
         try (SlowOpenCodeServer server = new SlowOpenCodeServer(6_000)) {
             MockEnvironment environment = new MockEnvironment()

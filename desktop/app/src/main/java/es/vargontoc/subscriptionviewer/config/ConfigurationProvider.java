@@ -11,6 +11,10 @@ import jakarta.annotation.PostConstruct;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Proveedor de configuración que expone las propiedades externalizadas
@@ -40,9 +44,10 @@ public class ConfigurationProvider {
         log.info("Propiedad app.name resuelta: {}", getAppName());
         log.info("Propiedad app.usage-state-file resuelta: {}", getUsageStateFile());
         log.info("Propiedad app.usage-poll-interval resuelta: {}", getUsagePollInterval());
-        log.info("Propiedad subscription-viewer.opencode.usage-url resuelta: {}", getOpenCodeUsageUrl());
-        log.info("Propiedad subscription-viewer.opencode.usage-poll-interval resuelta: {}", getOpenCodeUsagePollInterval());
-        log.info("Propiedad subscription-viewer.opencode.backoff-max-interval resuelta: {}", getOpenCodeBackoffMaxInterval());
+        log.info("Propiedad subscription-viewer.opencode.cycle-day resuelta: {}", getOpenCodeCycleDay());
+        log.info("Propiedad subscription-viewer.opencode.default-cap-usd resuelta: {}", getOpenCodeDefaultCapUsd());
+        log.info("Propiedad subscription-viewer.opencode.poll-interval-seconds resuelta: {}", getOpenCodePollInterval());
+        log.info("Propiedad subscription-viewer.opencode.command-timeout-seconds resuelta: {}", getOpenCodeCommandTimeout());
         log.info("OpenCode: clave configurada: {}; origen: {}",
                 hasOpenCodeApiKey() ? "sí" : "no", openCodeApiKeyOrigin);
     }
@@ -111,6 +116,41 @@ public class ConfigurationProvider {
                 ? Duration.ofSeconds(10) : interval;
     }
 
+    public int getOpenCodeCycleDay() {
+        int day = appProperties.getOpencode().getCycleDay();
+        return day >= 1 && day <= 31 ? day : 1;
+    }
+
+    public BigDecimal getOpenCodeDefaultCapUsd() {
+        BigDecimal cap = appProperties.getOpencode().getDefaultCapUsd();
+        return cap == null || cap.signum() <= 0 ? BigDecimal.valueOf(60) : cap;
+    }
+
+    /** Intervalo fijo de refresco, nunca inferior a diez segundos. */
+    public Duration getOpenCodePollInterval() {
+        return getOpenCodeUsagePollInterval();
+    }
+
+    public Duration getOpenCodeCommandTimeout() {
+        Duration timeout = appProperties.getOpencode().getCommandTimeout();
+        if (timeout == null || timeout.isNegative() || timeout.isZero()) {
+            throw new IllegalStateException("El timeout de OpenCode debe ser positivo");
+        }
+        return timeout;
+    }
+
+    public List<AppProperties.ModelCap> getOpenCodeModelCaps() {
+        return Collections.unmodifiableList(appProperties.getOpencode().getModelCaps());
+    }
+
+    public BigDecimal getOpenCodeModelCap(String model) {
+        return getOpenCodeModelCaps().stream()
+                .filter(entry -> entry.model() != null && entry.model().equals(model))
+                .map(AppProperties.ModelCap::capUsd)
+                .filter(cap -> cap != null && cap.signum() > 0)
+                .findFirst().orElse(getOpenCodeDefaultCapUsd());
+    }
+
     public Duration getOpenCodeBackoffMaxInterval() {
         Duration interval = appProperties.getOpencode().getBackoffMaxInterval();
         if (interval == null || interval.isNegative() || interval.isZero()) {
@@ -152,6 +192,24 @@ public class ConfigurationProvider {
         if (backoffInterval != null) {
             properties.setBackoffMaxInterval(parseDuration(backoffInterval));
         }
+        properties.setCycleDay(parseCycleDay(environment.getProperty("subscription-viewer.opencode.cycle-day")));
+        String defaultCap = environment.getProperty("subscription-viewer.opencode.default-cap-usd");
+        if (defaultCap != null && !defaultCap.isBlank()) {
+            try {
+                properties.setDefaultCapUsd(new BigDecimal(defaultCap.trim()));
+            } catch (NumberFormatException ignored) {
+                // Un valor inválido conserva el tope seguro por defecto.
+            }
+        }
+        String timeout = environment.getProperty("subscription-viewer.opencode.command-timeout-seconds");
+        if (timeout != null && !timeout.isBlank()) {
+            properties.setCommandTimeout(parseDuration(timeout));
+        }
+        String intervalSeconds = environment.getProperty("subscription-viewer.opencode.poll-interval-seconds");
+        if (intervalSeconds != null && !intervalSeconds.isBlank()) {
+            properties.setUsagePollInterval(parseDuration(intervalSeconds));
+        }
+        loadModelCaps(properties);
         // No se usa environment.getProperty(...) para la primera lectura: las
         // variables de entorno tienen reglas de enlace relajado y podrían
         // invertir la precedencia requerida. Se inspecciona primero el valor
@@ -171,6 +229,31 @@ public class ConfigurationProvider {
             properties.setApiKey(environmentApiKey.trim());
             openCodeApiKeyOrigin = "entorno";
         }
+    }
+
+    private int parseCycleDay(String value) {
+        if (value == null || value.isBlank()) return 1;
+        try {
+            int day = Integer.parseInt(value.trim());
+            return day >= 1 && day <= 31 ? day : 1;
+        } catch (NumberFormatException ignored) {
+            return 1;
+        }
+    }
+
+    private void loadModelCaps(AppProperties.OpenCodeProperties properties) {
+        List<AppProperties.ModelCap> caps = new ArrayList<>();
+        for (int index = 0; ; index++) {
+            String model = environment.getProperty("subscription-viewer.opencode.model-caps[" + index + "].model");
+            String cap = environment.getProperty("subscription-viewer.opencode.model-caps[" + index + "].cap-usd");
+            if (model == null && cap == null) break;
+            BigDecimal numericCap = null;
+            if (cap != null && !cap.isBlank()) {
+                try { numericCap = new BigDecimal(cap.trim()); } catch (NumberFormatException ignored) { }
+            }
+            caps.add(new AppProperties.ModelCap(model, numericCap));
+        }
+        properties.setModelCaps(caps);
     }
 
     private String findExplicitApiKeyProperty() {

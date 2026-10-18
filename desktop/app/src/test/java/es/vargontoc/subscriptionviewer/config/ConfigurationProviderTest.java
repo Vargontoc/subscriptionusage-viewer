@@ -11,6 +11,7 @@ import org.springframework.core.io.ClassPathResource;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,6 +50,42 @@ class ConfigurationProviderTest {
                 .withPropertyValues("subscription-viewer.opencode.usage-poll-interval=5s")
                 .run(context -> assertThat(context.getBean(ConfigurationProvider.class)
                         .getOpenCodeUsagePollInterval()).isEqualTo(Duration.ofSeconds(10)));
+    }
+
+    @Test
+    void shouldReadCycleDayCapsAndTimeout() {
+        contextRunner.withPropertyValues(
+                        "subscription-viewer.opencode.cycle-day=20",
+                        "subscription-viewer.opencode.default-cap-usd=75",
+                        "subscription-viewer.opencode.poll-interval-seconds=25",
+                        "subscription-viewer.opencode.command-timeout-seconds=45",
+                        "subscription-viewer.opencode.model-caps[0].model=opencode-go/gpt-5",
+                        "subscription-viewer.opencode.model-caps[0].cap-usd=120")
+                .run(context -> {
+                    ConfigurationProvider provider = context.getBean(ConfigurationProvider.class);
+                    assertThat(provider.getOpenCodeCycleDay()).isEqualTo(20);
+                    assertThat(provider.getOpenCodeDefaultCapUsd()).isEqualByComparingTo("75");
+                    assertThat(provider.getOpenCodePollInterval()).isEqualTo(Duration.ofSeconds(25));
+                    assertThat(provider.getOpenCodeCommandTimeout()).isEqualTo(Duration.ofSeconds(45));
+                    assertThat(provider.getOpenCodeModelCap("opencode-go/gpt-5"))
+                            .isEqualByComparingTo(BigDecimal.valueOf(120));
+                });
+    }
+
+    @Test
+    void shouldNormalizeInvalidCycleDayAndEmptyCap() {
+        for (String day : List.of("0", "32", "not-a-number")) {
+            contextRunner.withPropertyValues(
+                            "subscription-viewer.opencode.cycle-day=" + day,
+                            "subscription-viewer.opencode.model-caps[0].model=example-model",
+                            "subscription-viewer.opencode.model-caps[0].cap-usd= ")
+                    .run(context -> {
+                        ConfigurationProvider provider = context.getBean(ConfigurationProvider.class);
+                        assertThat(provider.getOpenCodeCycleDay()).isEqualTo(1);
+                        assertThat(provider.getOpenCodeModelCap("example-model"))
+                                .isEqualByComparingTo("60");
+                    });
+        }
     }
 
     @Test
