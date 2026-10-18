@@ -143,7 +143,7 @@ public final class OpenCodeUsageSource implements UsageSource, AutoCloseable {
     }
 
     private OpenCodeStatsParser.ParseResult query(UsageWindowRanges.Range range) {
-        OpenCodeCliRunner.CliResult result = runner.run(range.fromIso8601(), range.toIso8601());
+        OpenCodeCliRunner.CliResult result = runner.run(range.fromUnixMillis(), range.toUnixMillis());
         return result.isSuccess() ? parser.parse(result.output()) : OpenCodeStatsParser.ParseResult.failure();
     }
 

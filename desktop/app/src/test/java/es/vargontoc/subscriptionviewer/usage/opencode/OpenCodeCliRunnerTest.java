@@ -20,16 +20,16 @@ class OpenCodeCliRunnerTest {
     Path temporaryDirectory;
 
     @Test
-    void passesCommandAndParametersAsSeparateArguments() throws IOException {
+    void passesUnixMillisecondCommandParametersAsSeparateArguments() throws IOException {
         assumeUnix();
         Path fixture = script("printf '%s\\n' \"$@\"");
 
         OpenCodeCliRunner.CliResult result = new OpenCodeCliRunner(fixture.toString(), Duration.ofSeconds(2), 4096)
-                .run("2026-10-18T10:00:00Z", "2026-10-18T14:00:00Z");
+                .run("1792317600000", "1792332000000");
 
         assertThat(result).extracting(OpenCodeCliRunner.CliResult::isSuccess).isEqualTo(true);
         assertThat(result.text()).containsSubsequence("api", "experimental.session.stats", "--param",
-                "from=2026-10-18T10:00:00Z", "--param", "to=2026-10-18T14:00:00Z", "--param", "tools=none");
+                "from=1792317600000", "--param", "to=1792332000000", "--param", "tools=none");
     }
 
     @Test
@@ -55,16 +55,16 @@ class OpenCodeCliRunnerTest {
     }
 
     @Test
-    void windowsCmdWrapperPreservesIso8601Arguments() throws IOException {
+    void windowsCmdWrapperPreservesUnixMillisecondArguments() throws IOException {
         assumeWindows();
         Path fixture = copyWindowsFixture("opencode-fixture.cmd");
 
         OpenCodeCliRunner.CliResult result = new OpenCodeCliRunner(fixture.toString(), Duration.ofSeconds(2), 4096)
-                .run("2026-10-18T10:00:00+02:00", "2026-10-18T14:00:00Z");
+                .run("1792317600000", "1792332000000");
 
         assertThat(result).extracting(OpenCodeCliRunner.CliResult::isSuccess).isEqualTo(true);
-        assertThat(result.output()).contains("from=2026-10-18T10:00:00+02:00")
-                .contains("to=2026-10-18T14:00:00Z")
+        assertThat(result.output()).contains("from=1792317600000")
+                .contains("to=1792332000000")
                 .contains("tools=none");
     }
 
@@ -74,7 +74,7 @@ class OpenCodeCliRunnerTest {
         Path fixture = copyWindowsFixture("opencode-failure.cmd");
 
         OpenCodeCliRunner.CliResult result = new OpenCodeCliRunner(fixture.toString(), Duration.ofSeconds(2), 4096)
-                .run("2026-10-18T10:00:00Z", "2026-10-18T14:00:00Z");
+                .run("1792317600000", "1792332000000");
 
         assertThat(result.isFailure()).isTrue();
         assertThat(result.output()).isEmpty();
@@ -86,7 +86,7 @@ class OpenCodeCliRunnerTest {
         Path missing = temporaryDirectory.resolve("missing-opencode.cmd");
 
         OpenCodeCliRunner.CliResult result = new OpenCodeCliRunner(missing.toString(), Duration.ofSeconds(1), 4096)
-                .run("2026-10-18T10:00:00Z", "2026-10-18T14:00:00Z");
+                .run("1792317600000", "1792332000000");
 
         assertThat(result.isFailure()).isTrue();
         assertThat(result.output()).isEmpty();

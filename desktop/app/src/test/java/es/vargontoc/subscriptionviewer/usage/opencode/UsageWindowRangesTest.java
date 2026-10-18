@@ -42,6 +42,15 @@ class UsageWindowRangesTest {
         assertThat(ranges.month().from()).isEqualTo(Instant.parse("2026-10-19T22:00:00Z"));
     }
 
+    @Test
+    void exposesWindowBoundsAsUnixMilliseconds() {
+        UsageWindowRanges.Range range = new UsageWindowRanges.Range(
+                Instant.parse("2026-10-18T00:00:00Z"), Instant.parse("2026-10-19T00:00:00Z"));
+
+        assertThat(range.fromUnixMillis()).isEqualTo("1792281600000");
+        assertThat(range.toUnixMillis()).isEqualTo("1792368000000");
+    }
+
     private UsageWindowRanges calculator(String instant, int day) {
         return new UsageWindowRanges(Clock.fixed(Instant.parse(instant), ZoneId.of("UTC")), MADRID, day);
     }

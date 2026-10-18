@@ -1,26 +1,26 @@
-package es.vargontoc.subscriptionviewer.usage.opencode;
-
-import es.vargontoc.subscriptionviewer.config.ConfigurationProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+ package es.vargontoc.subscriptionviewer.usage.opencode;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import es.vargontoc.subscriptionviewer.config.ConfigurationProvider;
 
 /** Ejecuta una consulta de estadísticas del CLI sin hacer visible sus fallos. */
 @Component
@@ -60,18 +60,19 @@ public final class OpenCodeCliRunner {
         this.maxOutputBytes = maxOutputBytes;
     }
 
-    public CliResult run(String fromIso, String toIso) {
-        List<String> arguments = List.of("api", "experimental.session.stats", "--param", "from=" + fromIso,
-                "--param", "to=" + toIso, "--param", "tools=none");
+    /** Ejecuta session.stats con instantes Unix expresados en milisegundos. */
+    public CliResult run(String fromUnixMillis, String toUnixMillis) {
+        List<String> arguments = List.of("api", "experimental.session.stats", "--param", "from=" + fromUnixMillis,
+                "--param", "to=" + toUnixMillis, "--param", "tools=none");
         return execute(arguments);
     }
 
-    public CliResult run(Instant from, Instant to) {
-        return run(from.toString(), to.toString());
+    public CliResult run(Long fromMillis, Long toMillis) {
+        return run(fromMillis.toString(), toMillis.toString());
     }
 
-    public CliResult execute(String fromIso, String toIso) {
-        return run(fromIso, toIso);
+    public CliResult execute(String fromUnixMillis, String toUnixMillis) {
+        return run(fromUnixMillis, toUnixMillis);
     }
 
     private CliResult execute(List<String> arguments) {
@@ -139,7 +140,7 @@ public final class OpenCodeCliRunner {
             commandLine.add("cmd.exe");
             commandLine.add("/d");
             commandLine.add("/c");
-            StringBuilder commandString = new StringBuilder("\"").append(command).append('"');
+            StringBuilder commandString = new StringBuilder().append(command);
             for (String argument : arguments) {
                 commandString.append(' ').append(argument);
             }
@@ -150,6 +151,8 @@ public final class OpenCodeCliRunner {
         }
         return commandLine;
     }
+
+    // "cmd.exe /d /c opencode api experimental.session.stats --param from=1792368000000 --param to=1792454400000 --param tools=none"
 
     private ReadResult readStdout(InputStream input) {
         try (InputStream stream = input; ByteArrayOutputStream output = new ByteArrayOutputStream()) {

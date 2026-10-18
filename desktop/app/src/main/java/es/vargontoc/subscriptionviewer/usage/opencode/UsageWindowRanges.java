@@ -51,6 +51,8 @@ public final class UsageWindowRanges {
         public String toIso8601() { return to.toString(); }
         public String fromIso() { return from.toString(); }
         public String toIso() { return to.toString(); }
+        public String fromUnixMillis() { return String.valueOf(from.toEpochMilli()); }
+        public String toUnixMillis() { return String.valueOf(to.toEpochMilli()); }
     }
 
     public record Ranges(Range fiveHours, Range sevenDays, Range month) {
