@@ -1,19 +1,21 @@
 package es.vargontoc.subscriptionviewer.usage.opencode;
 
-import es.vargontoc.subscriptionviewer.config.ConfigurationProvider;
-import es.vargontoc.subscriptionviewer.config.AppProperties;
-import es.vargontoc.subscriptionviewer.usage.UsageWindowType;
-
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import es.vargontoc.subscriptionviewer.config.AppProperties;
+import es.vargontoc.subscriptionviewer.config.ConfigurationProvider;
+import es.vargontoc.subscriptionviewer.usage.UsageWindowType;
+
 /** Calcula el consumo de OpenCode sin redondear los valores de dominio. */
 public final class OpenCodeUsageCalculator {
+    
     private static final BigDecimal DEFAULT_CAP = BigDecimal.valueOf(60);
     private static final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100);
     private static final MathContext CALCULATION_CONTEXT = MathContext.DECIMAL128;
@@ -30,17 +32,20 @@ public final class OpenCodeUsageCalculator {
     }
 
     public OpenCodeUsageCalculator(List<AppProperties.ModelCap> caps, BigDecimal defaultCap) {
+        BigDecimal resolvedDefaultCap = positive(defaultCap) ? defaultCap : DEFAULT_CAP;
         Map<String, BigDecimal> resolved = new LinkedHashMap<>();
         if (caps != null) {
             for (AppProperties.ModelCap entry : caps) {
-                if (entry != null && entry.model() != null && entry.capUsd() != null
-                        && entry.capUsd().signum() > 0) {
-                    resolved.putIfAbsent(entry.model(), entry.capUsd());
+                if (entry != null && entry.model() != null && !entry.model().isBlank()) {
+                    // Conservamos también los marcadores sin tope para que un modelo
+                    // configurado aparezca aunque todavía no tenga consumo.
+                    BigDecimal cap = positive(entry.capUsd()) ? entry.capUsd() : resolvedDefaultCap;
+                    resolved.putIfAbsent(entry.model(), cap);
                 }
             }
         }
-        this.modelCaps = Map.copyOf(resolved);
-        this.defaultCap = positive(defaultCap) ? defaultCap : DEFAULT_CAP;
+        this.modelCaps = Collections.unmodifiableMap(new LinkedHashMap<>(resolved));
+        this.defaultCap = resolvedDefaultCap;
     }
 
     public OpenCodeUsageCalculator(Map<String, BigDecimal> modelCaps, BigDecimal defaultCap) {
@@ -61,6 +66,9 @@ public final class OpenCodeUsageCalculator {
     /** Calcula ventanas identificadas por {@link UsageWindowType}. */
     public Calculation calculate(Map<UsageWindowType, ? extends List<OpenCodeModelStats>> input) {
         Map<String, EnumMap<UsageWindowType, BigDecimal>> costs = new LinkedHashMap<>();
+        // La configuración es la base del resultado: un modelo configurado no
+        // desaparece solo porque el CLI no lo devuelva en ninguna ventana.
+        modelCaps.keySet().forEach(model -> costs.put(model, zeroCosts()));
         for (UsageWindowType requestedWindow : List.of(UsageWindowType.FIVE_HOUR,
                 UsageWindowType.SEVEN_DAY, UsageWindowType.MONTHLY,
                 UsageWindowType.ROLLING, UsageWindowType.WEEKLY)) {
@@ -78,7 +86,6 @@ public final class OpenCodeUsageCalculator {
 
         List<ModelUsage> models = new ArrayList<>();
         for (Map.Entry<String, EnumMap<UsageWindowType, BigDecimal>> entry : costs.entrySet()) {
-            if (entry.getValue().values().stream().noneMatch(value -> value.signum() > 0)) continue;
             models.add(toUsage(entry.getKey(), entry.getValue()));
         }
         ModelUsage total = total(costs);
@@ -102,32 +109,25 @@ public final class OpenCodeUsageCalculator {
                 UsageWindowType.SEVEN_DAY, UsageWindowType.MONTHLY)) {
             BigDecimal spent = BigDecimal.ZERO;
             BigDecimal denominator = BigDecimal.ZERO;
-            for (Map<UsageWindowType, BigDecimal> model : costs.values()) {
-                BigDecimal value = model.getOrDefault(window, BigDecimal.ZERO);
+            for (Map.Entry<String, EnumMap<UsageWindowType, BigDecimal>> entry : costs.entrySet()) {
+                BigDecimal value = entry.getValue().getOrDefault(window, BigDecimal.ZERO);
                 if (value.signum() > 0) {
                     spent = spent.add(value);
-                    denominator = denominator.add(windowCap(capFor(findModel(costs, model)), window));
+                    denominator = denominator.add(windowCap(capFor(entry.getKey()), window));
                 }
             }
             totalCosts.put(window, spent);
             percentages.put(window, denominator.signum() == 0 ? BigDecimal.ZERO
-                    : saturate(spent.multiply(ONE_HUNDRED, CALCULATION_CONTEXT)
-                    .divide(denominator, CALCULATION_CONTEXT)));
+                    : minimumOneIfPositive(spent, saturate(spent.multiply(ONE_HUNDRED, CALCULATION_CONTEXT)
+                    .divide(denominator, CALCULATION_CONTEXT))));
         }
         return new ModelUsage("Total", null, Map.copyOf(totalCosts), Map.copyOf(percentages));
     }
 
-    private String findModel(Map<String, EnumMap<UsageWindowType, BigDecimal>> all,
-                             Map<UsageWindowType, BigDecimal> value) {
-        for (Map.Entry<String, EnumMap<UsageWindowType, BigDecimal>> entry : all.entrySet()) {
-            if (entry.getValue() == value) return entry.getKey();
-        }
-        throw new IllegalStateException("Modelo no encontrado");
-    }
-
     private BigDecimal percentage(BigDecimal cost, BigDecimal cap, UsageWindowType window) {
-        return saturate(cost.multiply(ONE_HUNDRED, CALCULATION_CONTEXT)
-                .divide(windowCap(cap, window), CALCULATION_CONTEXT));
+        if (cost.signum() == 0) return BigDecimal.ZERO;
+        return minimumOneIfPositive(cost, saturate(cost.multiply(ONE_HUNDRED, CALCULATION_CONTEXT)
+                .divide(windowCap(cap, window), CALCULATION_CONTEXT)));
     }
 
     private BigDecimal windowCap(BigDecimal cap, UsageWindowType window) {
@@ -149,7 +149,18 @@ public final class OpenCodeUsageCalculator {
     }
     private static BigDecimal saneCost(BigDecimal cost) { return positive(cost) ? cost : BigDecimal.ZERO; }
     private static boolean positive(BigDecimal value) { return value != null && value.signum() > 0; }
+    private static EnumMap<UsageWindowType, BigDecimal> zeroCosts() {
+        EnumMap<UsageWindowType, BigDecimal> costs = new EnumMap<>(UsageWindowType.class);
+        for (UsageWindowType window : List.of(UsageWindowType.FIVE_HOUR,
+                UsageWindowType.SEVEN_DAY, UsageWindowType.MONTHLY)) {
+            costs.put(window, BigDecimal.ZERO);
+        }
+        return costs;
+    }
     private static BigDecimal saturate(BigDecimal value) { return value.compareTo(ONE_HUNDRED) > 0 ? ONE_HUNDRED : value; }
+    private static BigDecimal minimumOneIfPositive(BigDecimal cost, BigDecimal percentage) {
+        return cost.signum() > 0 && percentage.compareTo(BigDecimal.ONE) < 0 ? BigDecimal.ONE : percentage;
+    }
     private static <T> List<T> safe(List<T> value) { return value == null ? List.of() : value; }
     private static List<AppProperties.ModelCap> toEntries(Map<String, BigDecimal> caps) {
         List<AppProperties.ModelCap> result = new ArrayList<>();

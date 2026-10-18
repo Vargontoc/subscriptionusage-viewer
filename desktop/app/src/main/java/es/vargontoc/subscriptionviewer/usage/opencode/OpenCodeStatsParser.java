@@ -1,17 +1,21 @@
 package es.vargontoc.subscriptionviewer.usage.opencode;
 
-import org.springframework.stereotype.Component;
-import tools.jackson.databind.ObjectMapper;
-
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import tools.jackson.databind.ObjectMapper;
+
 /** Interpreta la salida JSON de {@code experimental.session.stats}. */
 @Component
 public final class OpenCodeStatsParser {
-    private static final String TARGET_PROVIDER = "opencode-go";
+    private static final Logger log = LoggerFactory.getLogger(OpenCodeStatsParser.class);
+    private static final List<String> TARGET_PROVIDERS = List.of("opencode-go", "opencode");
     private final ObjectMapper objectMapper;
 
     public OpenCodeStatsParser() {
@@ -32,21 +36,26 @@ public final class OpenCodeStatsParser {
         }
         try {
             Object decoded = objectMapper.readValue(json, Map.class);
-            if (!(decoded instanceof Map<?, ?> root) || !(root.get("models") instanceof List<?> entries)) {
+            if (!(decoded instanceof Map<?, ?> root)
+                    || !(root.get("data") instanceof Map<?, ?> data)
+                    || !(data.get("models") instanceof List<?> entries)) {
                 return ParseResult.failure();
             }
 
             List<OpenCodeModelStats> models = new ArrayList<>();
             for (Object entry : entries) {
-                if (!(entry instanceof Map<?, ?> model)) {
+                if (!(entry instanceof Map<?, ?> modelEntry)
+                        || !(modelEntry.get("model") instanceof Map<?, ?> model)) {
                     return ParseResult.failure();
                 }
                 // El proveedor se filtra antes de interpretar el resto del objeto.
                 // Así, campos de otros proveedores no afectan a esta consulta.
-                if (!TARGET_PROVIDER.equals(model.get("providerID"))) {
+                if (!(model.get("providerID") instanceof String providerId)
+                        || !TARGET_PROVIDERS.contains(providerId)) {
                     continue;
                 }
-                models.add(readModel(model));
+                models.add(readModel(modelEntry, model));
+
             }
             return ParseResult.success(List.copyOf(models));
         } catch (Exception ignored) {
@@ -59,12 +68,14 @@ public final class OpenCodeStatsParser {
         return parse(json);
     }
 
-    private OpenCodeModelStats readModel(Map<?, ?> model) {
+    private OpenCodeModelStats readModel(Map<?, ?> modelEntry, Map<?, ?> model) {
         String id = requiredString(model, "id");
+
         String providerId = requiredString(model, "providerID");
-        String variant = requiredString(model, "variant");
-        int steps = integer(model, "steps");
-        if (!(model.get("tokens") instanceof Map<?, ?> tokenMap)) {
+        String variant = model.get("variant") instanceof String text && !text.isBlank()
+                ? text : "default";
+        int steps = integer(modelEntry, "steps");
+        if (!(modelEntry.get("tokens") instanceof Map<?, ?> tokenMap)) {
             throw new IllegalArgumentException("tokens missing");
         }
         OpenCodeTokens tokens = new OpenCodeTokens(
@@ -73,7 +84,7 @@ public final class OpenCodeStatsParser {
                 nonNegativeLong(tokenMap, "reasoning"),
                 cacheValue(tokenMap, "read"),
                 cacheValue(tokenMap, "write"));
-        BigDecimal cost = decimal(model, "cost");
+        BigDecimal cost = decimal(modelEntry, "cost");
         return new OpenCodeModelStats(id, providerId, variant, steps, tokens, cost);
     }
 

@@ -1,24 +1,24 @@
 package es.vargontoc.subscriptionviewer.ui;
 
-import es.vargontoc.subscriptionviewer.usage.CountdownEvaluator;
-import es.vargontoc.subscriptionviewer.usage.CountdownResult;
-import es.vargontoc.subscriptionviewer.usage.UsageReading;
-import es.vargontoc.subscriptionviewer.usage.UsageProviderState;
-import es.vargontoc.subscriptionviewer.usage.UsageWindowReading;
-import es.vargontoc.subscriptionviewer.usage.UsageWindowType;
-
-import javax.swing.BorderFactory;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
 import java.awt.GridLayout;
 import java.time.Duration;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.EnumMap;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
+
+import javax.swing.BorderFactory;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
+import es.vargontoc.subscriptionviewer.usage.CountdownEvaluator;
+import es.vargontoc.subscriptionviewer.usage.CountdownResult;
+import es.vargontoc.subscriptionviewer.usage.UsageProviderState;
+import es.vargontoc.subscriptionviewer.usage.UsageReading;
+import es.vargontoc.subscriptionviewer.usage.UsageWindowReading;
+import es.vargontoc.subscriptionviewer.usage.UsageWindowType;
 
 /**
  * Tarjeta visual con la información de uso de un proveedor.
@@ -27,7 +27,6 @@ import java.util.List;
  * las vigentes calculado por {@link CountdownEvaluator}.</p>
  */
 public class UsageCardPanel extends JPanel {
-
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     private final CountdownEvaluator evaluator;
@@ -120,8 +119,8 @@ public class UsageCardPanel extends JPanel {
         removeOpenCodeRows();
         List<UsageReading> rows = reading.seriesReadings();
         for (UsageReading row : rows) {
-            if (row == null || row.seriesId() == null || row.windows().stream()
-                    .noneMatch(window -> window.usedPercentage() > 0)) continue;
+            if (row == null || row.seriesId() == null
+                    || row.windows().stream().noneMatch(window -> window.usedPercentage() > 0)) continue;
             JLabel label = new JLabel(row.seriesId() + "  " + row.windows().stream()
                     .map(window -> windowName(window.type()) + ": " + window.usedPercentage() + "%")
                     .reduce((left, right) -> left + " | " + right).orElse(""));

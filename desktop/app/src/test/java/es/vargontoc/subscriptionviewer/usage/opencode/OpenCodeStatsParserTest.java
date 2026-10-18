@@ -10,12 +10,12 @@ class OpenCodeStatsParserTest {
     @Test
     void extractsTargetAndIgnoresUnknownPropertiesAndOtherProviders() {
         String json = """
-                {"models":[
-                  {"id":"gpt-5","providerID":"opencode-go","variant":"high","steps":2,
+                {"data":{"models":[
+                  {"model":{"id":"gpt-5","providerID":"opencode-go","variant":"high"},"steps":2,
                    "tokens":{"input":10,"output":20,"reasoning":3,"cache":{"read":4,"write":5}},"cost":1.25,"extra":true},
-                  {"id":"other","providerID":"other-provider","variant":"x","steps":1,
+                  {"model":{"id":"other","providerID":"other-provider","variant":"x"},"steps":1,
                    "tokens":{"input":1,"output":1,"reasoning":0,"cache":{"read":0,"write":0}},"cost":99}
-                ],"unknown":"ignored"}
+                ],"unknown":"ignored"}}
                 """;
 
         OpenCodeStatsParser.ParseResult result = parser.parse(json);
@@ -34,14 +34,33 @@ class OpenCodeStatsParserTest {
     @Test
     void rejectsInvalidJsonAndMissingModels() {
         assertThat(parser.parse("not json").valid()).isFalse();
-        assertThat(parser.parse("{\"usage\":{}}").valid()).isFalse();
+        assertThat(parser.parse("{\"data\":{}}").valid()).isFalse();
+        assertThat(parser.parse("{\"models\":[]}").valid()).isFalse();
     }
 
     @Test
     void acceptsAValidListWithoutTargetModels() {
-        String json = "{\"models\":[{\"providerID\":\"other\"}]}";
+        String json = "{\"data\":{\"models\":[{\"model\":{\"providerID\":\"other\"}}]}}";
         OpenCodeStatsParser.ParseResult result = parser.parse(json);
         assertThat(result.valid()).isTrue();
         assertThat(result.models()).isEmpty();
+    }
+
+    @Test
+    void usesDefaultVariantWhenMissing() {
+        String json = """
+                {"data":{"models":[
+                  {"model":{"id":"kimi","providerID":"opencode"},"steps":1,
+                   "tokens":{"input":0,"output":0,"reasoning":0,"cache":{"read":0,"write":0}},"cost":0}
+                ]}}
+                """;
+
+        OpenCodeStatsParser.ParseResult result = parser.parse(json);
+
+        assertThat(result.valid()).isTrue();
+        assertThat(result.models()).singleElement().satisfies(model -> {
+            assertThat(model.providerID()).isEqualTo("opencode");
+            assertThat(model.variant()).isEqualTo("default");
+        });
     }
 }

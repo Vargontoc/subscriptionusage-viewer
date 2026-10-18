@@ -25,8 +25,13 @@ subscription-viewer:
     poll-interval-seconds: 60
     command-timeout-seconds: 30
     model-caps:
-      # - model: "opencode-go/example-model"
-      #   cap-usd: 60
-      # - model: "opencode-go/otro-modelo"
-      #   cap-usd:
+      - model: "qwen3.7-plus"
+        cap-usd: 60
+      - model: "kimi-k2.7-code"
+        cap-usd: 60
+      - model: "minimax-m3"
+        cap-usd: 60
+      - model: "gemini-4-argon-contributor"
+        cap-usd: 60
+      - model: "glm-5.3-flash"
       

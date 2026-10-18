@@ -1,21 +1,11 @@
 package es.vargontoc.subscriptionviewer.usage.opencode;
 
-import es.vargontoc.subscriptionviewer.config.ConfigurationProvider;
-import es.vargontoc.subscriptionviewer.usage.UsageReading;
-import es.vargontoc.subscriptionviewer.usage.UsageWindowReading;
-import es.vargontoc.subscriptionviewer.usage.UsageWindowType;
-import es.vargontoc.subscriptionviewer.usage.UsageSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.ArrayList;
-import java.util.Map;
-import tools.jackson.databind.ObjectMapper;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -23,6 +13,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import es.vargontoc.subscriptionviewer.config.ConfigurationProvider;
+import es.vargontoc.subscriptionviewer.usage.UsageReading;
+import es.vargontoc.subscriptionviewer.usage.UsageSource;
+import es.vargontoc.subscriptionviewer.usage.UsageWindowReading;
+import es.vargontoc.subscriptionviewer.usage.UsageWindowType;
+import tools.jackson.databind.ObjectMapper;
 
 /** Fuente atómica de OpenCode: una lectura está formada por tres consultas CLI. */
 @Component
