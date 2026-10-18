@@ -31,6 +31,7 @@ public class UsageChartPanel extends JPanel {
 
     private static final Color FIVE_HOUR_COLOR = new Color(0x22, 0x66, 0xCC);
     private static final Color SEVEN_DAY_COLOR = new Color(0x22, 0x99, 0x66);
+    private static final Color MONTH_COLOR = new Color(0xCC, 0x77, 0x22);
     private static final Color AXIS_COLOR = Color.GRAY;
     private static final int POINT_RADIUS = 3;
 
@@ -107,7 +108,13 @@ public class UsageChartPanel extends JPanel {
      * @return puntos de pantalla ordenados temporalmente
      */
     List<ScreenPoint> projectSeries(String providerId, UsageWindowType type) {
-        List<UsageHistoryPoint> points = series.getOrDefault(new UsageHistory.Key(providerId, type), List.of());
+        return projectSeries(providerId, null, type);
+    }
+
+    /** Proyecta una serie concreta (modelo o Total) a coordenadas de pantalla. */
+    List<ScreenPoint> projectSeries(String providerId, String seriesId, UsageWindowType type) {
+        List<UsageHistoryPoint> points = series.getOrDefault(
+                new UsageHistory.Key(providerId, seriesId, type), List.of());
         if (points.isEmpty()) {
             return List.of();
         }
@@ -176,7 +183,8 @@ public class UsageChartPanel extends JPanel {
             case FIVE_HOUR -> FIVE_HOUR_COLOR;
             case SEVEN_DAY -> SEVEN_DAY_COLOR;
             case ROLLING -> FIVE_HOUR_COLOR;
-            case WEEKLY, MONTHLY -> SEVEN_DAY_COLOR;
+            case WEEKLY -> SEVEN_DAY_COLOR;
+            case MONTHLY -> MONTH_COLOR;
         };
     }
 

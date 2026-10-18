@@ -101,6 +101,28 @@ class UsageChartPanelTest {
     }
 
     @Test
+    void shouldProjectModelAndTotalSeriesIndependently() {
+        UsageChartPanel chart = new UsageChartPanel();
+        chart.setSize(400, 300);
+        List<UsageHistoryPoint> model = List.of(
+                new UsageHistoryPoint(10, T0),
+                new UsageHistoryPoint(20, T0.plusSeconds(300)),
+                new UsageHistoryPoint(30, T0.plusSeconds(600)));
+        List<UsageHistoryPoint> total = List.of(
+                new UsageHistoryPoint(15, T0),
+                new UsageHistoryPoint(25, T0.plusSeconds(300)),
+                new UsageHistoryPoint(35, T0.plusSeconds(600)));
+
+        chart.updateSeries(Map.of(
+                new UsageHistory.Key("opencode", "model-a", UsageWindowType.MONTHLY), model,
+                new UsageHistory.Key("opencode", UsageHistory.TOTAL_SERIES, UsageWindowType.MONTHLY), total));
+
+        assertThat(chart.projectSeries("opencode", "model-a", UsageWindowType.MONTHLY)).hasSize(3);
+        assertThat(chart.projectSeries("opencode", UsageHistory.TOTAL_SERIES, UsageWindowType.MONTHLY))
+                .hasSize(3);
+    }
+
+    @Test
     void shouldPaintWithoutException() {
         UsageChartPanel chart = new UsageChartPanel();
         chart.setSize(400, 300);

@@ -141,7 +141,7 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
 - **Prueba manual:**
   1. Con la aplicación en marcha y el CLI real, observar en el Administrador de tareas los procesos `opencode`. Resultado: aparecen en tandas de tres cada 60 s aproximadamente.
 
-### [ ] TASK-011 Historial en memoria por modelo y total
+### [x] TASK-011 Historial en memoria por modelo y total
 
 - **Cubre:** REQ-011, REQ-012, DEC-009
 - **Componente:** usage-history | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageHistory.java
@@ -154,7 +154,7 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
 - **Prueba manual:**
   1. no aplica: componente de datos sin pantalla propia; su efecto visible se verifica en TASK-016.
 
-### [ ] TASK-012 Último estado de OpenCode y hora de último ciclo exitoso
+### [x] TASK-012 Último estado de OpenCode y hora de último ciclo exitoso
 
 - **Cubre:** REQ-003, REQ-008, REQ-010, DEC-007
 - **Componente:** usage-snapshot-publisher | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageSnapshotPublisher.java
@@ -167,7 +167,7 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
 - **Prueba manual:**
   1. no aplica: estado interno; su efecto visible se verifica en TASK-015.
 
-### [ ] TASK-013 Integración: entrega del resultado del ciclo al publicador
+### [x] TASK-013 Integración: entrega del resultado del ciclo al publicador
 
 - **Cubre:** REQ-003, REQ-010, DEC-007
 - **Componente:** usage-poller | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsagePoller.java ; usage-snapshot-publisher | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageSnapshotPublisher.java
@@ -180,7 +180,7 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
 - **Prueba manual:**
   1. Con la aplicación en marcha, anotar la hora de última actualización. Resultado: tras cada ciclo correcto cambia; tras un ciclo fallido (p. ej. con `opencode` fuera del PATH) no cambia.
 
-### [ ] TASK-014 Integración: entrega de puntos del ciclo al historial
+### [x] TASK-014 Integración: entrega de puntos del ciclo al historial
 
 - **Cubre:** REQ-011, DEC-009
 - **Componente:** usage-poller | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsagePoller.java ; usage-history | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageHistory.java
@@ -193,7 +193,7 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
 - **Prueba manual:**
   1. no aplica: entrega interna; su efecto visible se verifica en TASK-016.
 
-### [ ] TASK-015 Integración: publicación del estado a la ventana (filas por modelo y Total)
+### [x] TASK-015 Integración: publicación del estado a la ventana (filas por modelo y Total)
 
 - **Cubre:** REQ-003, REQ-005, REQ-008, REQ-010, REQ-013, REQ-016, DEC-007
 - **Componente:** usage-snapshot-publisher | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageSnapshotPublisher.java ; usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageWindow.java
@@ -207,7 +207,7 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
   1. Con el CLI real, lanzar la aplicación y esperar un ciclo. Resultado: aparece la sección OpenCode con cada modelo, sus tres ventanas, la fila "Total" y la hora en que se completó el ciclo.
   2. Quitar `opencode` del PATH y reiniciar la aplicación. Resultado: no aparece ningún mensaje ni la sección OpenCode, y no se muestra cuenta atrás en OpenCode.
 
-### [ ] TASK-016 Integración: historial a gráfico de evolución
+### [x] TASK-016 Integración: historial a gráfico de evolución
 
 - **Cubre:** REQ-011, REQ-012
 - **Componente:** usage-history | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageHistory.java ; usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageWindow.java
@@ -221,7 +221,7 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
   1. Dejar la aplicación abierta varios ciclos con consumo cambiante. Resultado: el gráfico muestra un punto por cambio y ventana, por modelo y total, con valores no superiores a 100 %.
   2. Cerrar la aplicación y volver a abrirla. Resultado: el gráfico empieza vacío.
 
-### [ ] TASK-017 Integración: cierre con consulta en curso
+### [x] TASK-017 Integración: cierre con consulta en curso
 
 - **Cubre:** REQ-012, DEC-001, DEC-002
 - **Componente:** lifecycle-coordinator | src/main/java/es/vargontoc/subscriptionviewer/lifecycle/LifecycleCoordinator.java ; usage-poller | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsagePoller.java
@@ -234,7 +234,7 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
 - **Prueba manual:**
   1. Con el CLI real, lanzar la aplicación y cerrarla desde el menú de la bandeja justo durante un ciclo. Resultado: en el Administrador de tareas no quedan procesos `opencode` ni de la aplicación.
 
-### [ ] TASK-018 Contrato: http - retirada del endpoint de uso de OpenCode
+### [x] TASK-018 Contrato: http - retirada del endpoint de uso de OpenCode
 
 - **Cubre:** REQ-014, DEC-008
 - **Componente:** opencode-usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode
@@ -247,7 +247,7 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
 - **Prueba manual:**
   1. Repasar `docs/contracts/http/`. Resultado: no aparece el contrato de uso de OpenCode.
 
-### [ ] TASK-019 Regresión de Claude tras los cambios en componentes compartidos
+### [x] TASK-019 Regresión de Claude tras los cambios en componentes compartidos
 
 - **Cubre:** REQ-013, DEC-006, DEC-007
 - **Componente:** usage-poller | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsagePoller.java ; claude-usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/claude
@@ -261,7 +261,7 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
   1. Con Claude y OpenCode configurados, arrancar la aplicación. Resultado: ambas secciones se muestran y Claude mantiene su cuenta atrás.
   2. Quitar `opencode` del PATH y reiniciar. Resultado: Claude sigue actualizándose y OpenCode no aparece.
 
-### [ ] TASK-020 Verificación transversal de arranque, recursos y receptividad
+### [x] TASK-020 Verificación transversal de arranque, recursos y receptividad
 
 - **Cubre:** REQ-001, NFR-001, NFR-002, NFR-003, NFR-004
 - **Componente:** transversal (proceso completo) | no aplica (sin componente único)
@@ -277,7 +277,7 @@ Se parte primero de las piezas con lógica propia (configuración, rangos, parse
   3. Consultar el heap de la JVM (p. ej. con `jcmd <pid> GC.heap_info`). Resultado: menos de 256 MB.
   4. Con un CLI lento o un ciclo en curso, interactuar con el menú de la bandeja. Resultado: responde en menos de 1 s.
 
-### [ ] TASK-021 Limpieza del código, configuración y pruebas de v1
+### [x] TASK-021 Limpieza del código, configuración y pruebas de v1
 
 - **Cubre:** REQ-014, DEC-007, DEC-008
 - **Componente:** opencode-usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode ; configuration-provider | src/main/java/es/vargontoc/subscriptionviewer/config ; secret-config-files | desktop/app/config ; usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageSource.java ; usage-poller | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsagePoller.java ; usage-snapshot-publisher | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageSnapshotPublisher.java ; usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageWindow.java

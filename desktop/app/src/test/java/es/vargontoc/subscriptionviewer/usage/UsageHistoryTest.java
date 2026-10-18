@@ -37,7 +37,7 @@ class UsageHistoryTest {
     }
 
     @Test
-    void shouldAddOpenCodePointWhenPercentageOrResetChanges() {
+    void shouldAddOpenCodePointOnlyWhenPercentageChanges() {
         UsageHistory history = new UsageHistory();
         Instant reset1 = Instant.parse("2026-10-16T15:00:00Z");
         Instant reset2 = Instant.parse("2026-10-16T16:00:00Z");
@@ -51,10 +51,10 @@ class UsageHistoryTest {
 
         assertThat(history.getSeries(OPENCODE_PROVIDER, UsageWindowType.FIVE_HOUR))
                 .extracting(UsageHistoryPoint::usedPercentage)
-                .containsExactly(10, 20, 20);
+                .containsExactly(10, 20);
         assertThat(history.getSeries(OPENCODE_PROVIDER, UsageWindowType.FIVE_HOUR))
                 .extracting(UsageHistoryPoint::writtenAt)
-                .containsExactly(T1, T2, T3);
+                .containsExactly(T1, T2);
     }
 
     @Test
@@ -82,7 +82,7 @@ class UsageHistoryTest {
 
         assertThat(history.getSeries(OPENCODE_PROVIDER, UsageWindowType.FIVE_HOUR)).hasSize(UsageHistory.MAX_POINTS_PER_SERIES);
         assertThat(history.getSeries(OPENCODE_PROVIDER, UsageWindowType.FIVE_HOUR).get(0).usedPercentage())
-                .isEqualTo(5);
+                .isEqualTo(1);
     }
 
     @Test
@@ -109,7 +109,7 @@ class UsageHistoryTest {
         List<UsageHistoryPoint> series = history.getSeries(PROVIDER, UsageWindowType.SEVEN_DAY);
         assertThat(series).hasSize(UsageHistory.MAX_POINTS_PER_SERIES);
         assertThat(series.get(0).usedPercentage()).isEqualTo(5);
-        assertThat(series.get(series.size() - 1).usedPercentage()).isEqualTo(UsageHistory.MAX_POINTS_PER_SERIES + 4);
+        assertThat(series.get(series.size() - 1).usedPercentage()).isEqualTo(100);
     }
 
     @Test
@@ -132,6 +132,64 @@ class UsageHistoryTest {
     }
 
     @Test
+    void shouldPreserveClaudeHistoryWhenPercentageIsUnchangedButTimeAdvances() {
+        UsageHistory history = new UsageHistory();
+        Instant reset1 = T1.plusSeconds(3600);
+        Instant reset2 = T2.plusSeconds(3600);
+
+        history.add(new UsageReading(PROVIDER, T1, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 40, reset1))));
+        history.add(new UsageReading(PROVIDER, T2, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 40, reset2))));
+
+        assertThat(history.getSeries(PROVIDER, UsageWindowType.FIVE_HOUR))
+                .extracting(UsageHistoryPoint::usedPercentage)
+                .containsExactly(40, 40);
+        assertThat(history.getSeries(PROVIDER, UsageWindowType.FIVE_HOUR))
+                .extracting(UsageHistoryPoint::writtenAt)
+                .containsExactly(T1, T2);
+    }
+
+    @Test
+    void shouldKeepIndependentSeriesForModelsAndTotal() {
+        UsageHistory history = new UsageHistory();
+
+        history.add(OPENCODE_PROVIDER, "model-a", UsageWindowType.FIVE_HOUR, 10, T1);
+        history.add(OPENCODE_PROVIDER, "model-b", UsageWindowType.FIVE_HOUR, 20, T1);
+        history.add(OPENCODE_PROVIDER, UsageHistory.TOTAL_SERIES, UsageWindowType.FIVE_HOUR, 15, T1);
+
+        assertThat(history.getSeries(OPENCODE_PROVIDER, "model-a", UsageWindowType.FIVE_HOUR))
+                .extracting(UsageHistoryPoint::usedPercentage).containsExactly(10);
+        assertThat(history.getSeries(OPENCODE_PROVIDER, "model-b", UsageWindowType.FIVE_HOUR))
+                .extracting(UsageHistoryPoint::usedPercentage).containsExactly(20);
+        assertThat(history.getSeries(OPENCODE_PROVIDER, UsageHistory.TOTAL_SERIES, UsageWindowType.FIVE_HOUR))
+                .extracting(UsageHistoryPoint::usedPercentage).containsExactly(15);
+        assertThat(history.getSeries(OPENCODE_PROVIDER, UsageWindowType.FIVE_HOUR)).isEmpty();
+    }
+
+    @Test
+    void shouldStartLateModelSeriesAtItsFirstReading() {
+        UsageHistory history = new UsageHistory();
+
+        history.add(OPENCODE_PROVIDER, "model-a", UsageWindowType.FIVE_HOUR, 10, T1);
+        history.add(OPENCODE_PROVIDER, "model-a", UsageWindowType.FIVE_HOUR, 20, T2);
+        history.add(OPENCODE_PROVIDER, "model-b", UsageWindowType.FIVE_HOUR, 30, T3);
+
+        assertThat(history.getSeries(OPENCODE_PROVIDER, "model-b", UsageWindowType.FIVE_HOUR))
+                .extracting(UsageHistoryPoint::writtenAt).containsExactly(T3);
+    }
+
+    @Test
+    void shouldSaturateHistoryPointsAtOneHundred() {
+        UsageHistory history = new UsageHistory();
+
+        history.add(OPENCODE_PROVIDER, "model-a", UsageWindowType.FIVE_HOUR, 150, T1);
+
+        assertThat(history.getSeries(OPENCODE_PROVIDER, "model-a", UsageWindowType.FIVE_HOUR).get(0)
+                .usedPercentage()).isEqualTo(100);
+    }
+
+    @Test
     void shouldAddFromUsageReading() {
         UsageHistory history = new UsageHistory();
         UsageReading reading = new UsageReading(
@@ -147,6 +205,22 @@ class UsageHistoryTest {
 
         assertThat(history.getSeries(PROVIDER, UsageWindowType.FIVE_HOUR)).hasSize(1);
         assertThat(history.getSeries(PROVIDER, UsageWindowType.SEVEN_DAY)).hasSize(1);
+    }
+
+    @Test
+    void shouldStoreOpenCodeAggregateReadingInTotalSeries() {
+        UsageHistory history = new UsageHistory();
+
+        history.add(new UsageReading(OPENCODE_PROVIDER, T1, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 25, null))));
+
+        assertThat(history.getSeries(OPENCODE_PROVIDER, UsageHistory.TOTAL_SERIES,
+                UsageWindowType.FIVE_HOUR))
+                .extracting(UsageHistoryPoint::usedPercentage)
+                .containsExactly(25);
+        assertThat(history.getSeries(OPENCODE_PROVIDER, UsageWindowType.FIVE_HOUR))
+                .extracting(UsageHistoryPoint::usedPercentage)
+                .containsExactly(25);
     }
 
     @Test

@@ -52,6 +52,19 @@ class StartupTimeIntegrationTest {
 
     @Test
     @Timeout(value = 45, unit = TimeUnit.SECONDS)
+    void startsWhenOpenCodeIsAbsentFromPath() throws Exception {
+        ProcessResult result = runApplication("integration-test", MAX_STARTUP_MILLIS, true);
+
+        assertThat(result.ready)
+                .as("La aplicación debe quedar disponible aunque no exista opencode")
+                .isTrue();
+        assertThat(result.elapsedMillis)
+                .as("La ausencia del CLI no debe bloquear el arranque")
+                .isLessThan(MAX_STARTUP_MILLIS);
+    }
+
+    @Test
+    @Timeout(value = 45, unit = TimeUnit.SECONDS)
     void failsWhenStartupExceedsThirtySeconds() throws Exception {
         ProcessResult result = runApplication("slow-startup", MAX_STARTUP_MILLIS);
 
@@ -65,6 +78,10 @@ class StartupTimeIntegrationTest {
     }
 
     private ProcessResult runApplication(String profile, long waitMillis) throws Exception {
+        return runApplication(profile, waitMillis, false);
+    }
+
+    private ProcessResult runApplication(String profile, long waitMillis, boolean withoutOpenCode) throws Exception {
         Path jar = findExecutableJar();
         Path extracted = extractJar(jar);
         String classpath = buildClasspath(extracted);
@@ -76,6 +93,12 @@ class StartupTimeIntegrationTest {
                 "--spring.profiles.active=" + profile
         );
         builder.redirectErrorStream(true);
+        if (withoutOpenCode) {
+            // Un directorio vacío hace determinista la ausencia del CLI sin
+            // alterar el PATH del proceso Maven ni depender de la máquina.
+            Path emptyPath = Files.createTempDirectory("no-opencode-path");
+            builder.environment().put("PATH", emptyPath.toString());
+        }
 
         long start = System.currentTimeMillis();
         Process process = builder.start();

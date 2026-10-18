@@ -35,7 +35,7 @@ class UsageSnapshotPublisherTest {
     }
 
     @Test
-    void shouldRemoveProviderOnAbsenceWithoutAffectingOthers() {
+    void shouldRemoveClaudeOnAbsenceWithoutAffectingOthers() {
         UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
         List<UsageSnapshot> snapshots = new ArrayList<>();
         publisher.addListener(snapshots::add);
@@ -102,37 +102,32 @@ class UsageSnapshotPublisherTest {
     }
 
     @Test
-    void invalidKeyKeepsPreviousData() {
+    void openCodeFailureAfterSuccessKeepsDataAndSuccessfulTimeWithoutStaleState() {
         UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
-        publisher.publish(CLAUDE, UsageReadResult.datos(readingOf(CLAUDE, 20, 5)), NOW);
-        publisher.publish(CLAUDE, UsageReadResult.claveInvalida(), NOW.plusSeconds(1));
+        publisher.publish("opencode", UsageReadResult.datos(readingOf("opencode", 20, 5)), NOW);
+        publisher.publish("opencode", UsageReadResult.falloTransitorio(new RuntimeException("cli")),
+                NOW.plusSeconds(60));
 
-        UsageProviderState state = publisher.getCurrentSnapshot().stateOf(CLAUDE).orElseThrow();
-        assertThat(state.estado()).isEqualTo(UsageProviderState.Estado.CLAVE_INVALIDA);
-        assertThat(state.reading().windows().get(0).usedPercentage()).isEqualTo(20);
+        UsageProviderState state = publisher.getCurrentSnapshot().stateOf("opencode").orElseThrow();
+        assertThat(state.estado()).isEqualTo(UsageProviderState.Estado.CORRECTO);
+        assertThat(state.reading().windows()).hasSize(2);
         assertThat(state.lastSuccessfulQuery()).isEqualTo(NOW);
     }
 
     @Test
-    void missingKeyHasNoDataOrSuccessfulTime() {
+    void initialOpenCodeAbsenceHasNoPublishedState() {
         UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
-        publisher.publish("opencode", UsageReadResult.claveAusente(), NOW);
+        publisher.publish("opencode", Optional.empty());
 
-        UsageProviderState state = publisher.getCurrentSnapshot().stateOf("opencode").orElseThrow();
-        assertThat(state.estado()).isEqualTo(UsageProviderState.Estado.CLAVE_AUSENTE);
-        assertThat(state.reading()).isNull();
-        assertThat(state.lastSuccessfulQuery()).isNull();
+        assertThat(publisher.getCurrentSnapshot().stateOf("opencode")).isEmpty();
     }
 
     @Test
-    void initialTransientFailureHasNoDataAndIsNotReportedAsStale() {
+    void initialOpenCodeTransientFailureHasNoPublishedState() {
         UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
         publisher.publish("opencode", UsageReadResult.falloTransitorio(new RuntimeException("x")), NOW);
 
-        UsageProviderState state = publisher.getCurrentSnapshot().stateOf("opencode").orElseThrow();
-        assertThat(state.estado()).isEqualTo(UsageProviderState.Estado.SIN_DATOS);
-        assertThat(state.reading()).isNull();
-        assertThat(state.lastSuccessfulQuery()).isNull();
+        assertThat(publisher.getCurrentSnapshot().stateOf("opencode")).isEmpty();
     }
 
     @Test
@@ -149,14 +144,17 @@ class UsageSnapshotPublisherTest {
     }
 
     @Test
-    void publishedStateDoesNotContainCredentials() {
-        String secret = "sentinel-api-key-123";
+    void openCodeAbsenceDoesNotRemoveClaudeCountdownState() {
         UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
-        publisher.publish("opencode", UsageReadResult.claveInvalida(), NOW);
-        String published = publisher.getCurrentSnapshot().toString();
+        publisher.publish(CLAUDE, UsageReadResult.datos(readingOf(CLAUDE, 40, 15)), NOW);
+        publisher.publish("opencode", Optional.empty());
 
-        assertThat(published).doesNotContain(secret);
-        assertThat(published).doesNotContain("sentinel");
+        UsageSnapshot snapshot = publisher.getCurrentSnapshot();
+        assertThat(snapshot.stateOf(CLAUDE)).isPresent();
+        assertThat(snapshot.stateOf(CLAUDE).orElseThrow().estado())
+                .isEqualTo(UsageProviderState.Estado.CORRECTO);
+        assertThat(snapshot.stateOf("opencode")).isEmpty();
+        assertThat(snapshot.readingOf(CLAUDE)).isPresent();
     }
 
     private UsageReading readingOf(String providerId, int fiveHour, int sevenDay) {

@@ -1,7 +1,6 @@
 package es.vargontoc.subscriptionviewer.usage.opencode;
 
 import es.vargontoc.subscriptionviewer.config.ConfigurationProvider;
-import es.vargontoc.subscriptionviewer.usage.UsageReadResult;
 import es.vargontoc.subscriptionviewer.usage.UsageReading;
 import es.vargontoc.subscriptionviewer.usage.UsageWindowReading;
 import es.vargontoc.subscriptionviewer.usage.UsageWindowType;
@@ -13,7 +12,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.ArrayList;
 import java.util.Map;
@@ -24,6 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 /** Fuente atómica de OpenCode: una lectura está formada por tres consultas CLI. */
 @Component
@@ -161,6 +160,14 @@ public final class OpenCodeUsageSource implements UsageSource, AutoCloseable {
     public void close() {
         runner.destroyActiveProcesses();
         pool.shutdownNow();
+        try {
+            if (!pool.awaitTermination(5, TimeUnit.SECONDS)) {
+                pool.shutdownNow();
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            pool.shutdownNow();
+        }
     }
 
     @Override
@@ -171,50 +178,24 @@ public final class OpenCodeUsageSource implements UsageSource, AutoCloseable {
                     percentage(total, UsageWindowType.FIVE_HOUR),
                     percentage(total, UsageWindowType.SEVEN_DAY),
                     percentage(total, UsageWindowType.MONTHLY));
-            return new UsageReading(PROVIDER_ID, Instant.now(), windows);
+            List<UsageReading> rows = new ArrayList<>();
+            calculation.models().forEach(model -> rows.add(toReading(model)));
+            rows.add(new UsageReading(PROVIDER_ID, "Total", Instant.now(), windows));
+            return new UsageReading(PROVIDER_ID, Instant.now(), windows, rows);
         });
+    }
+
+    private UsageReading toReading(OpenCodeUsageCalculator.ModelUsage model) {
+        Instant now = Instant.now();
+        return new UsageReading(PROVIDER_ID, model.model(), now, List.of(
+                percentage(model, UsageWindowType.FIVE_HOUR),
+                percentage(model, UsageWindowType.SEVEN_DAY),
+                percentage(model, UsageWindowType.MONTHLY)));
     }
 
     private UsageWindowReading percentage(OpenCodeUsageCalculator.ModelUsage total,
                                           UsageWindowType window) {
         return new UsageWindowReading(window, total.percentage(window).intValue(), null);
-    }
-
-    /** Parser legado retenido para no romper consumidores durante la migración de v1. */
-    public UsageReadResult normalize(String response, Instant queryFinishedAt) {
-        try {
-            Map<?, ?> root = new ObjectMapper().readValue(response, Map.class);
-            Object usage = root.get("usage");
-            if (!(usage instanceof Map<?, ?> values)) {
-                return UsageReadResult.datos(new UsageReading(PROVIDER_ID, queryFinishedAt, List.of()));
-            }
-            List<UsageWindowReading> windows = new ArrayList<>();
-            addLegacyWindow(values, "rolling", UsageWindowType.ROLLING, queryFinishedAt, windows);
-            addLegacyWindow(values, "weekly", UsageWindowType.WEEKLY, queryFinishedAt, windows);
-            addLegacyWindow(values, "monthly", UsageWindowType.MONTHLY, queryFinishedAt, windows);
-            return UsageReadResult.datos(new UsageReading(PROVIDER_ID, queryFinishedAt, windows));
-        } catch (Exception ignored) {
-            return UsageReadResult.falloTransitorio(null);
-        }
-    }
-
-    private void addLegacyWindow(Map<?, ?> usage, String name, UsageWindowType type,
-                                 Instant finished, List<UsageWindowReading> target) {
-        if (!(usage.get(name) instanceof Map<?, ?> window)) return;
-        Object percent = window.get("percent");
-        Object reset = window.get("resetsAt");
-        try {
-            if (percent instanceof Number number && reset instanceof String text) {
-                target.add(new UsageWindowReading(type, number.intValue(), Instant.parse(text)));
-                return;
-            }
-            Object relative = window.get("usagePercent");
-            Object seconds = window.get("resetInSec");
-            if (relative instanceof Number number && seconds instanceof Number delay) {
-                target.add(new UsageWindowReading(type, number.intValue(),
-                        finished.plusSeconds(delay.longValue())));
-            }
-        } catch (RuntimeException ignored) { }
     }
 
     private static void cancel(List<? extends Future<?>> futures) {

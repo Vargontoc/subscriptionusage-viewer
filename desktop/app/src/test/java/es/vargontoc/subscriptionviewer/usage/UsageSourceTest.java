@@ -73,15 +73,6 @@ class UsageSourceTest {
         assertThat(readings.get(0).providerId()).isEqualTo("working");
     }
 
-    @Test
-    void shouldDistinguishClassifiedFailureCauses() {
-        assertThat(new ClassifiedSource(UsageReadResult.claveAusente()).read().estado())
-                .isEqualTo(UsageReadResult.Estado.CLAVE_AUSENTE);
-        assertThat(new ClassifiedSource(UsageReadResult.claveInvalida()).read().estado())
-                .isEqualTo(UsageReadResult.Estado.CLAVE_INVALIDA);
-        assertThat(new ClassifiedSource(UsageReadResult.sinSuscripcion()).read().estado())
-                .isEqualTo(UsageReadResult.Estado.SIN_SUSCRIPCION);
-    }
 
     private static class FixedUsageSource implements UsageSource {
         private final String providerId;
@@ -148,11 +139,4 @@ class UsageSourceTest {
         }
     }
 
-    private static class ClassifiedSource implements UsageSource {
-        private final UsageReadResult result;
-        ClassifiedSource(UsageReadResult result) { this.result = result; }
-        @Override public String getProviderId() { return "classified"; }
-        @Override public UsageReadResult read() { return result; }
-        @Override public Optional<UsageReading> doRead() { return Optional.empty(); }
-    }
 }

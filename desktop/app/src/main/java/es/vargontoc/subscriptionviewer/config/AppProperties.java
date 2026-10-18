@@ -81,17 +81,11 @@ public class AppProperties {
 
     /** Configuración externalizada bajo {@code subscription-viewer.opencode}. */
     public static class OpenCodeProperties {
-        /** Compatibilidad temporal con la configuración de v1; se retirará en TASK-021. */
-        private String usageUrl = "https://opencode.ai/zen/go/v1/usage";
         private Duration usagePollInterval = Duration.ofSeconds(60);
         private int cycleDay = 1;
         private BigDecimal defaultCapUsd = BigDecimal.valueOf(60);
         private Duration commandTimeout = Duration.ofSeconds(30);
         private List<ModelCap> modelCaps = new ArrayList<>();
-        /** Compatibilidad temporal con la configuración de v1; se retirará en TASK-021. */
-        private Duration backoffMaxInterval = Duration.ofSeconds(300);
-        /** Compatibilidad temporal con la configuración de v1; se retirará en TASK-021. */
-        private OpenCodeApiKey apiKey;
 
         public int getCycleDay() { return cycleDay; }
         public void setCycleDay(int cycleDay) { this.cycleDay = cycleDay; }
@@ -104,14 +98,6 @@ public class AppProperties {
             this.modelCaps = modelCaps == null ? new ArrayList<>() : new ArrayList<>(modelCaps);
         }
 
-        public String getUsageUrl() {
-            return usageUrl;
-        }
-
-        public void setUsageUrl(String usageUrl) {
-            this.usageUrl = usageUrl;
-        }
-
         public Duration getUsagePollInterval() {
             return usagePollInterval;
         }
@@ -120,31 +106,9 @@ public class AppProperties {
             this.usagePollInterval = usagePollInterval;
         }
 
-        public Duration getBackoffMaxInterval() {
-            return backoffMaxInterval;
-        }
-
-        public void setBackoffMaxInterval(Duration backoffMaxInterval) {
-            this.backoffMaxInterval = backoffMaxInterval;
-        }
-
-        public OpenCodeApiKey getApiKey() {
-            return apiKey;
-        }
-
-        public void setApiKey(String apiKey) {
-            this.apiKey = new OpenCodeApiKey(apiKey);
-        }
-
-        /**
-         * No incluye la clave, ni siquiera su representación enmascarada,
-         * para evitar que un volcado de propiedades la trate como dato visible.
-         */
         @Override
         public String toString() {
-            return "OpenCodeProperties[usageUrl=" + usageUrl
-                    + ", usagePollInterval=" + usagePollInterval
-                    + ", backoffMaxInterval=" + backoffMaxInterval + "]";
+            return "OpenCodeProperties[usagePollInterval=" + usagePollInterval + "]";
         }
     }
 }

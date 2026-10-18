@@ -49,7 +49,8 @@ public final class OpenCodeCliRunner {
         this(COMMAND, timeout, maxOutputBytes);
     }
 
-    OpenCodeCliRunner(String command, Duration timeout, long maxOutputBytes) {
+    /** Constructor para integrar un ejecutable de prueba sin modificar el PATH del proceso. */
+    public OpenCodeCliRunner(String command, Duration timeout, long maxOutputBytes) {
         if (command == null || command.isBlank() || timeout == null || timeout.isZero() || timeout.isNegative()
                 || maxOutputBytes <= 0) {
             throw new IllegalArgumentException("Configuración inválida del runner de OpenCode");

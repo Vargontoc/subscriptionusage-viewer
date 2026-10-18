@@ -15,8 +15,7 @@ import java.util.concurrent.Executor;
 /**
  * Publicador del estado de uso por proveedor.
  *
- * <p>Mantiene estado independiente por proveedor y notifica en el EDT. Nunca
- * recibe una clave: solo recibe el resultado clasificado de la fuente.</p>
+ * <p>Mantiene estado independiente por proveedor y notifica en el EDT.</p>
  */
 @Component
 public class UsageSnapshotPublisher {
@@ -49,6 +48,12 @@ public class UsageSnapshotPublisher {
      * @param reading    lectura obtenida o {@link Optional#empty()} si no hay datos
      */
     public void publish(String providerId, Optional<UsageReading> reading) {
+        // OpenCode tiene un ciclo atómico: la ausencia de datos no es un nuevo
+        // estado, sino una consulta descartada. Conservamos la última lectura
+        // válida (y evitamos despertar a la vista).
+        if (isOpenCode(providerId) && reading.isEmpty()) {
+            return;
+        }
         reading.ifPresentOrElse(
                 value -> latestReadings.put(providerId, value),
                 () -> latestReadings.remove(providerId)
@@ -61,6 +66,11 @@ public class UsageSnapshotPublisher {
         if (providerId == null || result == null || queryTime == null) {
             throw new NullPointerException("providerId, result y queryTime son obligatorios");
         }
+        // Para OpenCode solo existen datos o ausencia. Un fallo no debe crear
+        // estados de error/desactualización, ni borrar el último ciclo bueno.
+        if (isOpenCode(providerId) && result.estado() != UsageReadResult.Estado.DATOS) {
+            return;
+        }
         UsageProviderState previous = providerStates.get(providerId);
         UsageProviderState next;
         switch (result.estado()) {
@@ -71,14 +81,6 @@ public class UsageSnapshotPublisher {
             }
             case FALLO_TRANSITORIO -> next = stateAfterFailure(previous,
                     UsageProviderState.Estado.DESACTUALIZADO);
-            case CLAVE_INVALIDA -> next = stateAfterFailure(previous,
-                    UsageProviderState.Estado.CLAVE_INVALIDA);
-            case SIN_SUSCRIPCION -> next = stateAfterFailure(previous,
-                    UsageProviderState.Estado.SIN_SUSCRIPCION);
-            case CLAVE_AUSENTE -> {
-                latestReadings.remove(providerId);
-                next = new UsageProviderState(UsageProviderState.Estado.CLAVE_AUSENTE, null, null);
-            }
             default -> throw new IllegalStateException("Estado no soportado: " + result.estado());
         }
         providerStates.put(providerId, next);
@@ -98,6 +100,10 @@ public class UsageSnapshotPublisher {
                     ? UsageProviderState.Estado.SIN_DATOS : estado, null, null);
         }
         return new UsageProviderState(estado, reading, successful);
+    }
+
+    private boolean isOpenCode(String providerId) {
+        return providerId != null && providerId.toLowerCase(java.util.Locale.ROOT).contains("opencode");
     }
 
     /**

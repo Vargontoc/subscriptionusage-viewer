@@ -14,6 +14,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,7 +36,6 @@ class UsagePollerTest {
     @Test
     void shouldStartFirstCycleImmediately() {
         ConfigurationProvider config = mock(ConfigurationProvider.class);
-        when(config.hasOpenCodeApiKey()).thenReturn(true);
         when(config.getOpenCodePollInterval()).thenReturn(Duration.ofSeconds(60));
         ScheduledExecutorService executor = mock(ScheduledExecutorService.class);
         when(executor.schedule(any(Runnable.class), anyLong(), any(TimeUnit.class)))
@@ -53,7 +53,6 @@ class UsagePollerTest {
     @Test
     void shouldRetryFailureWithTheSameIntervalWithoutBackoff() {
         ConfigurationProvider config = mock(ConfigurationProvider.class);
-        when(config.hasOpenCodeApiKey()).thenReturn(true);
         when(config.getOpenCodePollInterval()).thenReturn(Duration.ofSeconds(10));
         ScheduledExecutorService executor = mock(ScheduledExecutorService.class);
         when(executor.schedule(any(Runnable.class), anyLong(), any(TimeUnit.class)))
@@ -84,6 +83,111 @@ class UsagePollerTest {
     }
 
     @Test
+    void shouldNotPublishOpenCodeCycleWithoutData() {
+        ConfigurationProvider config = mock(ConfigurationProvider.class);
+        UsageHistory history = mock(UsageHistory.class);
+        UsageSnapshotPublisher publisher = mock(UsageSnapshotPublisher.class);
+        UsageSource source = new UsageSource() {
+            @Override
+            public String getProviderId() {
+                return "opencode";
+            }
+
+            @Override
+            public Optional<UsageReading> doRead() {
+                return Optional.empty();
+            }
+        };
+
+        UsagePoller poller = new UsagePoller(config, List.of(source), history,
+                publisher, Clock.fixed(NOW, ZoneId.systemDefault()),
+                Executors.newSingleThreadScheduledExecutor());
+
+        poller.runCycle();
+
+        org.mockito.Mockito.verifyNoInteractions(publisher);
+        org.mockito.Mockito.verifyNoInteractions(history);
+    }
+
+    @Test
+    void shouldDeliverOnlySuccessfulCyclesToHistory() {
+        ConfigurationProvider config = mock(ConfigurationProvider.class);
+        UsageHistory history = mock(UsageHistory.class);
+        UsageSnapshotPublisher publisher = mock(UsageSnapshotPublisher.class);
+        UsageSource source = fixedSource("opencode", 40, 15);
+        UsagePoller poller = new UsagePoller(config, List.of(source), history, publisher,
+                Clock.fixed(NOW, ZoneId.systemDefault()),
+                Executors.newSingleThreadScheduledExecutor());
+
+        poller.runCycle();
+
+        verify(history).add(any(UsageReading.class));
+        verify(publisher).publish(eq("opencode"), any(UsageReadResult.class), eq(NOW));
+    }
+
+    @Test
+    void shouldNotDeliverAbsentCycleToHistory() {
+        ConfigurationProvider config = mock(ConfigurationProvider.class);
+        UsageHistory history = mock(UsageHistory.class);
+        UsageSource source = new UsageSource() {
+            @Override public String getProviderId() { return "opencode"; }
+            @Override public Optional<UsageReading> doRead() { return Optional.empty(); }
+        };
+        UsagePoller poller = new UsagePoller(config, List.of(source), history,
+                mock(UsageSnapshotPublisher.class), Clock.fixed(NOW, ZoneId.systemDefault()),
+                Executors.newSingleThreadScheduledExecutor());
+
+        poller.runCycle();
+
+        org.mockito.Mockito.verifyNoInteractions(history);
+    }
+
+    @Test
+    void shouldKeepClaudePublishingWhenOpenCodeHasNoData() {
+        ConfigurationProvider config = mock(ConfigurationProvider.class);
+        UsageHistory history = mock(UsageHistory.class);
+        UsageSnapshotPublisher publisher = mock(UsageSnapshotPublisher.class);
+        UsageSource claude = fixedSource(CLAUDE, 40, 15);
+        UsageSource opencode = new UsageSource() {
+            @Override public String getProviderId() { return "opencode"; }
+            @Override public Optional<UsageReading> doRead() { return Optional.empty(); }
+        };
+
+        UsagePoller poller = new UsagePoller(config, List.of(claude, opencode), history,
+                publisher, Clock.fixed(NOW, ZoneId.systemDefault()),
+                Executors.newSingleThreadScheduledExecutor());
+
+        poller.runCycle();
+
+        verify(publisher).publish(eq(CLAUDE), any(UsageReadResult.class), eq(NOW));
+        org.mockito.Mockito.verify(publisher, org.mockito.Mockito.never())
+                .publish(eq("opencode"), any(UsageReadResult.class), any(Instant.class));
+        verify(history).add(any(UsageReading.class));
+    }
+
+    @Test
+    void shouldKeepOpenCodeIsolatedWhenClaudeStateFileIsInvalid() {
+        ConfigurationProvider config = mock(ConfigurationProvider.class);
+        UsageHistory history = mock(UsageHistory.class);
+        UsageSnapshotPublisher publisher = mock(UsageSnapshotPublisher.class);
+        UsageSource invalidClaude = new UsageSource() {
+            @Override public String getProviderId() { return CLAUDE; }
+            @Override public Optional<UsageReading> doRead() { return Optional.empty(); }
+        };
+        UsageSource opencode = fixedSource("opencode", 30, 10);
+
+        UsagePoller poller = new UsagePoller(config, List.of(invalidClaude, opencode), history,
+                publisher, Clock.fixed(NOW, ZoneId.systemDefault()),
+                Executors.newSingleThreadScheduledExecutor());
+
+        poller.runCycle();
+
+        verify(publisher).publish(eq(CLAUDE), any(UsageReadResult.class), eq(NOW));
+        verify(publisher).publish(eq("opencode"), any(UsageReadResult.class), eq(NOW));
+        verify(history).add(any(UsageReading.class));
+    }
+
+    @Test
     void shouldPollAllSourcesAndPublishResults() {
         ConfigurationProvider config = mock(ConfigurationProvider.class);
         when(config.getUsagePollInterval()).thenReturn(Duration.ofSeconds(10));
@@ -98,8 +202,8 @@ class UsagePollerTest {
 
         poller.runCycle();
 
-        verify(publisher).publish(CLAUDE, Optional.of(claudeSource.read().get()));
-        verify(publisher).publish(OTHER, Optional.of(otherSource.read().get()));
+        verify(publisher).publish(eq(CLAUDE), any(UsageReadResult.class), eq(NOW));
+        verify(publisher).publish(eq(OTHER), any(UsageReadResult.class), eq(NOW));
     }
 
     @Test
@@ -130,8 +234,8 @@ class UsagePollerTest {
         poller.runCycle();
         long elapsed = System.currentTimeMillis() - start;
 
-        verify(publisher).publish(CLAUDE, Optional.empty());
-        verify(publisher).publish(OTHER, Optional.of(fastSource.read().get()));
+        verify(publisher).publish(eq(CLAUDE), any(UsageReadResult.class), eq(NOW));
+        verify(publisher).publish(eq(OTHER), any(UsageReadResult.class), eq(NOW));
         assertThat(elapsed).isLessThan(6_000L);
     }
 
@@ -147,9 +251,9 @@ class UsagePollerTest {
 
         poller.runCycle();
 
-        ArgumentCaptor<Optional<UsageReading>> captor = ArgumentCaptor.forClass(Optional.class);
-        verify(publisher).publish(eq(CLAUDE), captor.capture());
-        assertThat(captor.getValue()).isPresent();
+        ArgumentCaptor<UsageReadResult> captor = ArgumentCaptor.forClass(UsageReadResult.class);
+        verify(publisher).publish(eq(CLAUDE), captor.capture(), eq(NOW));
+        assertThat(captor.getValue().datos()).isPresent();
     }
 
     @Test
@@ -163,6 +267,27 @@ class UsagePollerTest {
         poller.start();
         poller.stop();
 
+        verify(executor).shutdown();
+    }
+
+    @Test
+    void shouldCloseSourcesEvenWhenNoCycleWasStarted() {
+        ConfigurationProvider config = mock(ConfigurationProvider.class);
+        ScheduledExecutorService executor = mock(ScheduledExecutorService.class);
+        AtomicBoolean closed = new AtomicBoolean();
+        class CloseableSource implements UsageSource, AutoCloseable {
+            @Override public String getProviderId() { return "opencode"; }
+            @Override public Optional<UsageReading> doRead() { return Optional.empty(); }
+            public void close() { closed.set(true); }
+        }
+        UsageSource source = new CloseableSource();
+
+        UsagePoller poller = new UsagePoller(config, List.of(source), mock(UsageHistory.class),
+                mock(UsageSnapshotPublisher.class), Clock.systemUTC(), executor);
+
+        poller.stop();
+
+        assertThat(closed.get()).isTrue();
         verify(executor).shutdown();
     }
 

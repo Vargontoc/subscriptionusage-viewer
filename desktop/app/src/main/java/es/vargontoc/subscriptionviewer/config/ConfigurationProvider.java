@@ -3,8 +3,6 @@ package es.vargontoc.subscriptionviewer.config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.PropertySource;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
@@ -31,7 +29,6 @@ public class ConfigurationProvider {
 
     private final AppProperties appProperties;
     private final Environment environment;
-    private String openCodeApiKeyOrigin = "ninguno";
 
     public ConfigurationProvider(AppProperties appProperties, Environment environment) {
         this.appProperties = appProperties;
@@ -48,8 +45,6 @@ public class ConfigurationProvider {
         log.info("Propiedad subscription-viewer.opencode.default-cap-usd resuelta: {}", getOpenCodeDefaultCapUsd());
         log.info("Propiedad subscription-viewer.opencode.poll-interval-seconds resuelta: {}", getOpenCodePollInterval());
         log.info("Propiedad subscription-viewer.opencode.command-timeout-seconds resuelta: {}", getOpenCodeCommandTimeout());
-        log.info("OpenCode: clave configurada: {}; origen: {}",
-                hasOpenCodeApiKey() ? "sí" : "no", openCodeApiKeyOrigin);
     }
 
     /**
@@ -99,14 +94,6 @@ public class ConfigurationProvider {
         return interval;
     }
 
-    public String getOpenCodeUsageUrl() {
-        String url = appProperties.getOpencode().getUsageUrl();
-        if (url == null || url.isBlank()) {
-            throw new IllegalStateException("La propiedad subscription-viewer.opencode.usage-url no puede estar vacia");
-        }
-        return url;
-    }
-
     public Duration getOpenCodeUsagePollInterval() {
         Duration interval = appProperties.getOpencode().getUsagePollInterval();
         if (interval == null || interval.isNegative() || interval.isZero()) {
@@ -151,46 +138,11 @@ public class ConfigurationProvider {
                 .findFirst().orElse(getOpenCodeDefaultCapUsd());
     }
 
-    public Duration getOpenCodeBackoffMaxInterval() {
-        Duration interval = appProperties.getOpencode().getBackoffMaxInterval();
-        if (interval == null || interval.isNegative() || interval.isZero()) {
-            throw new IllegalStateException("El tope de backoff de OpenCode debe ser positivo");
-        }
-        return interval;
-    }
-
-    /**
-     * Devuelve la clave encapsulada de OpenCode, o {@code null} si no está
-     * configurada.
-     */
-    public OpenCodeApiKey getOpenCodeApiKey() {
-        return appProperties.getOpencode().getApiKey();
-    }
-
-    /** Indica si la fuente de OpenCode puede autenticarse, sin exponer el secreto. */
-    public boolean hasOpenCodeApiKey() {
-        OpenCodeApiKey key = getOpenCodeApiKey();
-        return key != null && key.value() != null && !key.value().isBlank();
-    }
-
-    /** Devuelve el origen de la clave para el estado de arranque, nunca su valor. */
-    public String getOpenCodeApiKeyOrigin() {
-        return openCodeApiKeyOrigin;
-    }
-
     private void loadOpenCodeProperties() {
         AppProperties.OpenCodeProperties properties = appProperties.getOpencode();
-        String usageUrl = environment.getProperty("subscription-viewer.opencode.usage-url");
         String pollInterval = environment.getProperty("subscription-viewer.opencode.usage-poll-interval");
-        String backoffInterval = environment.getProperty("subscription-viewer.opencode.backoff-max-interval");
-        if (usageUrl != null) {
-            properties.setUsageUrl(usageUrl);
-        }
         if (pollInterval != null) {
             properties.setUsagePollInterval(parseDuration(pollInterval));
-        }
-        if (backoffInterval != null) {
-            properties.setBackoffMaxInterval(parseDuration(backoffInterval));
         }
         properties.setCycleDay(parseCycleDay(environment.getProperty("subscription-viewer.opencode.cycle-day")));
         String defaultCap = environment.getProperty("subscription-viewer.opencode.default-cap-usd");
@@ -210,25 +162,6 @@ public class ConfigurationProvider {
             properties.setUsagePollInterval(parseDuration(intervalSeconds));
         }
         loadModelCaps(properties);
-        // No se usa environment.getProperty(...) para la primera lectura: las
-        // variables de entorno tienen reglas de enlace relajado y podrían
-        // invertir la precedencia requerida. Se inspecciona primero el valor
-        // explícito de las fuentes de configuración (YAML/test properties).
-        String fileApiKey = findExplicitApiKeyProperty();
-        if (isConfiguredApiKey(fileApiKey)) {
-            properties.setApiKey(fileApiKey.trim());
-            openCodeApiKeyOrigin = "application.yml";
-            return;
-        }
-
-        String environmentApiKey = environment.getProperty("OPENCODE_API_KEY");
-        if (!isConfiguredApiKey(environmentApiKey)) {
-            environmentApiKey = System.getenv("OPENCODE_API_KEY");
-        }
-        if (isConfiguredApiKey(environmentApiKey)) {
-            properties.setApiKey(environmentApiKey.trim());
-            openCodeApiKeyOrigin = "entorno";
-        }
     }
 
     private int parseCycleDay(String value) {
@@ -254,30 +187,6 @@ public class ConfigurationProvider {
             caps.add(new AppProperties.ModelCap(model, numericCap));
         }
         properties.setModelCaps(caps);
-    }
-
-    private String findExplicitApiKeyProperty() {
-        if (!(environment instanceof ConfigurableEnvironment configurableEnvironment)) {
-            return environment.getProperty("subscription-viewer.opencode.api-key");
-        }
-        for (PropertySource<?> source : configurableEnvironment.getPropertySources()) {
-            // SystemEnvironmentPropertySource puede resolver nombres relajados
-            // y por ello no representa el valor del YAML.
-            if ("systemEnvironment".equals(source.getName())
-                    || source.getName().toLowerCase().contains("systemenvironment")) {
-                continue;
-            }
-            Object value = source.getProperty("subscription-viewer.opencode.api-key");
-            if (value != null) {
-                return value.toString();
-            }
-        }
-        return null;
-    }
-
-    private boolean isConfiguredApiKey(String value) {
-        return value != null && !value.isBlank()
-                && !"<YOUR_OPENCODE_API_KEY>".equals(value.trim());
     }
 
     private Duration parseDuration(String value) {

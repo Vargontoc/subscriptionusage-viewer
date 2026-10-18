@@ -18,6 +18,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.List;
 
 /**
  * Tarjeta visual con la información de uso de un proveedor.
@@ -77,6 +78,10 @@ public class UsageCardPanel extends JPanel {
         UsageReading reading = state.reading();
         providerLabel.setText(capitalize(reading != null ? reading.providerId() : "OpenCode"));
 
+        if (reading != null && "opencode".equalsIgnoreCase(reading.providerId())) {
+            updateOpenCode(reading);
+            return;
+        }
         if (reading != null && "claude".equalsIgnoreCase(reading.providerId())
                 && state.estado() == UsageProviderState.Estado.CORRECTO) {
             updateLegacy(reading);
@@ -105,6 +110,34 @@ public class UsageCardPanel extends JPanel {
         } else {
             LocalDateTime localTime = LocalDateTime.ofInstant(state.lastSuccessfulQuery(), ZoneId.systemDefault());
             writtenAtLabel.setText("Última actualización: " + localTime.format(TIME_FORMATTER));
+        }
+    }
+
+    private void updateOpenCode(UsageReading reading) {
+        windowLabels.values().forEach(label -> label.setText(""));
+        statusLabel.setText("");
+        providerLabel.setText("OpenCode");
+        removeOpenCodeRows();
+        List<UsageReading> rows = reading.seriesReadings();
+        for (UsageReading row : rows) {
+            if (row == null || row.seriesId() == null || row.windows().stream()
+                    .noneMatch(window -> window.usedPercentage() > 0)) continue;
+            JLabel label = new JLabel(row.seriesId() + "  " + row.windows().stream()
+                    .map(window -> windowName(window.type()) + ": " + window.usedPercentage() + "%")
+                    .reduce((left, right) -> left + " | " + right).orElse(""));
+            label.putClientProperty("opencode-row", Boolean.TRUE);
+            add(label, getComponentCount() - 1);
+        }
+        LocalDateTime localTime = LocalDateTime.ofInstant(reading.writtenAt(), ZoneId.systemDefault());
+        writtenAtLabel.setText("Última actualización: " + localTime.format(TIME_FORMATTER));
+        revalidate();
+        repaint();
+    }
+
+    private void removeOpenCodeRows() {
+        for (int i = getComponentCount() - 1; i >= 0; i--) {
+            if (getComponent(i) instanceof JLabel label
+                    && Boolean.TRUE.equals(label.getClientProperty("opencode-row"))) remove(i);
         }
     }
 
@@ -139,7 +172,13 @@ public class UsageCardPanel extends JPanel {
      * @return {@code true} si hay alguna ventana visible
      */
     public boolean hasVisibleWindows() {
-        return windowLabels.values().stream().anyMatch(label -> !label.getText().isEmpty());
+        boolean rows = java.util.stream.IntStream.range(0, getComponentCount())
+                .mapToObj(this::getComponent)
+                .filter(component -> component instanceof JLabel)
+                .map(component -> (JLabel) component)
+                .anyMatch(label -> Boolean.TRUE.equals(label.getClientProperty("opencode-row"))
+                        && !label.getText().isEmpty());
+        return rows || windowLabels.values().stream().anyMatch(label -> !label.getText().isEmpty());
     }
 
     public boolean hasMessage() {
@@ -148,9 +187,6 @@ public class UsageCardPanel extends JPanel {
 
     private String statusText(UsageProviderState.Estado estado) {
         return switch (estado) {
-            case CLAVE_AUSENTE -> "Falta la API key. Configúrala en application.yml o OPENCODE_API_KEY";
-            case CLAVE_INVALIDA -> "Clave inválida o ausente";
-            case SIN_SUSCRIPCION -> "Suscripción no activa";
             case DESACTUALIZADO -> "Datos desactualizados";
             case SIN_DATOS -> "No hay datos de uso disponibles en este momento.";
             case CORRECTO -> "";

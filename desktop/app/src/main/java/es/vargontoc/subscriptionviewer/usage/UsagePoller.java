@@ -50,6 +50,7 @@ public class UsagePoller implements SmartLifecycle {
     });
 
     private volatile boolean running = false;
+    private volatile boolean stopped = false;
     private final Map<String, ScheduledFuture<?>> scheduled = new ConcurrentHashMap<>();
 
     /**
@@ -88,17 +89,11 @@ public class UsagePoller implements SmartLifecycle {
 
     @Override
     public void start() {
-        if (running) {
+        if (running || stopped) {
             return;
         }
         running = true;
         for (UsageSource source : sources) {
-            // La gestión de autenticación de v1 se conserva hasta TASK-021;
-            // esta tarea solo elimina su backoff y pausa tras los fallos.
-            if (isOpenCode(source) && !configurationProvider.hasOpenCodeApiKey()) {
-                publisher.publish(source.getProviderId(), UsageReadResult.claveAusente(), clock.instant());
-                continue;
-            }
             // El primer ciclo se lanza al arrancar. Los siguientes se programan
             // desde poll(), después de que termine la lectura de esta fuente.
             scheduleNext(source, Duration.ZERO);
@@ -107,13 +102,21 @@ public class UsagePoller implements SmartLifecycle {
 
     @Override
     public void stop() {
-        if (!running) {
+        if (stopped) {
             return;
         }
+        stopped = true;
         running = false;
         scheduled.values().forEach(future -> future.cancel(false));
+        scheduled.clear();
         executor.shutdown();
         readExecutor.shutdownNow();
+        // Una lectura de OpenCode mantiene sus propios tres workers y puede
+        // tener un proceso hijo bloqueado. Cerrar las fuentes después de
+        // cancelar la planificación, pero antes de dar por terminado el
+        // poller, destruye esos recursos aunque nunca se haya llamado a
+        // start() o haya un ciclo en curso.
+        closeSources();
         try {
             if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
                 executor.shutdownNow();
@@ -121,6 +124,19 @@ public class UsagePoller implements SmartLifecycle {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             executor.shutdownNow();
+        }
+    }
+
+    private void closeSources() {
+        for (UsageSource source : sources) {
+            if (source instanceof AutoCloseable closeable) {
+                try {
+                    closeable.close();
+                } catch (Exception ignored) {
+                    // El cierre debe ser best-effort y nunca impedir el cierre
+                    // del resto de fuentes ni del contexto de Spring.
+                }
+            }
         }
     }
 
@@ -132,9 +148,7 @@ public class UsagePoller implements SmartLifecycle {
     void runCycle() {
         for (UsageSource source : sources) {
             UsageReadResult result = readWithTimeout(source);
-            Optional<UsageReading> reading = result.datos();
-            reading.ifPresent(usageHistory::add);
-            publisher.publish(source.getProviderId(), reading);
+            publishCycleResult(source, result, clock.instant());
         }
     }
 
@@ -163,13 +177,33 @@ public class UsagePoller implements SmartLifecycle {
         readExecutor.submit(() -> {
             UsageReadResult result = readWithTimeout(source);
             Instant completedAt = clock.instant();
-            result.datos().ifPresent(usageHistory::add);
-            publisher.publish(source.getProviderId(), result, completedAt);
+            publishCycleResult(source, result, completedAt);
             // El retardo se cuenta desde el fin de la lectura. Así una fuente
             // lenta no se solapa consigo misma y un fallo se reintenta con la
-            // misma cadencia, sin backoff ni pausa.
+            // La siguiente lectura conserva siempre la misma cadencia.
             scheduleNext(source, intervalFor(source));
         });
+    }
+
+    /**
+     * Entrega únicamente ciclos completos de OpenCode. Una ausencia de datos
+     * representa un ciclo descartado y no debe despertar al publicador ni
+     * modificar la hora del último ciclo válido. Claude conserva la semántica
+     * de v1, incluida la publicación de sus estados de fallo.
+     */
+    private void publishCycleResult(UsageSource source, UsageReadResult result,
+                                    Instant completedAt) {
+        // El resultado se entrega al historial únicamente después de que la
+        // fuente haya cerrado su ciclo atómico y lo haya marcado como datos.
+        // La propia historia decide qué series/ventanas cambian y deduplica.
+        result.datos().ifPresent(this::recordSuccessfulCycle);
+        if (result.datos().isPresent() || !isOpenCode(source)) {
+            publisher.publish(source.getProviderId(), result, completedAt);
+        }
+    }
+
+    private void recordSuccessfulCycle(UsageReading reading) {
+        usageHistory.add(reading);
     }
 
     private UsageReadResult readWithTimeout(UsageSource source) {
