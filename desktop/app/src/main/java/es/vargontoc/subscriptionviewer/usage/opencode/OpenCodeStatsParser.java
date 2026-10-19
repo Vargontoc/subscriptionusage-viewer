@@ -5,16 +5,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 /** Interpreta la salida JSON de {@code experimental.session.stats}. */
 @Component
 public final class OpenCodeStatsParser {
-    private static final Logger log = LoggerFactory.getLogger(OpenCodeStatsParser.class);
+    
     private static final List<String> TARGET_PROVIDERS = List.of("opencode-go", "opencode");
     private final ObjectMapper objectMapper;
 
@@ -58,7 +57,7 @@ public final class OpenCodeStatsParser {
 
             }
             return ParseResult.success(List.copyOf(models));
-        } catch (Exception ignored) {
+        } catch (JacksonException ignored) {
             // No se conserva el texto recibido: puede contener datos de sesión.
             return ParseResult.failure();
         }

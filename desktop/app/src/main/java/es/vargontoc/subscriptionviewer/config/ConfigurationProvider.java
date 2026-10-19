@@ -1,18 +1,18 @@
 package es.vargontoc.subscriptionviewer.config;
 
+import java.math.BigDecimal;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
-
-import java.nio.file.Path;
-import java.time.Duration;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Proveedor de configuración que expone las propiedades externalizadas
@@ -133,7 +133,7 @@ public class ConfigurationProvider {
     public BigDecimal getOpenCodeModelCap(String model) {
         return getOpenCodeModelCaps().stream()
                 .filter(entry -> entry.model() != null && entry.model().equals(model))
-                .map(AppProperties.ModelCap::capUsd)
+                .map(e -> e.capUsd())
                 .filter(cap -> cap != null && cap.signum() > 0)
                 .findFirst().orElse(getOpenCodeDefaultCapUsd());
     }

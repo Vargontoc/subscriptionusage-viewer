@@ -1,0 +1,32 @@
+{"properties": [
+  {
+    "name": "app.name",
+    "type": "java.lang.String",
+    "description": "Nombre de la aplicación"
+  },
+  {
+    "name": "app.tray-icon-path",
+    "type": "java.lang.String",
+    "description": "Ruta icono aplicación"
+  },
+  {
+    "name": "subscription-viewer.opencode.cycle-day",
+    "type": "java.lang.Integer",
+    "description": "Dia de comienzo del ciclo de subscripcion de OpenCode Go"
+  },
+  {
+    "name": "subscription-viewer.opencode.default-cap-usd",
+    "type": "java.lang.Integer",
+    "description": "Cuantia máxima por defecto por modelo (USD)"
+  },
+  {
+    "name": "subscription-viewer.opencode.poll-interval-seconds",
+    "type": "java.lang.Integer",
+    "description": "Intervalo de ejecucion de comprobación en segundos"
+  },
+  {
+    "name": "subscription-viewer.opencode.command-timeout-seconds",
+    "type": "java.lang.Integer",
+    "description": "Timeout de respuesta de ejecución del comando en segundos"
+  }
+]}

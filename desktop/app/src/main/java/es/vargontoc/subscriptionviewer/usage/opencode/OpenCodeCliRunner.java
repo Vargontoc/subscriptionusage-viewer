@@ -82,7 +82,7 @@ public final class OpenCodeCliRunner {
             thread.setDaemon(true);
             return thread;
         });
-        Future<ReadResult> stdout = null;
+        
         try {
             process = new ProcessBuilder(processArguments(arguments))
                     .redirectError(ProcessBuilder.Redirect.DISCARD)
@@ -90,7 +90,7 @@ public final class OpenCodeCliRunner {
             activeProcesses.add(process);
             process.getOutputStream().close();
             Process runningProcess = process;
-            stdout = readerExecutor.submit(() -> readStdout(runningProcess.getInputStream()));
+            Future<ReadResult> stdout = readerExecutor.submit(() -> readStdout(runningProcess.getInputStream()));
 
             long deadline = System.nanoTime() + timeout.toNanos();
             while (process.isAlive() && !stdout.isDone()) {

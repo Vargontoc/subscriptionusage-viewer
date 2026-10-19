@@ -1,15 +1,5 @@
 package es.vargontoc.subscriptionviewer.usage;
 
-import es.vargontoc.subscriptionviewer.config.ConfigurationProvider;
-import es.vargontoc.subscriptionviewer.ui.UsageCardPanel;
-import es.vargontoc.subscriptionviewer.ui.UsageChartPanel;
-import es.vargontoc.subscriptionviewer.ui.UsageWindow;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
-
-import javax.swing.JLabel;
-import javax.swing.SwingUtilities;
 import java.awt.GraphicsEnvironment;
 import java.time.Clock;
 import java.time.Duration;
@@ -20,9 +10,18 @@ import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.swing.SwingUtilities;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIf;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import es.vargontoc.subscriptionviewer.config.ConfigurationProvider;
+import es.vargontoc.subscriptionviewer.ui.UsageCardPanel;
+import es.vargontoc.subscriptionviewer.ui.UsageWindow;
 
 /**
  * Pruebas de integración de la actualización en vivo de la ventana de uso.
@@ -43,6 +42,7 @@ class UsageWindowLiveUpdateIntegrationTest {
             return;
         }
     }
+
 
     static boolean notHeadless() {
         return !GraphicsEnvironment.isHeadless();

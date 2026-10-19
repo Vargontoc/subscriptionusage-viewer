@@ -1,10 +1,5 @@
 package es.vargontoc.subscriptionviewer.ui;
 
-import es.vargontoc.subscriptionviewer.usage.UsageHistory;
-import es.vargontoc.subscriptionviewer.usage.UsageHistoryPoint;
-import es.vargontoc.subscriptionviewer.usage.UsageWindowType;
-
-import javax.swing.JPanel;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -18,6 +13,12 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.swing.JPanel;
+
+import es.vargontoc.subscriptionviewer.usage.UsageHistory;
+import es.vargontoc.subscriptionviewer.usage.UsageHistoryPoint;
+import es.vargontoc.subscriptionviewer.usage.UsageWindowType;
 
 /**
  * Panel de pintado propio que muestra la evolución del uso por ventana.
@@ -160,7 +161,7 @@ public class UsageChartPanel extends JPanel {
     private Instant minWrittenAt() {
         return series.values().stream()
                 .flatMap(List::stream)
-                .map(UsageHistoryPoint::writtenAt)
+                .map(e -> e.writtenAt())
                 .min(Instant::compareTo)
                 .orElse(null);
     }
@@ -168,7 +169,7 @@ public class UsageChartPanel extends JPanel {
     private Instant maxWrittenAt() {
         return series.values().stream()
                 .flatMap(List::stream)
-                .map(UsageHistoryPoint::writtenAt)
+                .map(e -> e.writtenAt())
                 .max(Instant::compareTo)
                 .orElse(null);
     }
@@ -193,7 +194,7 @@ public class UsageChartPanel extends JPanel {
         Map<UsageHistory.Key, List<UsageHistoryPoint>> copy = new HashMap<>();
         source.forEach((key, points) -> {
             List<UsageHistoryPoint> ordered = new ArrayList<>(points);
-            ordered.sort(Comparator.comparing(UsageHistoryPoint::writtenAt));
+            ordered.sort(Comparator.comparing(e -> e.writtenAt()));
             copy.put(key, List.copyOf(ordered));
         });
         return Collections.unmodifiableMap(copy);

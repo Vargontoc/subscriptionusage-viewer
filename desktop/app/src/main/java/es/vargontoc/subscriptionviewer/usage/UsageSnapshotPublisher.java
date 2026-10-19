@@ -1,16 +1,16 @@
 package es.vargontoc.subscriptionviewer.usage;
 
-import org.springframework.stereotype.Component;
-
-import javax.swing.SwingUtilities;
-import java.util.ArrayList;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
+
+import javax.swing.SwingUtilities;
+
+import org.springframework.stereotype.Component;
 
 /**
  * Publicador del estado de uso por proveedor.

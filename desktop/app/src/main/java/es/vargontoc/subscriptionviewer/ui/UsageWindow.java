@@ -1,15 +1,10 @@
 package es.vargontoc.subscriptionviewer.ui;
 
-import es.vargontoc.subscriptionviewer.usage.CountdownEvaluator;
-import es.vargontoc.subscriptionviewer.usage.UsageHistory;
-import es.vargontoc.subscriptionviewer.usage.UsageReading;
-import es.vargontoc.subscriptionviewer.usage.UsageSnapshot;
-import es.vargontoc.subscriptionviewer.usage.UsageSnapshotListener;
-import es.vargontoc.subscriptionviewer.usage.UsageSnapshotPublisher;
-import es.vargontoc.subscriptionviewer.usage.UsageProviderState;
-import es.vargontoc.subscriptionviewer.usage.UsageWindowReading;
-import jakarta.annotation.PostConstruct;
-import org.springframework.stereotype.Component;
+import java.awt.BorderLayout;
+import java.awt.CardLayout;
+import java.awt.GraphicsEnvironment;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -17,14 +12,16 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.WindowConstants;
-import java.awt.BorderLayout;
-import java.awt.CardLayout;
-import java.awt.GraphicsEnvironment;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+
+import org.springframework.stereotype.Component;
+
+import es.vargontoc.subscriptionviewer.usage.CountdownEvaluator;
+import es.vargontoc.subscriptionviewer.usage.UsageHistory;
+import es.vargontoc.subscriptionviewer.usage.UsageProviderState;
+import es.vargontoc.subscriptionviewer.usage.UsageSnapshot;
+import es.vargontoc.subscriptionviewer.usage.UsageSnapshotListener;
+import es.vargontoc.subscriptionviewer.usage.UsageSnapshotPublisher;
+import jakarta.annotation.PostConstruct;
 
 /**
  * Ventana de escritorio que muestra el uso por proveedor.
@@ -190,19 +187,6 @@ public class UsageWindow implements UsageSnapshotListener {
             // snapshots), por lo que el modelo Swing se actualiza sin carreras.
             chartPanel.updateSeries(usageHistory.getAllSeries());
         }
-    }
-
-    private Optional<UsageReading> filterValidWindows(UsageReading reading) {
-        List<UsageWindowReading> valid = new ArrayList<>();
-        for (UsageWindowReading window : reading.windows()) {
-            if (evaluator.evaluate(window.resetsAt()).valid()) {
-                valid.add(window);
-            }
-        }
-        if (valid.isEmpty()) {
-            return Optional.empty();
-        }
-        return Optional.of(new UsageReading(reading.providerId(), reading.writtenAt(), valid));
     }
 
     /**

@@ -1,10 +1,11 @@
 package es.vargontoc.subscriptionviewer.launcher;
 
-import es.vargontoc.subscriptionviewer.context.ApplicationContextConfig;
-import es.vargontoc.subscriptionviewer.lifecycle.LifecycleCoordinator;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
+
+import es.vargontoc.subscriptionviewer.context.ApplicationContextConfig;
+import es.vargontoc.subscriptionviewer.lifecycle.LifecycleCoordinator;
 
 /**
  * Punto de entrada de la aplicación de escritorio.
@@ -41,6 +42,7 @@ public class ApplicationLauncher {
     }
 
     private static void closeContext(ConfigurableApplicationContext context) {
+        
         if (context.isActive()) {
             context.close();
         }
