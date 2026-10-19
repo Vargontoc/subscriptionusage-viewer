@@ -43,6 +43,26 @@ class ConfigurationProviderTest {
     }
 
     @Test
+    void shouldReportOpenCodeSectionWhenItIsPresent() {
+        contextRunner.withPropertyValues("subscription-viewer.opencode.cycle-day=20")
+                .run(context -> assertThat(context.getBean(ConfigurationProvider.class)
+                        .isOpenCodeConfigured()).isTrue());
+    }
+
+    @Test
+    void shouldReportOpenCodeSectionAbsentDespiteDefaultPropertiesObject() {
+        contextRunner.run(context -> assertThat(context.getBean(ConfigurationProvider.class)
+                .isOpenCodeConfigured()).isFalse());
+    }
+
+    @Test
+    void shouldReportOpenCodeSectionPresentWithoutOwnKeys() {
+        contextRunner.withPropertyValues("subscription-viewer.opencode=")
+                .run(context -> assertThat(context.getBean(ConfigurationProvider.class)
+                        .isOpenCodeConfigured()).isTrue());
+    }
+
+    @Test
     void shouldNormalizeOpenCodePollIntervalToTenSeconds() {
         contextRunner
                 .withPropertyValues("subscription-viewer.opencode.usage-poll-interval=5s")
@@ -137,12 +157,10 @@ class ConfigurationProviderTest {
     }
 
     @Test
-    void shouldReadClaudeOverrideAndIgnoreRemovedAppKeys() {
+    void shouldReadClaudeOverride() {
         contextRunner.withPropertyValues(
                         "subscription-viewer.claude.usage-state-file=~/alternative-status.json",
-                        "subscription-viewer.claude.usage-poll-interval=15s",
-                        "app.usage-state-file=~/removed-status.json",
-                        "app.usage-poll-interval=45s")
+                        "subscription-viewer.claude.usage-poll-interval=15s")
                 .run(context -> {
                     ConfigurationProvider provider = context.getBean(ConfigurationProvider.class);
                     assertThat(provider.getUsageStateFile().toString()).endsWith("alternative-status.json");

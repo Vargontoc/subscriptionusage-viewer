@@ -75,6 +75,21 @@ public final class OpenCodeCliRunner {
         return run(fromUnixMillis, toUnixMillis);
     }
 
+    /** Ejecuta la consulta de la ruta del directorio de datos de OpenCode. */
+    public CliResult runDataPath() {
+        CliResult result = execute(List.of("debug", "paths", "data"));
+        if (result.isFailure()) {
+            return result;
+        }
+        String output = result.output().trim();
+        // La CLI devuelve una única línea. No aceptamos una salida vacía o
+        // ambigua para evitar que un mensaje incidental se use como ruta.
+        if (output.isEmpty() || output.lines().count() != 1) {
+            return failure("ruta-no-disponible");
+        }
+        return new CliResult(true, output);
+    }
+
     private CliResult execute(List<String> arguments) {
         Process process = null;
         ExecutorService readerExecutor = Executors.newSingleThreadExecutor(r -> {

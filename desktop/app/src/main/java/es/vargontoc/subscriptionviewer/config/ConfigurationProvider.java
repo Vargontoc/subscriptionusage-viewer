@@ -10,6 +10,8 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
@@ -104,6 +106,31 @@ public class ConfigurationProvider {
     public Duration getOpenAiUsagePollInterval() {
         return enforceMinimum(openAiUsagePollInterval,
                 "subscription-viewer.openai.usage-poll-interval");
+    }
+
+    /**
+     * Indica si la sección de OpenCode está declarada en la configuración
+     * efectiva. No se consulta {@link AppProperties#getOpencode()}, ya que esa
+     * subsección se instancia siempre aunque no exista en la configuración.
+     */
+    public boolean isOpenCodeConfigured() {
+        String prefix = "subscription-viewer.opencode";
+        if (environment.containsProperty(prefix)) {
+            return true;
+        }
+        if (environment instanceof ConfigurableEnvironment configurableEnvironment) {
+            for (org.springframework.core.env.PropertySource<?> source
+                    : configurableEnvironment.getPropertySources()) {
+                if (source instanceof EnumerablePropertySource<?> enumerable) {
+                    for (String propertyName : enumerable.getPropertyNames()) {
+                        if (propertyName.equals(prefix) || propertyName.startsWith(prefix + ".")) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     public Duration getOpenCodeUsagePollInterval() {

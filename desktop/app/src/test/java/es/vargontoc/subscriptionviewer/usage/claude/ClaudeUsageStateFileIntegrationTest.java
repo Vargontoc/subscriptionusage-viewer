@@ -1,7 +1,6 @@
 package es.vargontoc.subscriptionviewer.usage.claude;
 
 import tools.jackson.databind.ObjectMapper;
-import es.vargontoc.subscriptionviewer.config.AppProperties;
 import es.vargontoc.subscriptionviewer.config.ConfigurationProvider;
 import es.vargontoc.subscriptionviewer.usage.UsageReading;
 import es.vargontoc.subscriptionviewer.usage.UsageReadResult;
@@ -18,6 +17,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Pruebas de integración entre el fichero de estado producido por el hook y
@@ -32,8 +32,6 @@ import static org.mockito.Mockito.mock;
 class ClaudeUsageStateFileIntegrationTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final Environment ENVIRONMENT = mock(Environment.class);
-
     @Test
     void shouldReadValidHookStateFile(@TempDir Path tempDir) throws Exception {
         String json = """
@@ -126,9 +124,11 @@ class ClaudeUsageStateFileIntegrationTest {
     }
 
     private ClaudeUsageSource createSource(Path stateFile) {
-        AppProperties appProperties = new AppProperties();
-        appProperties.setUsageStateFile(stateFile.toString());
-        ConfigurationProvider configurationProvider = new ConfigurationProvider(appProperties, ENVIRONMENT);
+        Environment environment = mock(Environment.class);
+        when(environment.getProperty("subscription-viewer.claude.usage-state-file"))
+                .thenReturn(stateFile.toString());
+        ConfigurationProvider configurationProvider = new ConfigurationProvider(
+                new es.vargontoc.subscriptionviewer.config.AppProperties(), environment);
         return new ClaudeUsageSource(configurationProvider, new DefaultStateFileLoader(), OBJECT_MAPPER);
     }
 }

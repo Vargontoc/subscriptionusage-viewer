@@ -39,7 +39,7 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
   1. Poner `usage-poll-interval: "abc"` en `subscription-viewer.openai` y arrancar. Resultado: el arranque falla y el mensaje nombra `subscription-viewer.openai.usage-poll-interval`; la aplicación no queda en ejecución.
   2. Poner `usage-poll-interval: "2s"` en `subscription-viewer.openai` y arrancar. Resultado: la aplicación arranca sin error con un intervalo efectivo de 10 s.
 
-### [ ] TASK-003 Indicador de presencia de la sección de OpenCode
+### [x] TASK-003 Indicador de presencia de la sección de OpenCode
 
 - **Cubre:** REQ-003, DEC-002
 - **Componente:** configuration-provider | src/main/java/es/vargontoc/subscriptionviewer/config
@@ -53,7 +53,7 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
 - **Prueba manual:**
   1. no aplica: indicador interno sin interfaz; su efecto se verifica en TASK-015 y TASK-017.
 
-### [ ] TASK-004 Adaptación de claude-usage-source a la nueva configuración
+### [x] TASK-004 Adaptación de claude-usage-source a la nueva configuración
 
 - **Cubre:** REQ-001, DEC-001
 - **Componente:** claude-usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/claude
@@ -81,7 +81,7 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
 - **Prueba manual:**
   1. no aplica: cambio de abstracción sin comportamiento observable por sí solo; su efecto se verifica en TASK-006 y TASK-019.
 
-### [ ] TASK-006 Publicador: estados de OpenAI y sesión caducada
+### [x] TASK-006 Publicador: estados de OpenAI y sesión caducada
 
 - **Cubre:** REQ-004, REQ-010, REQ-012, REQ-013, DEC-005, DEC-007
 - **Componente:** usage-snapshot-publisher | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageSnapshotPublisher.java; desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageProviderState.java
@@ -143,10 +143,10 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
 - **Prueba manual:**
   1. no aplica: planificación interna; su efecto visible se comprueba en TASK-017.
 
-### [ ] TASK-010 Parseo de la respuesta de cuota de OpenAI
+### [x] TASK-010 Parseo de la respuesta de cuota de OpenAI
 
 - **Cubre:** REQ-006, REQ-007, REQ-008, REQ-013, DEC-009, DEC-010
-- **Componente:** openai-usage-client | por definir (analista técnico)
+- **Componente:** openai-usage-client | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/openai/OpenAiUsageClient.java
 - **Depende de:** -
 - **Alcance:** Convertir una respuesta de cuota en la ventana de 5 horas (desde la ventana primaria) y la semanal (desde la secundaria, si existe), sin depender de `limit_window_seconds` ni de `plan_type`. El porcentaje se toma tal cual y se redondea al entero más cercano. El instante de reinicio es `reset_at` en epoch segundos o, si falta, la hora de fin de la consulta más `reset_after_seconds`. El plan (`plus` o `pro`) es opcional. Los campos desconocidos se ignoran. Una respuesta no JSON o sin `rate_limit` se clasifica como respuesta no válida. La función no realiza llamadas de red.
 - **Hecho cuando:** los ejemplos de REQ-006 a REQ-008 y el caso de respuesta no válida de REQ-013 se resuelven como indica el requisito.
@@ -158,10 +158,10 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
 - **Prueba manual:**
   1. no aplica: parseo sin interfaz propia; su efecto visible se comprueba en TASK-018.
 
-### [ ] TASK-011 Petición autenticada al endpoint de cuota y clasificación de respuestas
+### [x] TASK-011 Petición autenticada al endpoint de cuota y clasificación de respuestas
 
 - **Cubre:** REQ-005, REQ-012, REQ-013, NFR-001, NFR-003, DEC-004, DEC-005, DEC-011
-- **Componente:** openai-usage-client | por definir (analista técnico)
+- **Componente:** openai-usage-client | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/openai/OpenAiUsageClient.java
 - **Depende de:** TASK-005, TASK-010
 - **Alcance:** Hacer la petición `GET` a `https://chatgpt.com/backend-api/wham/usage` con las cabeceras `Authorization: Bearer <access_token>`, `ChatGPT-Account-Id: <account_id>` y `Accept: application/json`, con los valores recibidos, en el hilo de fondo y con un tiempo máximo de 30 s entre conexión y petición. Clasifica el resultado: 200 con respuesta válida produce datos; 401 y 403 producen sesión caducada; cualquier otro código, error de red, tiempo agotado o respuesta no válida produce fallo transitorio. No registra cabeceras, cuerpos ni mensajes de excepción; solo categoría y código de estado.
 - **Hecho cuando:** la petición lleva las tres cabeceras con los valores de las credenciales y cada código se clasifica según REQ-012 y REQ-013.
@@ -174,10 +174,10 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
 - **Prueba manual:**
   1. no aplica: cliente sin interfaz propia; su efecto visible se comprueba en TASK-017 y TASK-025.
 
-### [ ] TASK-012 Tipo secreto para las credenciales de OpenAI
+### [x] TASK-012 Tipo secreto para las credenciales de OpenAI
 
 - **Cubre:** NFR-001, DEC-011
-- **Componente:** openai-credentials-reader | por definir (analista técnico)
+- **Componente:** openai-credentials-reader | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/openai/OpenAiCredentials.java
 - **Depende de:** -
 - **Alcance:** Introducir un tipo para el token de acceso y para el identificador de cuenta cuya representación textual sea un valor fijo sin caracteres reales, y que solo entregue el valor real en el punto donde se construyen las cabeceras.
 - **Hecho cuando:** ninguna representación textual del tipo contiene el valor, y el valor solo es accesible desde el punto de uso.
@@ -203,7 +203,7 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
 - **Prueba manual:**
   1. no aplica: lectura interna; su efecto visible se comprueba en TASK-017 y TASK-025.
 
-### [ ] TASK-014 Consulta de la ruta de datos de opencode en el ejecutor de CLI
+### [x] TASK-014 Consulta de la ruta de datos de opencode en el ejecutor de CLI
 
 - **Cubre:** REQ-003, NFR-003, DEC-003
 - **Componente:** opencode-cli-runner | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/OpenCodeCliRunner.java

@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class UsageSnapshotPublisherTest {
 
     private static final String CLAUDE = "claude";
+    private static final String OPENAI = "openai";
     private static final String OTHER = "other";
     private static final Instant NOW = Instant.parse("2026-10-16T10:32:15Z");
 
@@ -99,6 +100,41 @@ class UsageSnapshotPublisherTest {
         publisher.publish(CLAUDE, UsageReadResult.datos(readingOf(CLAUDE, 21, 5)), NOW.plusSeconds(120));
         assertThat(publisher.getCurrentSnapshot().stateOf(CLAUDE).orElseThrow().estado())
                 .isEqualTo(UsageProviderState.Estado.CORRECTO);
+    }
+
+    @Test
+    void openAiSessionExpiryKeepsPreviousDataAndSuccessfulTime() {
+        UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
+        publisher.publish(OPENAI, UsageReadResult.datos(readingOf(OPENAI, 20, 5)), NOW);
+
+        publisher.publish(OPENAI, UsageReadResult.sesionCaducada(), NOW.plusSeconds(60));
+
+        UsageProviderState state = publisher.getCurrentSnapshot().stateOf(OPENAI).orElseThrow();
+        assertThat(state.estado()).isEqualTo(UsageProviderState.Estado.SESION_CADUCADA);
+        assertThat(state.reading().windows().get(0).usedPercentage()).isEqualTo(20);
+        assertThat(state.lastSuccessfulQuery()).isEqualTo(NOW);
+    }
+
+    @Test
+    void openAiSessionExpiryIsVisibleWithoutPreviousData() {
+        UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
+
+        publisher.publish(OPENAI, UsageReadResult.sesionCaducada(), NOW);
+
+        UsageProviderState state = publisher.getCurrentSnapshot().stateOf(OPENAI).orElseThrow();
+        assertThat(state.estado()).isEqualTo(UsageProviderState.Estado.SESION_CADUCADA);
+        assertThat(state.reading()).isNull();
+        assertThat(state.lastSuccessfulQuery()).isNull();
+    }
+
+    @Test
+    void openAiInitialTransientFailureDoesNotPublishSectionOrQueryTime() {
+        UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
+
+        publisher.publish(OPENAI, UsageReadResult.falloTransitorio(null), NOW);
+
+        assertThat(publisher.getCurrentSnapshot().stateOf(OPENAI)).isEmpty();
+        assertThat(publisher.getCurrentSnapshot().readingOf(OPENAI)).isEmpty();
     }
 
     @Test

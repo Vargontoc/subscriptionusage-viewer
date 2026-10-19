@@ -1,7 +1,6 @@
 package es.vargontoc.subscriptionviewer.usage.claude;
 
 import tools.jackson.databind.ObjectMapper;
-import es.vargontoc.subscriptionviewer.config.AppProperties;
 import es.vargontoc.subscriptionviewer.config.ConfigurationProvider;
 import es.vargontoc.subscriptionviewer.usage.UsageReading;
 import es.vargontoc.subscriptionviewer.usage.UsageReadResult;
@@ -15,6 +14,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Pruebas unitarias de {@link ClaudeUsageSource}.
@@ -26,7 +26,6 @@ class ClaudeUsageSourceTest {
 
     private static final Instant FILE_TIME = Instant.parse("2026-10-16T10:32:15Z");
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final Environment ENVIRONMENT = mock(Environment.class);
 
     @Test
     void shouldReturnReadingWithFortyAndFifteenPercent() {
@@ -200,9 +199,11 @@ class ClaudeUsageSourceTest {
     }
 
     private ClaudeUsageSource createSource(StateFileLoader loader) {
-        AppProperties appProperties = new AppProperties();
-        appProperties.setUsageStateFile("~/claude-status.json");
-        ConfigurationProvider configurationProvider = new ConfigurationProvider(appProperties, ENVIRONMENT);
+        Environment environment = mock(Environment.class);
+        when(environment.getProperty("subscription-viewer.claude.usage-state-file"))
+                .thenReturn("~/claude-status.json");
+        ConfigurationProvider configurationProvider = new ConfigurationProvider(
+                new es.vargontoc.subscriptionviewer.config.AppProperties(), environment);
         return new ClaudeUsageSource(configurationProvider, loader, OBJECT_MAPPER);
     }
 

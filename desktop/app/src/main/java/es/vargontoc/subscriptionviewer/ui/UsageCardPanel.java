@@ -189,6 +189,7 @@ public class UsageCardPanel extends JPanel {
             case DESACTUALIZADO -> "Datos desactualizados";
             case SIN_DATOS -> "No hay datos de uso disponibles en este momento.";
             case CORRECTO -> "";
+            case SESION_CADUCADA -> "Sesion caducada, vuelva a conectarse con su CLI correspondiente";
         };
     }
 

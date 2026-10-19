@@ -72,7 +72,7 @@ public class UsageSnapshotPublisher {
             return;
         }
         UsageProviderState previous = providerStates.get(providerId);
-        UsageProviderState next;
+        UsageProviderState next = null;
         switch (result.estado()) {
             case DATOS -> {
                 UsageReading reading = result.datos().orElseThrow();
@@ -80,10 +80,15 @@ public class UsageSnapshotPublisher {
                 next = new UsageProviderState(UsageProviderState.Estado.CORRECTO, reading, queryTime);
             }
             case FALLO_TRANSITORIO -> next = stateAfterFailure(previous,
-                    UsageProviderState.Estado.DESACTUALIZADO);
-            default -> throw new IllegalStateException("Estado no soportado: " + result.estado());
+                    UsageProviderState.Estado.DESACTUALIZADO, providerId);
+            case SESION_CADUCADA -> next = stateAfterFailure(previous,
+                    UsageProviderState.Estado.SESION_CADUCADA, providerId);
         }
-        providerStates.put(providerId, next);
+        if (next == null) {
+            providerStates.remove(providerId);
+        } else {
+            providerStates.put(providerId, next);
+        }
         notifyListeners();
     }
 
@@ -92,14 +97,25 @@ public class UsageSnapshotPublisher {
     }
 
     private UsageProviderState stateAfterFailure(UsageProviderState previous,
-                                                  UsageProviderState.Estado estado) {
+                                                  UsageProviderState.Estado estado,
+                                                  String providerId) {
         UsageReading reading = previous == null ? null : previous.reading();
         Instant successful = previous == null ? null : previous.lastSuccessfulQuery();
         if (reading == null) {
+            // OpenAI solo se hace visible cuando tiene datos o una sesión
+            // caducada. Los fallos iniciales (incluida la falta de credenciales)
+            // se mantienen silenciosos.
+            if (isOpenAi(providerId) && estado == UsageProviderState.Estado.DESACTUALIZADO) {
+                return null;
+            }
             return new UsageProviderState(estado == UsageProviderState.Estado.DESACTUALIZADO
                     ? UsageProviderState.Estado.SIN_DATOS : estado, null, null);
         }
         return new UsageProviderState(estado, reading, successful);
+    }
+
+    private boolean isOpenAi(String providerId) {
+        return providerId != null && providerId.toLowerCase(java.util.Locale.ROOT).contains("openai");
     }
 
     private boolean isOpenCode(String providerId) {

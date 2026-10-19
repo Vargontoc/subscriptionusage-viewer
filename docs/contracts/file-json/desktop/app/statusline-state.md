@@ -11,7 +11,7 @@
 ## Channel
 
 - **Default location:** `~/.claude/statusline-state.json` (en Windows, `%USERPROFILE%\.claude\statusline-state.json`). El `~` se expande por `user.home`.
-- **Configuration:** propiedad Spring `app.usage-state-file` (véase `AppProperties` y `application.yml`); si está en blanco, la aplicación falla al arrancar. El lector tolera cualquier ruta apuntada por la configuración.
+- **Configuration:** propiedad Spring `subscription-viewer.claude.usage-state-file` (véase `ConfigurationProvider` y `application.yml`); si está en blanco, la aplicación falla al arrancar. El lector tolera cualquier ruta apuntada por la configuración.
 - **Encoding:** UTF-8.
 - **Atomicidad:** el writer escribe a un fichero temporal y lo renombra sobre el destino (decisión DEC-003). El reader abre el fichero con `Files.isRegularFile` + `Files.readString`; no usa bloqueos. El reader nunca observa contenido parcial durante el renombrado atómico.
 

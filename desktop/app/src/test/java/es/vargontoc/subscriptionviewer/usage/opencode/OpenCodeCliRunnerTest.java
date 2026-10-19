@@ -55,6 +55,55 @@ class OpenCodeCliRunnerTest {
     }
 
     @Test
+    void dataPathCommandReturnsThePrintedPath() throws IOException {
+        assumeUnix();
+        Path fixture = script("printf '/tmp/opencode-data\\n'");
+
+        OpenCodeCliRunner.CliResult result = new OpenCodeCliRunner(fixture.toString(), Duration.ofSeconds(2), 4096)
+                .runDataPath();
+
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.output()).isEqualTo("/tmp/opencode-data");
+    }
+
+    @Test
+    void dataPathCommandWithErrorIsAQuietFailure() throws IOException {
+        assumeUnix();
+        Path fixture = script("exit 7");
+
+        OpenCodeCliRunner.CliResult result = new OpenCodeCliRunner(fixture.toString(), Duration.ofSeconds(2), 4096)
+                .runDataPath();
+
+        assertThat(result.isFailure()).isTrue();
+        assertThat(result.output()).isEmpty();
+    }
+
+    @Test
+    void dataPathCommandThatDoesNotFinishIsDestroyed() throws IOException {
+        assumeUnix();
+        Path fixture = script("while true; do :; done");
+        OpenCodeCliRunner runner = new OpenCodeCliRunner(fixture.toString(), Duration.ofMillis(100), 4096);
+
+        OpenCodeCliRunner.CliResult result = runner.runDataPath();
+
+        assertThat(result.isFailure()).isTrue();
+        assertThat(result.output()).isEmpty();
+        assertThat(runner.liveProcessCount()).isZero();
+    }
+
+    @Test
+    void emptyDataPathOutputIsUnavailable() throws IOException {
+        assumeUnix();
+        Path fixture = script("printf '   \\n'");
+
+        OpenCodeCliRunner.CliResult result = new OpenCodeCliRunner(fixture.toString(), Duration.ofSeconds(2), 4096)
+                .runDataPath();
+
+        assertThat(result.isFailure()).isTrue();
+        assertThat(result.output()).isEmpty();
+    }
+
+    @Test
     void windowsCmdWrapperPreservesUnixMillisecondArguments() throws IOException {
         assumeWindows();
         Path fixture = copyWindowsFixture("opencode-fixture.cmd");
