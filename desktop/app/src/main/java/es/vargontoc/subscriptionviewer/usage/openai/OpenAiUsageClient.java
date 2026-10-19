@@ -143,7 +143,7 @@ public final class OpenAiUsageClient {
             String planType = root.get("plan_type") instanceof String plan && !plan.isBlank()
                     ? plan : null;
             return Optional.of(new OpenAiUsageResult(
-                    new UsageReading(PROVIDER_ID, queriedAt, windows), planType));
+                    new UsageReading(PROVIDER_ID, queriedAt, windows, null, List.of(), planType), planType));
         } catch (RuntimeException ignored) {
             // El cuerpo puede contener información de sesión: no se conserva ni se propaga.
             return Optional.empty();

@@ -36,6 +36,61 @@ class UsageCardPanelTest {
                 "Total  Rolling: 25% | Semanal: 0% | Mensual: 10%");
     }
 
+    @Test
+    void shouldRenderOpenAiWindowsAndOptionalPlan() {
+        UsageCardPanel panel = new UsageCardPanel("openai", new CountdownEvaluator(Clock.systemUTC()));
+        Instant reset = Instant.now().plusSeconds(3_600);
+        UsageReading reading = new UsageReading("openai", WRITTEN_AT, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 6, reset),
+                new UsageWindowReading(UsageWindowType.SEVEN_DAY, 1, reset)));
+
+        panel.update(new UsageProviderState(UsageProviderState.Estado.CORRECTO, reading, WRITTEN_AT), "plus");
+
+        assertThat(allTexts(panel)).anyMatch(text -> text.contains("OpenAI"));
+        assertThat(allTexts(panel)).anyMatch(text -> text.contains("6%"));
+        assertThat(allTexts(panel)).anyMatch(text -> text.contains("1%"));
+        assertThat(allTexts(panel)).anyMatch(text -> text.contains("Plan: Plus"));
+    }
+
+    @Test
+    void shouldRenderOpenAiWithoutPlanWhenPlanIsAbsent() {
+        UsageCardPanel panel = new UsageCardPanel("openai", new CountdownEvaluator(Clock.systemUTC()));
+        Instant reset = Instant.now().plusSeconds(3_600);
+        UsageReading reading = new UsageReading("openai", WRITTEN_AT, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 6, reset),
+                new UsageWindowReading(UsageWindowType.SEVEN_DAY, 1, reset)));
+
+        panel.update(new UsageProviderState(UsageProviderState.Estado.CORRECTO, reading, WRITTEN_AT));
+
+        assertThat(allTexts(panel)).noneMatch(text -> text.contains("Plan:"));
+    }
+
+    @Test
+    void shouldRenderFormalOpenAiExpiredSessionMessageWithoutData() {
+        UsageProviderCardPanel panel = new UsageProviderCardPanel("openai",
+                new CountdownEvaluator(Clock.systemUTC()));
+
+        panel.update(new UsageProviderState(UsageProviderState.Estado.SESION_CADUCADA, null, null));
+
+        assertThat(allTexts(panel)).contains(UsageProviderCardPanel.OPENAI_EXPIRED_SESSION_MESSAGE);
+        assertThat(allTexts(panel)).noneMatch(text -> text.toLowerCase().contains("token"));
+        assertThat(panel.hasMessage()).isTrue();
+        assertThat(panel.hasVisibleWindows()).isFalse();
+    }
+
+    @Test
+    void shouldKeepLastDataAndMarkItStaleAfterTransientFailure() {
+        UsageProviderCardPanel panel = new UsageProviderCardPanel("openai",
+                new CountdownEvaluator(Clock.systemUTC()));
+        UsageReading reading = new UsageReading("openai", WRITTEN_AT, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 20, Instant.now().plusSeconds(3600))));
+
+        panel.update(new UsageProviderState(UsageProviderState.Estado.DESACTUALIZADO, reading, WRITTEN_AT));
+
+        assertThat(allTexts(panel)).anyMatch(text -> text.contains("20%"));
+        assertThat(allTexts(panel)).contains("Datos desactualizados");
+    }
+
     private UsageReading row(String seriesId, int rolling, int weekly, int monthly) {
         return new UsageReading("opencode", seriesId, WRITTEN_AT, List.of(
                 new UsageWindowReading(UsageWindowType.ROLLING, rolling, WRITTEN_AT.plusSeconds(600)),
@@ -47,6 +102,13 @@ class UsageCardPanelTest {
         return java.util.Arrays.stream(panel.getComponents())
                 .filter(component -> component instanceof JLabel label
                         && Boolean.TRUE.equals(label.getClientProperty("opencode-row")))
+                .map(component -> ((JLabel) component).getText())
+                .toList();
+    }
+
+    private List<String> allTexts(UsageCardPanel panel) {
+        return java.util.Arrays.stream(panel.getComponents())
+                .filter(component -> component instanceof JLabel)
                 .map(component -> ((JLabel) component).getText())
                 .toList();
     }

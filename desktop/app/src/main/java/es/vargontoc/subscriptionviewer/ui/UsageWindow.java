@@ -185,8 +185,14 @@ public class UsageWindow implements UsageSnapshotListener {
         if (chartPanel != null) {
             // updateContent solo se invoca en EDT (incluido el listener de
             // snapshots), por lo que el modelo Swing se actualiza sin carreras.
-            chartPanel.updateSeries(usageHistory.getAllSeries());
+            // UsageHistory es en memoria y por eso el gráfico (incluido OpenAI)
+            // empieza vacío en cada ejecución de la aplicación.
+            refreshChart();
         }
+    }
+
+    private void refreshChart() {
+        chartPanel.updateSeries(usageHistory.getAllSeries());
     }
 
     /**

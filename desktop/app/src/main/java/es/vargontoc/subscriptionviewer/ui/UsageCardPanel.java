@@ -34,6 +34,7 @@ public class UsageCardPanel extends JPanel {
     private final Map<UsageWindowType, JLabel> windowLabels = new EnumMap<>(UsageWindowType.class);
     private final JLabel statusLabel;
     private final JLabel writtenAtLabel;
+    private final JLabel planLabel;
 
     /**
      * Crea una tarjeta para el proveedor indicado.
@@ -44,13 +45,15 @@ public class UsageCardPanel extends JPanel {
     public UsageCardPanel(String providerId, CountdownEvaluator evaluator) {
         this.evaluator = evaluator;
         setLayout(new GridLayout(0, 1, 4, 4));
-        setBorder(BorderFactory.createTitledBorder(capitalize(providerId)));
+        setBorder(BorderFactory.createTitledBorder(displayProviderName(providerId)));
 
-        providerLabel = new JLabel(capitalize(providerId));
+        providerLabel = new JLabel(displayProviderName(providerId));
+        planLabel = new JLabel();
         statusLabel = new JLabel();
         writtenAtLabel = new JLabel();
 
         add(providerLabel);
+        add(planLabel);
         for (UsageWindowType type : UsageWindowType.values()) {
             JLabel label = new JLabel();
             windowLabels.put(type, label);
@@ -75,7 +78,18 @@ public class UsageCardPanel extends JPanel {
     /** Actualiza la tarjeta desde el estado publicado, nunca desde credenciales. */
     public void update(UsageProviderState state) {
         UsageReading reading = state.reading();
-        providerLabel.setText(capitalize(reading != null ? reading.providerId() : "OpenCode"));
+        update(state, reading == null ? null : reading.planType());
+    }
+
+    /**
+     * Actualiza la tarjeta y, cuando la respuesta lo proporciona, su plan.
+     * El plan es informativo y no interviene en la clasificación de ventanas.
+     */
+    public void update(UsageProviderState state, String planType) {
+        UsageReading reading = state.reading();
+        String providerId = reading != null ? reading.providerId() : "OpenCode";
+        providerLabel.setText(displayProviderName(providerId));
+        planLabel.setText(planText(providerId, planType));
 
         if (reading != null && "opencode".equalsIgnoreCase(reading.providerId())) {
             updateOpenCode(reading);
@@ -113,6 +127,7 @@ public class UsageCardPanel extends JPanel {
     }
 
     private void updateOpenCode(UsageReading reading) {
+        planLabel.setText("");
         windowLabels.values().forEach(label -> label.setText(""));
         statusLabel.setText("");
         providerLabel.setText("OpenCode");
@@ -142,6 +157,7 @@ public class UsageCardPanel extends JPanel {
 
     /** Compatibilidad con el renderizado histórico de Claude. */
     private void updateLegacy(UsageReading reading) {
+        planLabel.setText("");
         providerLabel.setText(capitalize(reading.providerId()));
 
         String fiveHourText = null;
@@ -194,8 +210,12 @@ public class UsageCardPanel extends JPanel {
     }
 
     private String windowName(UsageWindowType type) {
+        if (type == UsageWindowType.FIVE_HOUR) {
+            return "5 horas";
+        }
         return switch (type) {
-            case FIVE_HOUR, ROLLING -> "Rolling";
+            case FIVE_HOUR -> "5 horas";
+            case ROLLING -> "Rolling";
             case SEVEN_DAY, WEEKLY -> "Semanal";
             case MONTHLY -> "Mensual";
         };
@@ -223,5 +243,23 @@ public class UsageCardPanel extends JPanel {
             return text;
         }
         return Character.toUpperCase(text.charAt(0)) + text.substring(1);
+    }
+
+    private String displayProviderName(String providerId) {
+        if ("openai".equalsIgnoreCase(providerId)) {
+            return "OpenAI";
+        }
+        return capitalize(providerId);
+    }
+
+    private String planText(String providerId, String planType) {
+        if (!"openai".equalsIgnoreCase(providerId) || planType == null || planType.isBlank()) {
+            return "";
+        }
+        return switch (planType.toLowerCase(java.util.Locale.ROOT)) {
+            case "plus" -> "Plan: Plus";
+            case "pro" -> "Plan: Pro";
+            default -> "";
+        };
     }
 }

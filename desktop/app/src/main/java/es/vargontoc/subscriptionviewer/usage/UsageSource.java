@@ -2,6 +2,9 @@ package es.vargontoc.subscriptionviewer.usage;
 
 import java.util.Optional;
 
+import java.time.Duration;
+import es.vargontoc.subscriptionviewer.config.ConfigurationProvider;
+
 /**
  * Contrato de una fuente de lectura de uso de un proveedor de AI.
  *
@@ -11,6 +14,24 @@ import java.util.Optional;
  * ni manejar excepciones de una fuente concreta.</p>
  */
 public interface UsageSource {
+
+    /**
+     * Intervalo entre ciclos de esta fuente. Las fuentes nuevas pueden
+     * sobrescribir este método para declarar su propia configuración; el
+     * valor por defecto conserva la configuración de las fuentes existentes.
+     */
+    default Duration getPollInterval(ConfigurationProvider configurationProvider) {
+        if ("opencode".equalsIgnoreCase(getProviderId())
+                || getProviderId().toLowerCase().contains("opencode")) {
+            return configurationProvider.getOpenCodePollInterval();
+        }
+        return configurationProvider.getUsagePollInterval();
+    }
+
+    /** Tiempo máximo permitido para una lectura de esta fuente. */
+    default Duration getReadTimeout() {
+        return Duration.ofSeconds(5);
+    }
 
     /**
      * Identificador único del proveedor que representa esta fuente.

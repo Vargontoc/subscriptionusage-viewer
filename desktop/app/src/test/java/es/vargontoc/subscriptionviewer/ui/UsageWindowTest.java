@@ -70,6 +70,29 @@ class UsageWindowTest {
     }
 
     @Test
+    void shouldShowOpenAiAsSeparateSectionWithBothWindows() throws Exception {
+        UsageSnapshotPublisher publisher = new UsageSnapshotPublisher();
+        UsageHistory history = new UsageHistory();
+        UsageWindow window = new UsageWindow(publisher, evaluator, history);
+        window.subscribe();
+
+        UsageSnapshot snapshot = new UsageSnapshot(java.util.Map.of(
+                "claude", readingOf("claude", 40, 15, WRITTEN_AT.plusSeconds(3600), WRITTEN_AT.plusSeconds(86400)),
+                "openai", readingOf("openai", 6, 1, WRITTEN_AT.plusSeconds(3600), WRITTEN_AT.plusSeconds(86400))));
+        window.onSnapshotChanged(snapshot);
+        drainEdt();
+
+        assertThat(window.getCardsPanel().getComponentCount()).isEqualTo(2);
+        UsageCardPanel openAi = java.util.Arrays.stream(window.getCardsPanel().getComponents())
+                .map(component -> (UsageCardPanel) component)
+                .filter(card -> labelTextsOf(card).stream().anyMatch(text -> text.contains("OpenAI")))
+                .findFirst().orElseThrow();
+        assertThat(labelTextsOf(openAi)).anyMatch(text -> text.contains("6%"));
+        assertThat(labelTextsOf(openAi)).anyMatch(text -> text.contains("1%"));
+        assertThat(labelTextsOf(openAi)).anyMatch(text -> text.contains("Última actualización"));
+    }
+
+    @Test
     void shouldShowNeutralTextWhenSnapshotIsEmpty() throws Exception {
         UsageSnapshotPublisher publisher = new UsageSnapshotPublisher();
         UsageHistory history = new UsageHistory();
@@ -185,6 +208,30 @@ class UsageWindowTest {
                 .projectSeries("opencode", UsageWindowType.ROLLING)).hasSize(3);
         assertThat(window.getChartPanel()
                 .projectSeries("opencode", UsageWindowType.WEEKLY)).hasSize(3);
+    }
+
+    @Test
+    void shouldRefreshOpenAiChartFromInMemoryHistoryOnEachSnapshot() throws Exception {
+        UsageSnapshotPublisher publisher = new UsageSnapshotPublisher();
+        UsageHistory history = new UsageHistory();
+        UsageWindow window = new UsageWindow(publisher, evaluator, history);
+        window.subscribe();
+
+        for (int i = 0; i < 3; i++) {
+            Instant at = WRITTEN_AT.plusSeconds(i * 60L);
+            history.add(new UsageReading("openai", at, List.of(
+                    new UsageWindowReading(UsageWindowType.FIVE_HOUR, 10 + i, at.plusSeconds(600)),
+                    new UsageWindowReading(UsageWindowType.SEVEN_DAY, 20 + i, at.plusSeconds(1_200)))));
+            window.onSnapshotChanged(new UsageSnapshot(java.util.Map.of(
+                    "openai", readingOf("openai", 10 + i, 20 + i,
+                            at.plusSeconds(600), at.plusSeconds(1_200)))));
+            drainEdt();
+        }
+
+        assertThat(window.getChartPanel().projectOpenAiSeries(UsageWindowType.FIVE_HOUR))
+                .hasSize(3);
+        assertThat(window.getChartPanel().projectOpenAiSeries(UsageWindowType.SEVEN_DAY))
+                .hasSize(3);
     }
 
     private void drainEdt() throws Exception {

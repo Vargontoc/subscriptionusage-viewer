@@ -30,6 +30,8 @@ import es.vargontoc.subscriptionviewer.usage.UsageWindowType;
  */
 public class UsageChartPanel extends JPanel {
 
+    private static final String OPENAI_PROVIDER_ID = "openai";
+
     private static final Color FIVE_HOUR_COLOR = new Color(0x22, 0x66, 0xCC);
     private static final Color SEVEN_DAY_COLOR = new Color(0x22, 0x99, 0x66);
     private static final Color MONTH_COLOR = new Color(0xCC, 0x77, 0x22);
@@ -110,6 +112,14 @@ public class UsageChartPanel extends JPanel {
      */
     List<ScreenPoint> projectSeries(String providerId, UsageWindowType type) {
         return projectSeries(providerId, null, type);
+    }
+
+    /**
+     * Proyecta una ventana del gráfico de OpenAI. El historial es deliberadamente
+     * efímero: al crear un panel nuevo no hay puntos hasta recibir una lectura.
+     */
+    List<ScreenPoint> projectOpenAiSeries(UsageWindowType type) {
+        return projectSeries(OPENAI_PROVIDER_ID, type);
     }
 
     /** Proyecta una serie concreta (modelo o Total) a coordenadas de pantalla. */

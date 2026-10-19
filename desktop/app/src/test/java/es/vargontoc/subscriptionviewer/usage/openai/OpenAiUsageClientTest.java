@@ -26,6 +26,7 @@ class OpenAiUsageClientTest {
         var result = new OpenAiUsageClient().parse(json, QUERY_TIME).orElseThrow();
 
         assertThat(result.isPlus()).isTrue();
+        assertThat(result.reading().planType()).isEqualTo("plus");
         assertThat(result.reading().windows()).extracting(w -> w.type())
                 .containsExactly(UsageWindowType.FIVE_HOUR, UsageWindowType.SEVEN_DAY);
         assertThat(result.reading().windows()).extracting(w -> w.usedPercentage())

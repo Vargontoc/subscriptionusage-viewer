@@ -52,6 +52,62 @@ class UsageChartPanelTest {
     }
 
     @Test
+    void shouldProjectThreeOpenAiPointsPerWindowInTemporalOrder() {
+        UsageHistory history = new UsageHistory();
+        for (int i = 0; i < 3; i++) {
+            Instant writtenAt = T0.plusSeconds(i * 300L);
+            history.add(new UsageReading("openai", writtenAt, List.of(
+                    new UsageWindowReading(UsageWindowType.FIVE_HOUR, 10 + i,
+                            writtenAt.plusSeconds(1_000)),
+                    new UsageWindowReading(UsageWindowType.SEVEN_DAY, 20 + i,
+                            writtenAt.plusSeconds(2_000)))));
+        }
+
+        UsageChartPanel chart = new UsageChartPanel();
+        chart.setSize(400, 300);
+        chart.updateSeries(history.getAllSeries());
+
+        List<UsageChartPanel.ScreenPoint> fiveHour =
+                chart.projectOpenAiSeries(UsageWindowType.FIVE_HOUR);
+        List<UsageChartPanel.ScreenPoint> sevenDay =
+                chart.projectOpenAiSeries(UsageWindowType.SEVEN_DAY);
+        assertThat(fiveHour).hasSize(3);
+        assertThat(sevenDay).hasSize(3);
+        assertThat(fiveHour.get(0).x()).isLessThan(fiveHour.get(1).x());
+        assertThat(fiveHour.get(1).x()).isLessThan(fiveHour.get(2).x());
+        assertThat(sevenDay.get(0).x()).isLessThan(sevenDay.get(1).x());
+        assertThat(sevenDay.get(1).x()).isLessThan(sevenDay.get(2).x());
+    }
+
+    @Test
+    void shouldNotProjectDuplicateOpenAiValues() {
+        UsageHistory history = new UsageHistory();
+        history.add(new UsageReading("openai", T0, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 25, T0.plusSeconds(1_000)),
+                new UsageWindowReading(UsageWindowType.SEVEN_DAY, 40, T0.plusSeconds(2_000)))));
+        history.add(new UsageReading("openai", T0.plusSeconds(300), List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 25, T0.plusSeconds(1_100)),
+                new UsageWindowReading(UsageWindowType.SEVEN_DAY, 40, T0.plusSeconds(2_100)))));
+
+        UsageChartPanel chart = new UsageChartPanel();
+        chart.setSize(400, 300);
+        chart.updateSeries(history.getAllSeries());
+
+        assertThat(chart.projectOpenAiSeries(UsageWindowType.FIVE_HOUR)).hasSize(1);
+        assertThat(chart.projectOpenAiSeries(UsageWindowType.SEVEN_DAY)).hasSize(1);
+    }
+
+    @Test
+    void shouldHaveEmptyOpenAiSeriesWithoutReadings() {
+        UsageChartPanel chart = new UsageChartPanel();
+        chart.setSize(400, 300);
+        chart.updateSeries(Map.of());
+
+        assertThat(chart.projectOpenAiSeries(UsageWindowType.FIVE_HOUR)).isEmpty();
+        assertThat(chart.projectOpenAiSeries(UsageWindowType.SEVEN_DAY)).isEmpty();
+    }
+
+    @Test
     void shouldHandleEmptySeriesWithoutException() {
         UsageChartPanel chart = new UsageChartPanel();
         chart.setSize(400, 300);

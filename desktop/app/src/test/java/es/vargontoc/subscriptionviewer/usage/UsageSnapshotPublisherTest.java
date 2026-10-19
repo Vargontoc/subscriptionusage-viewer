@@ -86,6 +86,19 @@ class UsageSnapshotPublisherTest {
     }
 
     @Test
+    void successfulOpenAiReadPreservesPlanInPublicSnapshot() {
+        UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
+        UsageReading reading = new UsageReading(OPENAI, NOW, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 20, NOW.plusSeconds(3600))),
+                null, List.of(), "plus");
+
+        publisher.publish(OPENAI, UsageReadResult.datos(reading), NOW);
+
+        assertThat(publisher.getCurrentSnapshot().readingOf(OPENAI).orElseThrow().planType())
+                .isEqualTo("plus");
+    }
+
+    @Test
     void transientFailureKeepsDataAndSuccessfulTimeButMarksItStale() {
         UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
         publisher.publish(CLAUDE, UsageReadResult.datos(readingOf(CLAUDE, 20, 5)), NOW);

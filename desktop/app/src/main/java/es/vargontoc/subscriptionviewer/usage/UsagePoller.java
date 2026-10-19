@@ -33,8 +33,6 @@ import es.vargontoc.subscriptionviewer.config.ConfigurationProvider;
 @Component
 public class UsagePoller implements SmartLifecycle {
 
-    private static final Duration SOURCE_TIMEOUT = Duration.ofSeconds(5);
-
     private final ConfigurationProvider configurationProvider;
     private final List<UsageSource> sources;
     private final UsageHistory usageHistory;
@@ -153,11 +151,10 @@ public class UsagePoller implements SmartLifecycle {
     }
 
     private Duration intervalFor(UsageSource source) {
-        return isOpenCode(source)
-                ? configurationProvider.getOpenCodePollInterval()
-                : configurationProvider.getUsagePollInterval();
+        return source.getPollInterval(configurationProvider);
     }
 
+    /** Semántica heredada: los ciclos incompletos de OpenCode no se publican. */
     private boolean isOpenCode(UsageSource source) {
         return "opencode".equalsIgnoreCase(source.getProviderId())
                 || source.getProviderId().toLowerCase().contains("opencode");
@@ -209,7 +206,11 @@ public class UsagePoller implements SmartLifecycle {
     private UsageReadResult readWithTimeout(UsageSource source) {
         Future<UsageReadResult> future = readExecutor.submit(source::read);
         try {
-            return future.get(SOURCE_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+            Duration timeout = source.getReadTimeout();
+            if (timeout == null || timeout.isZero() || timeout.isNegative()) {
+                throw new IllegalStateException("El tiempo máximo de lectura debe ser positivo");
+            }
+            return future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             future.cancel(true);

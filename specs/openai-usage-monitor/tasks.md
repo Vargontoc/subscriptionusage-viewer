@@ -126,7 +126,7 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
 - **Prueba manual:**
   1. no aplica: cálculo sin interfaz propia; su efecto visible se comprueba en TASK-018 y TASK-019.
 
-### [ ] TASK-009 Planificador: intervalo, tiempo máximo y reglas de OpenAI por fuente
+### [x] TASK-009 Planificador: intervalo, tiempo máximo y reglas de OpenAI por fuente
 
 - **Cubre:** REQ-009, REQ-012, REQ-014, NFR-003, NFR-004, DEC-006, DEC-007
 - **Componente:** usage-poller | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsagePoller.java
@@ -187,10 +187,10 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
 - **Prueba manual:**
   1. no aplica: tipo interno sin comportamiento observable por sí solo; su efecto se verifica en TASK-025.
 
-### [ ] TASK-013 Lectura de credenciales desde .codex/auth.json
+### [x] TASK-013 Lectura de credenciales desde .codex/auth.json
 
 - **Cubre:** REQ-002, NFR-001, DEC-002, DEC-011
-- **Componente:** openai-credentials-reader | por definir (analista técnico)
+- **Componente:** openai-credentials-reader | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/openai/OpenAiCredentialsReader.java
 - **Depende de:** TASK-012
 - **Alcance:** Localizar `.codex/auth.json` en el directorio de usuario. Si existe, leer solo `tokens.access_token` y `tokens.account_id`, descartando el resto de campos al parsear (en particular `refresh_token`, `id_token`, `OPENAI_API_KEY`, `user_id` y `email`). El fichero se abre solo en lectura. El resultado indica si el fichero existe y, si existe, si contiene ambos campos. Si falta alguno o el JSON no es válido, las credenciales no están disponibles.
 - **Hecho cuando:** con `.codex/auth.json` completo se obtienen las credenciales, y con el fichero incompleto o ausente el resultado es el indicado sin error.
@@ -219,10 +219,10 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
 - **Prueba manual:**
   1. no aplica: ejecutor interno sin interfaz propia; su efecto se verifica en TASK-017.
 
-### [ ] TASK-015 Orden de fuentes de credenciales de OpenAI
+### [x] TASK-015 Orden de fuentes de credenciales de OpenAI
 
 - **Cubre:** REQ-002, REQ-003, REQ-004, NFR-003, DEC-002
-- **Componente:** openai-credentials-reader | por definir (analista técnico)
+- **Componente:** openai-credentials-reader | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/openai/OpenAiCredentialsReader.java
 - **Depende de:** TASK-003, TASK-013, TASK-014
 - **Alcance:** En cada ciclo, obtener las credenciales aplicando el orden fijo. Si `.codex/auth.json` existe, es la única fuente aunque esté incompleto, y opencode no se ejecuta. Si no existe y la sección `subscription-viewer.opencode` existe, pedir la ruta de datos de opencode, leer su `auth.json` y tomar `openai.access` y `openai.accountId`, ignorando otras etiquetas. Sin etiqueta `openai`, o si el comando falla o excede 30 s, las credenciales no están disponibles sin error. Sin sección de OpenCode no se ejecuta `opencode`. No se almacenan credenciales entre ciclos.
 - **Hecho cuando:** los criterios de REQ-002 y REQ-003 se cumplen y las credenciales se releen en cada ciclo.
@@ -236,10 +236,10 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
 - **Prueba manual:**
   1. no aplica: lectura interna; su efecto visible se comprueba en TASK-017 y TASK-025.
 
-### [ ] TASK-016 Fuente de uso de OpenAI
+### [x] TASK-016 Fuente de uso de OpenAI
 
 - **Cubre:** REQ-004, REQ-005, REQ-009, REQ-012, REQ-013, REQ-014, NFR-003, DEC-005, DEC-006
-- **Componente:** openai-usage-source | por definir (analista técnico)
+- **Componente:** openai-usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/openai/OpenAiUsageSource.java
 - **Depende de:** TASK-002, TASK-005, TASK-011, TASK-015
 - **Alcance:** Implementar la fuente de OpenAI sobre la abstracción de usage-source. En cada ciclo pide las credenciales; sin credenciales devuelve fallo transitorio sin causa y no hace ninguna petición; con credenciales llama al cliente y devuelve el resultado clasificado (datos, sesión caducada o fallo transitorio). Declara su intervalo, el validado en configuración con 60 s por defecto, y su tiempo máximo de 60 s. No lanza excepciones hacia el planificador y no registra valores sensibles.
 - **Hecho cuando:** sin credenciales no hay peticiones ni sección visible, y cada ciclo produce exactamente uno de los resultados de REQ-012 y REQ-013.
@@ -251,10 +251,10 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
 - **Prueba manual:**
   1. no aplica: fuente interna; su efecto visible se comprueba en TASK-017.
 
-### [ ] TASK-017 Integración: planificador con la fuente de OpenAI
+### [x] TASK-017 Integración: planificador con la fuente de OpenAI
 
 - **Cubre:** REQ-004, REQ-005, REQ-009, REQ-011, REQ-012, REQ-014, NFR-004
-- **Componente:** usage-poller | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsagePoller.java; openai-usage-source | por definir (analista técnico)
+- **Componente:** usage-poller | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsagePoller.java; openai-usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/openai/OpenAiUsageSource.java
 - **Depende de:** TASK-006, TASK-007, TASK-009, TASK-016
 - **Alcance:** Conectar el planificador con la fuente de OpenAI para que cada lectura llegue clasificada al publicador y, cuando tiene datos, al historial. Sin credenciales, el planificador vuelve a intentar la localización en cada ciclo sin hacer peticiones. Los fallos y el estado de sesión caducada llegan al publicador. Una sesión de Codex iniciada con la aplicación abierta se recoge en el siguiente ciclo.
 - **Hecho cuando:** una lectura real de OpenAI llega al historial y al publicador, el planificador reintenta en cada ciclo y los fallos de OpenAI no afectan a Claude ni a OpenCode.
@@ -269,7 +269,7 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
   2. Sin credenciales de OpenAI, arrancar y esperar dos ciclos. Resultado: no hay tráfico hacia `chatgpt.com` y la aplicación sigue en ejecución.
   3. Con la aplicación abierta y sin credenciales, iniciar sesión en Codex y esperar un ciclo. Resultado: aparece el proveedor OpenAI sin reiniciar la aplicación.
 
-### [ ] TASK-018 Ventana: sección de OpenAI con datos
+### [x] TASK-018 Ventana: sección de OpenAI con datos
 
 - **Cubre:** REQ-006, REQ-007, REQ-008, REQ-010, REQ-014
 - **Componente:** usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageWindow.java
@@ -286,7 +286,7 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
   2. Con Claude y OpenCode configurados a la vez, abrir la ventana de uso. Resultado: las tres secciones muestran sus datos de forma independiente.
   3. Comparar el porcentaje mostrado con el consumo que muestra la cuenta de OpenAI en el mismo momento. Resultado: coinciden, con el redondeo al entero.
 
-### [ ] TASK-019 Ventana: estados de OpenAI (desactualizado, sesión caducada, sin datos)
+### [x] TASK-019 Ventana: estados de OpenAI (desactualizado, sesión caducada, sin datos)
 
 - **Cubre:** REQ-004, REQ-012, REQ-013, REQ-014
 - **Componente:** usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageWindow.java
@@ -304,7 +304,7 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
   3. Desconectar la red tras una lectura correcta y esperar un ciclo. Resultado: se muestra el último porcentaje con indicador de desactualizado, sin mensaje técnico.
   4. Con el fichero de Codex ausente y sin sección de OpenCode, arrancar la aplicación. Resultado: no aparece la sección de OpenAI ni ningún mensaje de error.
 
-### [ ] TASK-020 Ventana: gráfico de evolución de OpenAI
+### [x] TASK-020 Ventana: gráfico de evolución de OpenAI
 
 - **Cubre:** REQ-011
 - **Componente:** usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageWindow.java
@@ -379,7 +379,7 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
 - **Prueba manual:**
   1. Repasar que el contrato coincide con la ejecución implementada en TASK-014 (comando, tiempo máximo y tratamiento de fallos).
 
-### [ ] TASK-025 NFR transversal: protección de credenciales de OpenAI de extremo a extremo
+### [x] TASK-025 NFR transversal: protección de credenciales de OpenAI de extremo a extremo
 
 - **Cubre:** NFR-001, REQ-002, REQ-005, REQ-012, DEC-011
 - **Componente:** application-launcher | src/main/java/es/vargontoc/subscriptionviewer/launcher/ApplicationLauncher.java (verificación de la aplicación completa); prueba: por definir (analista técnico)
@@ -396,10 +396,10 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
   2. Con un token inválido, observar la sección de OpenAI tras el 401. Resultado: el aviso no contiene el valor del token ni parte de él.
   3. Comparar el fichero de credenciales antes y después de la sesión de prueba. Resultado: contenido y fecha de modificación idénticos.
 
-### [ ] TASK-026 NFR transversal: recursos y respuesta de la interfaz con OpenAI activo
+### [x] TASK-026 NFR transversal: recursos y respuesta de la interfaz con OpenAI activo
 
 - **Cubre:** NFR-002, NFR-005
-- **Componente:** application-launcher | src/main/java/es/vargontoc/subscriptionviewer/launcher/ApplicationLauncher.java (verificación de la aplicación completa); prueba: por definir (analista técnico)
+- **Componente:** application-launcher | src/main/java/es/vargontoc/subscriptionviewer/launcher/ApplicationLauncher.java (verificación de la aplicación completa); prueba: desktop/app/src/test/java/es/vargontoc/subscriptionviewer/launcher/OpenAiResourceAndResponsivenessIntegrationTest.java
 - **Depende de:** TASK-017, TASK-018, TASK-020
 - **Alcance:** Medir, con OpenAI activo, el consumo de CPU y de heap en segundo plano, y la respuesta de la interfaz mientras una consulta a OpenAI tarda más de 5 s.
 - **Hecho cuando:** los criterios de NFR-002 y NFR-005 se cumplen con valores medidos.

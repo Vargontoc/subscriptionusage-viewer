@@ -97,7 +97,8 @@
                             <includes>
                                 <include>**/StartupTimeIntegrationTest.java</include>
                                 <include>**/JavaVersionCompatibilityTest.java</include>
-                                <include>**/OpenCodeResourceAndResponsivenessV2IntegrationTest.java</include>
+                                 <include>**/OpenCodeResourceAndResponsivenessV2IntegrationTest.java</include>
+                                 <include>**/OpenAiResourceAndResponsivenessIntegrationTest.java</include>
                             </includes>
                         </configuration>
                         <executions>
