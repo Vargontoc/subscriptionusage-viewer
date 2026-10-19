@@ -320,7 +320,7 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
   2. Esperar un ciclo sin cambios en el consumo. Resultado: no aparecen puntos nuevos.
   3. Cerrar la aplicación y volver a abrirla. Resultado: el gráfico de OpenAI empieza vacío.
 
-### [ ] TASK-021 Contrato: http - consulta de cuota de OpenAI
+### [x] TASK-021 Contrato: http - consulta de cuota de OpenAI
 
 - **Cubre:** REQ-005, REQ-006, REQ-007, REQ-012, NFR-001, DEC-004, DEC-009, DEC-010
 - **Componente:** openai-usage-client | por definir (analista técnico)
@@ -335,7 +335,7 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
 - **Prueba manual:**
   1. Repasar que aparecen la petición con las tres cabeceras, la respuesta con ventana primaria, secundaria y plan, el 401, el 403 y el fallo transitorio, y que cada uno coincide con lo implementado en TASK-011.
 
-### [ ] TASK-022 Contrato: file-json - .codex/auth.json
+### [x] TASK-022 Contrato: file-json - .codex/auth.json
 
 - **Cubre:** REQ-002, NFR-001, DEC-002, DEC-011
 - **Componente:** openai-credentials-reader | por definir (analista técnico)
@@ -350,7 +350,7 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
 - **Prueba manual:**
   1. Repasar que el contrato lista solo los dos campos leídos y el tratamiento de ausencia e incompletitud, y que coincide con TASK-013.
 
-### [ ] TASK-023 Contrato: file-json - auth.json de opencode (etiqueta openai)
+### [x] TASK-023 Contrato: file-json - auth.json de opencode (etiqueta openai)
 
 - **Cubre:** REQ-003, NFR-001, DEC-002
 - **Componente:** openai-credentials-reader | por definir (analista técnico)
@@ -365,7 +365,7 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
 - **Prueba manual:**
   1. Repasar que el contrato describe solo la etiqueta `openai` y que las demás se ignoran, y que coincide con TASK-015.
 
-### [ ] TASK-024 Contrato: stdio - consulta de la ruta de datos de opencode
+### [x] TASK-024 Contrato: stdio - consulta de la ruta de datos de opencode
 
 - **Cubre:** REQ-003, NFR-003, DEC-003
 - **Componente:** opencode-cli-runner | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/OpenCodeCliRunner.java

@@ -1,4 +1,3 @@
-
 <!-- sdd:start -->
 <!-- Bloque generado por el agente docs. Se reescribe entero: escribe fuera de las marcas. -->
 
@@ -26,7 +25,8 @@ Es una sola aplicación de escritorio, formada por estas partes:
 - Una ventana con el consumo de cada proveedor y su evolución mientras la aplicación está abierta.
 - Un lector de los datos de Claude, que toma la información que deja un pequeño script ejecutado por Claude Code.
 - Un lector de los datos de OpenCode, que consulta el programa opencode instalado en el equipo.
-- Un planificador que actualiza los datos de Claude cada 10 segundos y los de OpenCode cada minuto, en segundo plano y sin bloquear la ventana.
+- Un lector de los datos de OpenAI, que usa el acceso que ya guardan en el equipo las herramientas Codex u opencode, sin modificarlo, y consulta el uso de la suscripción.
+- Un planificador que actualiza los datos de Claude cada 10 segundos y los de OpenCode y OpenAI cada minuto, en segundo plano y sin bloquear la ventana.
 - Un lanzador que deja la aplicación en segundo plano y devuelve el control a la terminal.
 - Una estructura preparada para añadir otros proveedores de inteligencia artificial en el futuro, cada uno mostrado por separado.
 
@@ -43,6 +43,10 @@ Muestra cuánto de la suscripción a Claude se ha consumido en la sesión de 5 h
 ### Opencode Usage Monitor
 
 Muestra el consumo de la suscripción a OpenCode Go por modelo y en total, en las ventanas de 5 horas, semana y mes, con la hora de la última actualización y la evolución mientras la aplicación está abierta. Obtiene los datos con el programa opencode instalado en el equipo, sin pedir ninguna clave, y los refresca cada minuto. Si opencode falla, conserva los últimos datos válidos sin mostrar errores.
+
+### OpenAI Usage Monitor
+
+Muestra cuánto de la suscripción individual a ChatGPT (Plus o Pro) se ha consumido en la ventana de 5 horas y en la semanal, con el porcentaje que calcula OpenAI, cuánto falta para cada reinicio y la hora de la última consulta correcta, junto con su evolución mientras la aplicación está abierta. Muestra también el plan cuando la respuesta de OpenAI lo incluye. Usa el acceso que ya guardan en el equipo las herramientas Codex u opencode, sin pedir credenciales, y actualiza los datos cada minuto. Si la sesión ha caducado, lo indica con un aviso; si falla la conexión, conserva el último dato marcado como desactualizado. Si no hay acceso disponible, la sección no aparece.
 <!-- sdd:end -->
 
 ## Guía de uso
