@@ -8,7 +8,7 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
 
 ## Tareas
 
-### [ ] TASK-001 Bloques de configuración de Claude y OpenAI
+### [x] TASK-001 Bloques de configuración de Claude y OpenAI
 
 - **Cubre:** REQ-001, DEC-001
 - **Componente:** configuration-provider | src/main/java/es/vargontoc/subscriptionviewer/config
@@ -23,7 +23,7 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
   1. Abrir `desktop/app/src/main/resources/application.yml`. Resultado: aparecen `subscription-viewer.claude` (con la ruta y `10s`) y `subscription-viewer.openai` (con `"60s"`); no aparecen `app.usage-state-file` ni `app.usage-poll-interval`.
   2. Cambiar `subscription-viewer.claude.usage-state-file` por otra ruta de prueba, arrancar y comprobar que el proveedor Claude lee el fichero indicado. Resultado: la tarjeta de Claude muestra los datos de ese fichero. Restaurar la ruta original.
 
-### [ ] TASK-002 Validación uniforme de intervalos al arrancar
+### [x] TASK-002 Validación uniforme de intervalos al arrancar
 
 - **Cubre:** REQ-009, NFR-004, DEC-008
 - **Componente:** configuration-provider | src/main/java/es/vargontoc/subscriptionviewer/config
@@ -67,7 +67,7 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
 - **Prueba manual:**
   1. Con Claude configurado y un fichero de estado válido, arrancar la aplicación. Resultado: la tarjeta de Claude muestra los mismos porcentajes y tiempos que antes del cambio.
 
-### [ ] TASK-005 Resultado de sesión caducada en usage-source
+### [x] TASK-005 Resultado de sesión caducada en usage-source
 
 - **Cubre:** REQ-012, REQ-013, DEC-005
 - **Componente:** usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageSource.java; desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageReadResult.java
@@ -98,7 +98,7 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
 - **Prueba manual:**
   1. no aplica: estado interno; su efecto visible se comprueba en TASK-019.
 
-### [ ] TASK-007 Historial: deduplicación por ventana para OpenAI
+### [x] TASK-007 Historial: deduplicación por ventana para OpenAI
 
 - **Cubre:** REQ-011
 - **Componente:** usage-history | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageHistory.java
@@ -112,7 +112,7 @@ El trabajo se divide en cimientos de configuración (bloques de Claude y OpenAI,
 - **Prueba manual:**
   1. no aplica: lógica en memoria sin interfaz propia; su efecto visible se comprueba en TASK-020.
 
-### [ ] TASK-008 Cuenta atrás: tiempo mínimo cero para OpenAI
+### [x] TASK-008 Cuenta atrás: tiempo mínimo cero para OpenAI
 
 - **Cubre:** REQ-007, DEC-010
 - **Componente:** countdown-evaluator | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/CountdownEvaluator.java

@@ -29,9 +29,26 @@ public class CountdownEvaluator {
      * @return resultado con tiempo restante no negativo y vigencia
      */
     public CountdownResult evaluate(Instant resetsAt) {
+        return evaluate(null, resetsAt);
+    }
+
+    /**
+     * Evalúa una ventana teniendo en cuenta el proveedor que la presenta.
+     * OpenAI debe seguir mostrando la ventana aunque su reinicio ya haya
+     * pasado, con una cuenta atrás de cero; las fuentes existentes conservan
+     * la semántica de ventana vencida.
+     *
+     * @param providerId identificador del proveedor
+     * @param resetsAt instante en el que se reinicia la ventana
+     * @return resultado con tiempo restante y vigencia de presentación
+     */
+    public CountdownResult evaluate(String providerId, Instant resetsAt) {
         Instant now = clock.instant();
         if (resetsAt != null && resetsAt.isAfter(now)) {
             return new CountdownResult(Duration.between(now, resetsAt), true);
+        }
+        if ("openai".equalsIgnoreCase(providerId) && resetsAt != null) {
+            return new CountdownResult(Duration.ZERO, true);
         }
         return new CountdownResult(Duration.ZERO, false);
     }

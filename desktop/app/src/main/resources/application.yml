@@ -11,14 +11,17 @@ spring:
 app:
   name: "Subscription Usage Viewer"
   tray-icon-path: "icons/app-icon.png"
-  usage-state-file: "~/.claude/statusline-dump.json"
-  usage-poll-interval: "10s"
 
 # Valores por defecto de la consulta de uso de OpenCode Go.
 # La tabla usa una lista para que los puntos de los ids de modelo no se
 # interpreten como separadores de propiedades. Para añadir o cambiar un
 # modelo, edita una sola línea (modelo y tope mensual en dólares).
 subscription-viewer:
+  claude:
+    usage-state-file: "~/.claude/statusline-dump.json"
+    usage-poll-interval: "10s"
+  openai:
+    usage-poll-interval: "60s"
   opencode:
     cycle-day: 4
     default-cap-usd: 60

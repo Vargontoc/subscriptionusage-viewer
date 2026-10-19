@@ -35,9 +35,10 @@ class ConfigurationProviderTest {
 
             assertThat(provider.getAppName()).isEqualTo("Subscription Usage Viewer");
             assertThat(provider.getTrayIconPath()).isEqualTo("icons/app-icon.png");
-            assertThat(provider.getUsageStateFile().toString()).endsWith(".claude" + java.io.File.separator + "statusline-state.json");
+             assertThat(provider.getUsageStateFile().toString()).endsWith(".claude" + java.io.File.separator + "statusline-dump.json");
              assertThat(provider.getUsagePollInterval()).isEqualTo(Duration.ofSeconds(10));
              assertThat(provider.getOpenCodeUsagePollInterval()).isEqualTo(Duration.ofSeconds(60));
+             assertThat(provider.getOpenAiUsagePollInterval()).isEqualTo(Duration.ofSeconds(60));
         });
     }
 
@@ -47,6 +48,43 @@ class ConfigurationProviderTest {
                 .withPropertyValues("subscription-viewer.opencode.usage-poll-interval=5s")
                 .run(context -> assertThat(context.getBean(ConfigurationProvider.class)
                         .getOpenCodeUsagePollInterval()).isEqualTo(Duration.ofSeconds(10)));
+    }
+
+    @Test
+    void shouldUseOpenAiDefaultsAndReadConfiguredInterval() {
+        contextRunner.run(context -> assertThat(context.getBean(ConfigurationProvider.class)
+                .getOpenAiUsagePollInterval()).isEqualTo(Duration.ofSeconds(60)));
+        contextRunner.withPropertyValues("subscription-viewer.openai.usage-poll-interval= ")
+                .run(context -> assertThat(context.getBean(ConfigurationProvider.class)
+                        .getOpenAiUsagePollInterval()).isEqualTo(Duration.ofSeconds(60)));
+        contextRunner.withPropertyValues("subscription-viewer.openai.usage-poll-interval=30s")
+                .run(context -> assertThat(context.getBean(ConfigurationProvider.class)
+                        .getOpenAiUsagePollInterval()).isEqualTo(Duration.ofSeconds(30)));
+    }
+
+    @Test
+    void shouldApplyMinimumToOpenAiAndOpenCodeIntervals() {
+        contextRunner.withPropertyValues("subscription-viewer.openai.usage-poll-interval=2s")
+                .run(context -> assertThat(context.getBean(ConfigurationProvider.class)
+                        .getOpenAiUsagePollInterval()).isEqualTo(Duration.ofSeconds(10)));
+        contextRunner.withPropertyValues("subscription-viewer.opencode.usage-poll-interval=2s")
+                .run(context -> assertThat(context.getBean(ConfigurationProvider.class)
+                        .getOpenCodeUsagePollInterval()).isEqualTo(Duration.ofSeconds(10)));
+    }
+
+    @Test
+    void shouldRejectInvalidIntervalsAndIdentifyTheProperty() {
+        for (String value : List.of("abc", "0s", "-5s")) {
+            contextRunner.withPropertyValues("subscription-viewer.openai.usage-poll-interval=" + value)
+                    .run(context -> assertThat(context.getStartupFailure()).hasStackTraceContaining(
+                            "subscription-viewer.openai.usage-poll-interval"));
+        }
+        contextRunner.withPropertyValues("subscription-viewer.claude.usage-poll-interval=abc")
+                .run(context -> assertThat(context.getStartupFailure()).hasStackTraceContaining(
+                        "subscription-viewer.claude.usage-poll-interval"));
+        contextRunner.withPropertyValues("subscription-viewer.opencode.usage-poll-interval=abc")
+                .run(context -> assertThat(context.getStartupFailure()).hasStackTraceContaining(
+                        "subscription-viewer.opencode.usage-poll-interval"));
     }
 
     @Test
@@ -95,6 +133,20 @@ class ConfigurationProviderTest {
                     assertThat(provider.getAppName()).isEqualTo("External");
                     assertThat(provider.getUsageStateFile().toString()).endsWith("custom-status.json");
                     assertThat(provider.getUsagePollInterval()).isEqualTo(Duration.ofSeconds(30));
+                });
+    }
+
+    @Test
+    void shouldReadClaudeOverrideAndIgnoreRemovedAppKeys() {
+        contextRunner.withPropertyValues(
+                        "subscription-viewer.claude.usage-state-file=~/alternative-status.json",
+                        "subscription-viewer.claude.usage-poll-interval=15s",
+                        "app.usage-state-file=~/removed-status.json",
+                        "app.usage-poll-interval=45s")
+                .run(context -> {
+                    ConfigurationProvider provider = context.getBean(ConfigurationProvider.class);
+                    assertThat(provider.getUsageStateFile().toString()).endsWith("alternative-status.json");
+                    assertThat(provider.getUsagePollInterval()).isEqualTo(Duration.ofSeconds(15));
                 });
     }
 

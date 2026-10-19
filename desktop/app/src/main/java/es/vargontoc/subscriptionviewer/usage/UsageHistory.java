@@ -14,8 +14,8 @@ import java.util.Objects;
  * Historial en memoria de la evolución de uso por proveedor, serie y ventana.
  *
  * <p>Claude conserva la deduplicación cronológica de v1. Las series de OpenCode
- * se deduplican únicamente por porcentaje: un cambio de la ventana no constituye
- * por sí mismo un nuevo punto. Cada serie tiene un tamaño máximo documentado;
+ * y OpenAI se deduplican únicamente por porcentaje: un cambio de la ventana no
+ * constituye por sí mismo un nuevo punto. Cada serie tiene un tamaño máximo documentado;
  * al superarlo se descartan los puntos más antiguos. El historial no persiste
  * ni se reutiliza entre instancias.</p>
  */
@@ -34,8 +34,8 @@ public class UsageHistory {
      * Añade los puntos de una lectura al historial.
      *
      * <p>La deduplicación depende del proveedor. Las lecturas de OpenCode se
-     * comparan por porcentaje e instante de reinicio; las de Claude conservan
-     * la regla cronológica.</p>
+     * comparan por porcentaje e instante de consulta, las de OpenAI solo por
+     * porcentaje y las de Claude conservan la regla cronológica.</p>
      *
      * @param reading lectura de uso a incorporar
      */
@@ -105,7 +105,7 @@ public class UsageHistory {
 
         if (!points.isEmpty()) {
             UsageHistoryPoint last = points.get(points.size() - 1);
-            if (isOpenCode(providerId)) {
+            if (isOpenCode(providerId) || isOpenAi(providerId)) {
                 if (last.usedPercentage() == clamp(usedPercentage)
                         || !writtenAt.isAfter(last.writtenAt())) {
                     return;
@@ -123,6 +123,10 @@ public class UsageHistory {
 
     private boolean isOpenCode(String providerId) {
         return "opencode".equalsIgnoreCase(providerId);
+    }
+
+    private boolean isOpenAi(String providerId) {
+        return "openai".equalsIgnoreCase(providerId);
     }
 
     /**

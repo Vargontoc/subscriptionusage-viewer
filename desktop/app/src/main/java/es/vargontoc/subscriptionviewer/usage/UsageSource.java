@@ -22,7 +22,9 @@ public interface UsageSource {
     /**
      * Realiza la lectura del uso para el proveedor.
      *
-     * <p>Las implementaciones deben sobreescribir {@link #doRead()}.
+     * <p>Las implementaciones existentes pueden sobreescribir {@link #doRead()}.
+     * Las fuentes que necesiten devolver un estado distinto de datos o fallo
+     * transitorio pueden sobreescribir {@link #doReadResult()}.
      * Este método envuelve la llamada para que cualquier excepción se
      * traduzca en {@link UsageReadResult.Estado#FALLO_TRANSITORIO}.</p>
      *
@@ -30,11 +32,19 @@ public interface UsageSource {
      */
     default UsageReadResult read() {
         try {
-            return doRead().map(UsageReadResult::datos)
-                    .orElseGet(() -> UsageReadResult.falloTransitorio(null));
+            return doReadResult();
         } catch (Exception e) {
             return UsageReadResult.falloTransitorio(e);
         }
+    }
+
+    /**
+     * Realiza la lectura clasificada. Su implementación por defecto conserva
+     * la compatibilidad con las fuentes basadas en {@link #doRead()}.
+     */
+    default UsageReadResult doReadResult() throws Exception {
+        return doRead().map(UsageReadResult::datos)
+                .orElseGet(() -> UsageReadResult.falloTransitorio(null));
     }
 
     /**

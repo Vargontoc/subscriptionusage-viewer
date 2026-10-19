@@ -57,6 +57,19 @@ class UsageSourceTest {
     }
 
     @Test
+    void shouldExposeExpiredSessionAsDistinctResult() {
+        UsageSource source = new ExpiredSessionUsageSource();
+
+        UsageReadResult result = source.read();
+
+        assertThat(result.estado()).isEqualTo(UsageReadResult.Estado.SESION_CADUCADA);
+        assertThat(result.estado()).isNotEqualTo(UsageReadResult.Estado.FALLO_TRANSITORIO);
+        assertThat(result.estado()).isNotEqualTo(UsageReadResult.Estado.DATOS);
+        assertThat(result.datos()).isEmpty();
+        assertThat(result.causa()).isEmpty();
+    }
+
+    @Test
     void shouldNotAffectOtherSourcesWhenOneFails() {
         List<UsageSource> sources = List.of(
                 new ThrowingUsageSource("failing"),
@@ -136,6 +149,23 @@ class UsageSourceTest {
         @Override
         public Optional<UsageReading> doRead() {
             throw new RuntimeException("Simulated failure");
+        }
+    }
+
+    private static class ExpiredSessionUsageSource implements UsageSource {
+        @Override
+        public String getProviderId() {
+            return "expired-provider";
+        }
+
+        @Override
+        public UsageReadResult doReadResult() {
+            return UsageReadResult.sesionCaducada();
+        }
+
+        @Override
+        public Optional<UsageReading> doRead() {
+            return Optional.empty();
         }
     }
 

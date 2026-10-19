@@ -14,6 +14,7 @@ class UsageHistoryTest {
 
     private static final String PROVIDER = "claude";
     private static final String OPENCODE_PROVIDER = "opencode";
+    private static final String OPENAI_PROVIDER = "openai";
     private static final Instant T1 = Instant.parse("2026-10-16T10:00:00Z");
     private static final Instant T2 = Instant.parse("2026-10-16T10:00:10Z");
     private static final Instant T3 = Instant.parse("2026-10-16T10:00:20Z");
@@ -129,6 +130,51 @@ class UsageHistoryTest {
 
         assertThat(history.getSeries(PROVIDER, UsageWindowType.FIVE_HOUR)).hasSize(1);
         assertThat(history.getSeries(PROVIDER, UsageWindowType.SEVEN_DAY)).hasSize(1);
+    }
+
+    @Test
+    void shouldAddChangedOpenAiPercentagesForEachWindowInChronologicalOrder() {
+        UsageHistory history = new UsageHistory();
+        Instant reset1 = T1.plusSeconds(3600);
+        Instant reset2 = T2.plusSeconds(3600);
+        Instant reset3 = T3.plusSeconds(3600);
+
+        history.add(new UsageReading(OPENAI_PROVIDER, T1, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 10, reset1),
+                new UsageWindowReading(UsageWindowType.SEVEN_DAY, 2, reset1))));
+        history.add(new UsageReading(OPENAI_PROVIDER, T2, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 20, reset2),
+                new UsageWindowReading(UsageWindowType.SEVEN_DAY, 3, reset2))));
+        history.add(new UsageReading(OPENAI_PROVIDER, T3, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 30, reset3),
+                new UsageWindowReading(UsageWindowType.SEVEN_DAY, 4, reset3))));
+
+        assertThat(history.getSeries(OPENAI_PROVIDER, UsageWindowType.FIVE_HOUR))
+                .extracting(UsageHistoryPoint::usedPercentage)
+                .containsExactly(10, 20, 30);
+        assertThat(history.getSeries(OPENAI_PROVIDER, UsageWindowType.FIVE_HOUR))
+                .extracting(UsageHistoryPoint::writtenAt)
+                .containsExactly(T1, T2, T3);
+        assertThat(history.getSeries(OPENAI_PROVIDER, UsageWindowType.SEVEN_DAY))
+                .extracting(UsageHistoryPoint::usedPercentage)
+                .containsExactly(2, 3, 4);
+    }
+
+    @Test
+    void shouldNotDuplicateOpenAiValueWhenQueryTimeOrResetChanges() {
+        UsageHistory history = new UsageHistory();
+        Instant reset1 = Instant.parse("2026-10-16T15:00:00Z");
+        Instant reset2 = Instant.parse("2026-10-16T16:00:00Z");
+
+        history.add(new UsageReading(OPENAI_PROVIDER, T1, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 10, reset1),
+                new UsageWindowReading(UsageWindowType.SEVEN_DAY, 20, reset1))));
+        history.add(new UsageReading(OPENAI_PROVIDER, T2, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 10, reset2),
+                new UsageWindowReading(UsageWindowType.SEVEN_DAY, 20, reset2))));
+
+        assertThat(history.getSeries(OPENAI_PROVIDER, UsageWindowType.FIVE_HOUR)).hasSize(1);
+        assertThat(history.getSeries(OPENAI_PROVIDER, UsageWindowType.SEVEN_DAY)).hasSize(1);
     }
 
     @Test

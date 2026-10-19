@@ -91,7 +91,7 @@ public class UsageCardPanel extends JPanel {
         windowLabels.values().forEach(label -> label.setText(""));
         if (reading != null) {
             for (UsageWindowReading window : reading.windows()) {
-                CountdownResult result = evaluator.evaluate(window.resetsAt());
+                CountdownResult result = evaluator.evaluate(reading.providerId(), window.resetsAt());
                 if (!result.valid()) {
                     continue;
                 }

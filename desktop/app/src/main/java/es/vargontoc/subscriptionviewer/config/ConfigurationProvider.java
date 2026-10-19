@@ -3,6 +3,7 @@ package es.vargontoc.subscriptionviewer.config;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -29,18 +30,23 @@ public class ConfigurationProvider {
 
     private final AppProperties appProperties;
     private final Environment environment;
+    private String claudeUsageStateFile = "~/.claude/statusline-dump.json";
+    private Duration claudeUsagePollInterval = AppProperties.DEFAULT_CLAUDE_USAGE_POLL_INTERVAL;
+    private Duration openAiUsagePollInterval = AppProperties.DEFAULT_OPENAI_USAGE_POLL_INTERVAL;
 
     public ConfigurationProvider(AppProperties appProperties, Environment environment) {
         this.appProperties = appProperties;
         this.environment = environment;
+        loadClaudeAndOpenAiProperties();
         loadOpenCodeProperties();
     }
 
     @PostConstruct
     public void logResolvedProperties() {
         log.info("Propiedad app.name resuelta: {}", getAppName());
-        log.info("Propiedad app.usage-state-file resuelta: {}", getUsageStateFile());
-        log.info("Propiedad app.usage-poll-interval resuelta: {}", getUsagePollInterval());
+        log.info("Propiedad subscription-viewer.claude.usage-state-file resuelta: {}", getUsageStateFile());
+        log.info("Propiedad subscription-viewer.claude.usage-poll-interval resuelta: {}", getUsagePollInterval());
+        log.info("Propiedad subscription-viewer.openai.usage-poll-interval resuelta: {}", getOpenAiUsagePollInterval());
         log.info("Propiedad subscription-viewer.opencode.cycle-day resuelta: {}", getOpenCodeCycleDay());
         log.info("Propiedad subscription-viewer.opencode.default-cap-usd resuelta: {}", getOpenCodeDefaultCapUsd());
         log.info("Propiedad subscription-viewer.opencode.poll-interval-seconds resuelta: {}", getOpenCodePollInterval());
@@ -73,9 +79,9 @@ public class ConfigurationProvider {
      * @throws IllegalStateException si la propiedad no está configurada
      */
     public Path getUsageStateFile() {
-        String file = appProperties.getUsageStateFile();
+        String file = claudeUsageStateFile;
         if (file == null || file.isBlank()) {
-            throw new IllegalStateException("La propiedad app.usage-state-file no puede estar vacia");
+            throw new IllegalStateException("La propiedad subscription-viewer.claude.usage-state-file no puede estar vacia");
         }
         return Path.of(expandTilde(file)).toAbsolutePath().normalize();
     }
@@ -87,20 +93,22 @@ public class ConfigurationProvider {
      * @throws IllegalStateException si el intervalo no es positivo
      */
     public Duration getUsagePollInterval() {
-        Duration interval = appProperties.getUsagePollInterval();
+        Duration interval = claudeUsagePollInterval;
         if (interval == null || interval.isNegative() || interval.isZero()) {
-            throw new IllegalStateException("La propiedad app.usage-poll-interval debe ser positiva");
+            throw new IllegalStateException("La propiedad subscription-viewer.claude.usage-poll-interval debe ser positiva");
         }
         return interval;
     }
 
+    /** Devuelve el intervalo configurado para las consultas de OpenAI. */
+    public Duration getOpenAiUsagePollInterval() {
+        return enforceMinimum(openAiUsagePollInterval,
+                "subscription-viewer.openai.usage-poll-interval");
+    }
+
     public Duration getOpenCodeUsagePollInterval() {
         Duration interval = appProperties.getOpencode().getUsagePollInterval();
-        if (interval == null || interval.isNegative() || interval.isZero()) {
-            throw new IllegalStateException("El intervalo de OpenCode debe ser positivo");
-        }
-        return interval.compareTo(Duration.ofSeconds(10)) < 0
-                ? Duration.ofSeconds(10) : interval;
+        return enforceMinimum(interval, "subscription-viewer.opencode.usage-poll-interval");
     }
 
     public int getOpenCodeCycleDay() {
@@ -141,8 +149,12 @@ public class ConfigurationProvider {
     private void loadOpenCodeProperties() {
         AppProperties.OpenCodeProperties properties = appProperties.getOpencode();
         String pollInterval = environment.getProperty("subscription-viewer.opencode.usage-poll-interval");
+        boolean hasUsagePollInterval = pollInterval != null && !pollInterval.isBlank();
         if (pollInterval != null) {
-            properties.setUsagePollInterval(parseDuration(pollInterval));
+            if (hasUsagePollInterval) {
+                properties.setUsagePollInterval(parsePositiveDuration(pollInterval,
+                        "subscription-viewer.opencode.usage-poll-interval"));
+            }
         }
         properties.setCycleDay(parseCycleDay(environment.getProperty("subscription-viewer.opencode.cycle-day")));
         String defaultCap = environment.getProperty("subscription-viewer.opencode.default-cap-usd");
@@ -155,13 +167,32 @@ public class ConfigurationProvider {
         }
         String timeout = environment.getProperty("subscription-viewer.opencode.command-timeout-seconds");
         if (timeout != null && !timeout.isBlank()) {
-            properties.setCommandTimeout(parseDuration(timeout));
+            properties.setCommandTimeout(parsePositiveDuration(timeout,
+                    "subscription-viewer.opencode.command-timeout-seconds"));
         }
         String intervalSeconds = environment.getProperty("subscription-viewer.opencode.poll-interval-seconds");
-        if (intervalSeconds != null && !intervalSeconds.isBlank()) {
-            properties.setUsagePollInterval(parseDuration(intervalSeconds));
+        if (!hasUsagePollInterval && intervalSeconds != null && !intervalSeconds.isBlank()) {
+            properties.setUsagePollInterval(parsePositiveDuration(intervalSeconds,
+                    "subscription-viewer.opencode.poll-interval-seconds"));
         }
         loadModelCaps(properties);
+    }
+
+    private void loadClaudeAndOpenAiProperties() {
+        String claudeFile = environment.getProperty("subscription-viewer.claude.usage-state-file");
+        if (claudeFile != null) {
+            claudeUsageStateFile = claudeFile;
+        }
+        String claudeInterval = environment.getProperty("subscription-viewer.claude.usage-poll-interval");
+        if (claudeInterval != null && !claudeInterval.isBlank()) {
+            claudeUsagePollInterval = parsePositiveDuration(claudeInterval,
+                    "subscription-viewer.claude.usage-poll-interval");
+        }
+        String openAiInterval = environment.getProperty("subscription-viewer.openai.usage-poll-interval");
+        if (openAiInterval != null && !openAiInterval.isBlank()) {
+            openAiUsagePollInterval = parsePositiveDuration(openAiInterval,
+                    "subscription-viewer.openai.usage-poll-interval");
+        }
     }
 
     private int parseCycleDay(String value) {
@@ -189,24 +220,43 @@ public class ConfigurationProvider {
         properties.setModelCaps(caps);
     }
 
-    private Duration parseDuration(String value) {
-        String normalized = value.trim().toLowerCase();
-        if (normalized.matches("-?\\d+")) {
-            return Duration.ofSeconds(Long.parseLong(normalized));
+    private Duration parsePositiveDuration(String value, String propertyName) {
+        try {
+            String normalized = value.trim().toLowerCase();
+            Duration duration;
+            if (normalized.matches("-?\\d+")) {
+                duration = Duration.ofSeconds(Long.parseLong(normalized));
+            } else if (normalized.endsWith("ms")) {
+                duration = Duration.ofMillis(Long.parseLong(normalized.substring(0, normalized.length() - 2)));
+            } else if (normalized.endsWith("s")) {
+                duration = Duration.ofSeconds(Long.parseLong(normalized.substring(0, normalized.length() - 1)));
+            } else if (normalized.endsWith("m")) {
+                duration = Duration.ofMinutes(Long.parseLong(normalized.substring(0, normalized.length() - 1)));
+            } else if (normalized.endsWith("h")) {
+                duration = Duration.ofHours(Long.parseLong(normalized.substring(0, normalized.length() - 1)));
+            } else {
+                duration = Duration.parse(value.trim());
+            }
+            if (duration.isZero() || duration.isNegative()) {
+                throw invalidDuration(propertyName, null);
+            }
+            return duration;
+        } catch (NumberFormatException | DateTimeParseException | ArithmeticException ex) {
+            throw invalidDuration(propertyName, ex);
         }
-        if (normalized.endsWith("ms")) {
-            return Duration.ofMillis(Long.parseLong(normalized.substring(0, normalized.length() - 2)));
+    }
+
+    private IllegalStateException invalidDuration(String propertyName, Exception cause) {
+        return new IllegalStateException("Error de configuración en la propiedad " + propertyName
+                + ": debe ser una duración válida y positiva", cause);
+    }
+
+    private Duration enforceMinimum(Duration interval, String propertyName) {
+        if (interval == null || interval.isZero() || interval.isNegative()) {
+            throw invalidDuration(propertyName, null);
         }
-        if (normalized.endsWith("s")) {
-            return Duration.ofSeconds(Long.parseLong(normalized.substring(0, normalized.length() - 1)));
-        }
-        if (normalized.endsWith("m")) {
-            return Duration.ofMinutes(Long.parseLong(normalized.substring(0, normalized.length() - 1)));
-        }
-        if (normalized.endsWith("h")) {
-            return Duration.ofHours(Long.parseLong(normalized.substring(0, normalized.length() - 1)));
-        }
-        return Duration.parse(value);
+        return interval.compareTo(AppProperties.MIN_USAGE_POLL_INTERVAL) < 0
+                ? AppProperties.MIN_USAGE_POLL_INTERVAL : interval;
     }
 
     /**

@@ -16,6 +16,10 @@ import java.util.List;
 @ConfigurationProperties(prefix = "app")
 public class AppProperties {
 
+    public static final Duration DEFAULT_CLAUDE_USAGE_POLL_INTERVAL = Duration.ofSeconds(10);
+    public static final Duration DEFAULT_OPENAI_USAGE_POLL_INTERVAL = Duration.ofSeconds(60);
+    public static final Duration MIN_USAGE_POLL_INTERVAL = Duration.ofSeconds(10);
+
     /** Una entrada de la tabla de topes de OpenCode. */
     public record ModelCap(String model, BigDecimal capUsd) {
     }
@@ -29,16 +33,6 @@ public class AppProperties {
      * Ruta del icono mostrado en la bandeja del sistema, relativa al classpath.
      */
     private String trayIconPath = "icons/app-icon.png";
-
-    /**
-     * Ruta del fichero de estado de uso generado por el hook de Claude Code.
-     */
-    private String usageStateFile = "~/.claude/statusline-state.json";
-
-    /**
-     * Intervalo entre lecturas del fichero de estado.
-     */
-    private Duration usagePollInterval = Duration.ofSeconds(10);
 
     /** Propiedades de consulta del proveedor OpenCode. */
     private final OpenCodeProperties opencode = new OpenCodeProperties();
@@ -59,20 +53,13 @@ public class AppProperties {
         this.trayIconPath = trayIconPath;
     }
 
-    public String getUsageStateFile() {
-        return usageStateFile;
-    }
-
-    public void setUsageStateFile(String usageStateFile) {
-        this.usageStateFile = usageStateFile;
-    }
-
-    public Duration getUsagePollInterval() {
-        return usagePollInterval;
-    }
-
-    public void setUsagePollInterval(Duration usagePollInterval) {
-        this.usagePollInterval = usagePollInterval;
+    /**
+     * Compatibilidad binaria con fixtures antiguos; la ruta efectiva de Claude
+     * se resuelve exclusivamente bajo {@code subscription-viewer.claude}.
+     */
+    @Deprecated
+    public void setUsageStateFile(String ignored) {
+        // La propiedad antigua ya no forma parte de la configuración efectiva.
     }
 
     public OpenCodeProperties getOpencode() {

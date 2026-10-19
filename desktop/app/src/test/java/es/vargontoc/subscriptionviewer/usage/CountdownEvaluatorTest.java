@@ -104,4 +104,42 @@ class CountdownEvaluatorTest {
         assertThat(result.valid()).isFalse();
         assertThat(result.remainingTime()).isEqualTo(Duration.ZERO);
     }
+
+    @Test
+    void shouldKeepTwoHoursForOpenAiWhenResetIsInTheFuture() {
+        Clock clock = Clock.fixed(NOW, ZoneId.systemDefault());
+        CountdownEvaluator evaluator = new CountdownEvaluator(clock);
+
+        CountdownResult result = evaluator.evaluate("openai", NOW.plus(Duration.ofHours(2)));
+
+        assertThat(result.valid()).isTrue();
+        assertThat(result.remainingTime()).isEqualTo(Duration.ofHours(2));
+    }
+
+    @Test
+    void shouldReturnZeroButKeepOpenAiWindowVisibleWhenResetHasPassed() {
+        Clock clock = Clock.fixed(NOW, ZoneId.systemDefault());
+        CountdownEvaluator evaluator = new CountdownEvaluator(clock);
+
+        CountdownResult result = evaluator.evaluate("openai", NOW.minusSeconds(1));
+
+        assertThat(result.valid()).isTrue();
+        assertThat(result.remainingTime()).isEqualTo(Duration.ZERO);
+        assertThat(result.remainingTime().isNegative()).isFalse();
+    }
+
+    @Test
+    void shouldKeepExpiredWindowSemanticsForClaudeAndOpenCode() {
+        Clock clock = Clock.fixed(NOW, ZoneId.systemDefault());
+        CountdownEvaluator evaluator = new CountdownEvaluator(clock);
+        Instant past = NOW.minusSeconds(1);
+
+        CountdownResult claude = evaluator.evaluate("claude", past);
+        CountdownResult openCode = evaluator.evaluate("opencode", past);
+
+        assertThat(claude.valid()).isFalse();
+        assertThat(openCode.valid()).isFalse();
+        assertThat(claude.remainingTime()).isEqualTo(Duration.ZERO);
+        assertThat(openCode.remainingTime()).isEqualTo(Duration.ZERO);
+    }
 }
