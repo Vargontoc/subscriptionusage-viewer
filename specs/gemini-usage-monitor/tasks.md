@@ -182,10 +182,10 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   - Regresión: Claude, OpenCode y OpenAI con valores enteros siguen deduplicando como antes.
 - **Prueba manual:** no aplica: el comportamiento visible del historial se verifica en TASK-019 y TASK-024.
 
-### [ ] TASK-013 Fuente gemini-usage-source
+### [x] TASK-013 Fuente gemini-usage-source
 
 - **Cubre:** REQ-001, REQ-002, REQ-011, REQ-013, DEC-001, DEC-006, DEC-008, DEC-009
-- **Componente:** gemini-usage-source | por definir (analista técnico)
+- **Componente:** gemini-usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/gemini/GeminiUsageSource.java
 - **Depende de:** TASK-005, TASK-007, TASK-008, TASK-010
 - **Alcance:** pedir al ejecutor la consulta `agy -p "/usage" --output-format json`, pasar la salida al parser y clasificar el resultado como datos o como consulta fallida, sin detalle del error. Declarar como intervalo el valor de la configuración y como tiempo máximo un valor algo mayor que 60 s.
 - **Hecho cuando:** una consulta correcta devuelve lecturas por grupo, cualquier error devuelve consulta fallida, y la fuente declara el intervalo configurado y un tiempo máximo superior a 60 s.
