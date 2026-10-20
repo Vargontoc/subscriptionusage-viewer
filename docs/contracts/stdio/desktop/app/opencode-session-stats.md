@@ -6,18 +6,19 @@
 
 ## Participants
 
-- **opencode-cli-runner** (`desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/OpenCodeCliRunner.java`): ejecuta el CLI como proceso hijo del JDK, con argumentos separados, timeout de 30 s, lectura concurrente de stdout y descarte de stderr; devuelve el texto de stdout o un fallo silencioso (DEC-001).
+- **opencode-cli-runner** (`desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/OpenCodeCliRunner.java`): una implementación de la base común `cli-runner-base` (`desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/cli/AbstractCliRunner.java`). La subclase aporta el nombre del ejecutable, la construcción de los argumentos de esta consulta, el timeout y sus propiedades (límite de salida, nombre del hilo lector y etiqueta de log); la base ejecuta el proceso hijo, resuelve el PATH, aplica el envoltorio de Windows, lee stdout de forma concurrente con límite, espera con plazo y destruye el árbol de procesos al vencer. Ejecuta el CLI con argumentos separados, timeout de 30 s, lectura concurrente de stdout y descarte de stderr; devuelve el texto de stdout o un fallo silencioso (DEC-001).
 - **CLI `opencode`**: ejecutable localizado por el PATH del sistema (S6). Se invoca con `api experimental.session.stats` y tres parámetros `--param`.
 - **opencode-stats-parser** (`desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/OpenCodeStatsParser.java`): interpreta el texto de stdout; extrae de cada entrada de `data.models` los campos requeridos, descarta los modelos cuyo `providerID` no es `opencode-go` ni `opencode` y las propiedades desconocidas, y devuelve un resultado válido (posiblemente vacío) o un fallo (REQ-002, REQ-005).
 - **usage-window-ranges** (`desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/UsageWindowRanges.java`): calcula, para cada ventana, el instante inicial y final como Unix epoch en milisegundos; el runner los entrega al CLI como cadenas de dígitos.
 
 ## Channel
 
-- **Lanzamiento:** proceso hijo del JDK mediante `ProcessBuilder` con la lista de argumentos separados (sin shell, DEC-001). En Windows el runner antepone `cmd.exe /d /c <comando>` para soportar envoltorios `.cmd`/`.ps1` (DEC-001).
+- **Lanzamiento:** proceso hijo del JDK mediante `ProcessBuilder` con la lista de argumentos separados (sin shell, DEC-001). En Windows el runner antepone `cmd.exe /d /c <comando>` para soportar envoltorios `.cmd`/`.ps1` (DEC-001). Esta mecánica la aporta la base común `cli-runner-base`; la subclase solo aporta los argumentos.
 - **stdin del proceso:** se cierra inmediatamente (no se envía nada).
 - **stdout del proceso:** texto UTF-8 que contiene el JSON de estadísticas. El runner lo lee en un hilo dedicado (`opencode-cli-stdout`) mientras el proceso corre, con un tope de 1 MiB; si se supera, el resultado es un fallo silencioso (`salida-excesiva`).
 - **stderr del proceso:** se descarta (`ProcessBuilder.Redirect.DISCARD`). Nunca aparece en el log del runner.
-- **Timeout:** el runner espera hasta el plazo configurado (30 s por defecto, NFR-006). Al vencerse, destruye el proceso y sus descendientes y devuelve un fallo silencioso (`timeout`).
+- **Código de salida:** la base lo obtiene y lo conserva en el resultado interno; si es distinto de `0`, la consulta es fallo. El código no lo usan los consumidores de OpenCode y no se registra.
+- **Timeout:** el runner espera hasta el plazo configurado (30 s por defecto, NFR-006), propiedad de la subclase. Al vencerse, destruye el proceso y sus descendientes y devuelve un fallo silencioso (`timeout`).
 
 ## Message 1 — `opencode-cli-runner` → CLI `opencode` (invocación)
 
@@ -175,9 +176,10 @@ El parser **nunca** escribe los datos de sesión (texto recibido, argumentos, ex
 
 ## Configuration (no es parte del stdio, pero fija el comportamiento)
 
-- Nombre del ejecutable: `opencode` (constante del runner; no se configura por ruta, S6).
-- Timeout por consulta: configurable en `ConfigurationProvider.getOpenCodeCommandTimeout()` (30 s por defecto, NFR-006).
-- Tamaño máximo de stdout aceptado por el runner: 1 MiB (`DEFAULT_MAX_OUTPUT_BYTES`, constante del runner).
+- Nombre del ejecutable: `opencode` (constante de la subclase; no se configura por ruta, S6).
+- Timeout por consulta: configurable en `ConfigurationProvider.getOpenCodeCommandTimeout()` (30 s por defecto, NFR-006), aportado por la subclase a la base común.
+- Tamaño máximo de stdout aceptado por el runner: 1 MiB (`DEFAULT_MAX_OUTPUT_BYTES`, constante de la subclase).
+- Nombre del hilo lector: `opencode-cli-stdout`; etiqueta de los registros de fallo: `OpenCode` (propiedades de la subclase).
 - Valores `fromUnixMillis` y `toUnixMillis`: los calcula `UsageWindowRanges.Range.fromUnixMillis()`/`toUnixMillis()` para cada ventana (5 h, 7 días, mes) a partir de los `Instant` de la ventana, y se entregan al runner como cadenas de dígitos decimales.
 
 ## Non-goals

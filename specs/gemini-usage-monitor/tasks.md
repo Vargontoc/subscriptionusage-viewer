@@ -289,7 +289,7 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   1. Dejar la aplicación abierta durante varios ciclos con cambios de consumo y comprobar que aparecen puntos nuevos sin reiniciar.
   2. Comprobar que cada grupo y ventana de Gemini tiene su serie diferenciada.
 
-### [ ] TASK-020 Contrato: stdio - ejecución de agy-usage
+### [x] TASK-020 Contrato: stdio - ejecución de agy-usage
 
 - **Cubre:** REQ-002, REQ-011, DEC-001, DEC-002, DEC-009
 - **Componente:** gemini-cli-runner | por definir (analista técnico). Ubicación del contrato: `docs/contracts/stdio/`, con nombre de fichero por definir (analista técnico), por ser contrato nuevo.
@@ -304,7 +304,7 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   2. Repasar que los campos descritos coinciden con los que lee el parser (`status`, `command.data.groups`, `buckets`, `window`, `remaining_fraction`, `reset_time`) y que se indica que el resto se ignora.
   3. Repasar que el contrato no contiene datos reales de conversación.
 
-### [ ] TASK-021 Contrato: stdio - revisión de opencode-session-stats
+### [x] TASK-021 Contrato: stdio - revisión de opencode-session-stats
 
 - **Cubre:** REQ-013, NFR-003, DEC-010
 - **Componente:** opencode-cli-runner | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/OpenCodeCliRunner.java. Contrato existente: `docs/contracts/stdio/desktop/app/opencode-session-stats.md`.
@@ -318,7 +318,7 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   1. Repasar que los argumentos, el timeout de 30 s y el límite de 1 MB documentados coinciden con la subclase tras el refactor.
   2. Repasar que el contrato describe el fallo silencioso y no menciona la base como interfaz pública.
 
-### [ ] TASK-022 Contrato: stdio - revisión de opencode-data-path
+### [x] TASK-022 Contrato: stdio - revisión de opencode-data-path
 
 - **Cubre:** REQ-013, DEC-010
 - **Componente:** opencode-cli-runner | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/OpenCodeCliRunner.java. Contrato existente: `docs/contracts/stdio/desktop/app/opencode-data-path.md`.
