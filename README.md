@@ -26,7 +26,8 @@ Es una sola aplicación de escritorio, formada por estas partes:
 - Un lector de los datos de Claude, que toma la información que deja un pequeño script ejecutado por Claude Code.
 - Un lector de los datos de OpenCode, que consulta el programa opencode instalado en el equipo.
 - Un lector de los datos de OpenAI, que usa el acceso que ya guardan en el equipo las herramientas Codex u opencode, sin modificarlo, y consulta el uso de la suscripción.
-- Un planificador que actualiza los datos de Claude cada 10 segundos y los de OpenCode y OpenAI cada minuto, en segundo plano y sin bloquear la ventana.
+- Un lector de los datos de Gemini, que consulta la herramienta agy instalada en el equipo y muestra el consumo por grupos de modelos.
+- Un planificador que actualiza los datos de Claude cada 10 segundos y los de OpenCode, OpenAI y Gemini cada minuto, en segundo plano y sin bloquear la ventana.
 - Un lanzador que deja la aplicación en segundo plano y devuelve el control a la terminal.
 - Una estructura preparada para añadir otros proveedores de inteligencia artificial en el futuro, cada uno mostrado por separado.
 
@@ -47,6 +48,10 @@ Muestra el consumo de la suscripción a OpenCode Go por modelo y en total, en la
 ### OpenAI Usage Monitor
 
 Muestra cuánto de la suscripción individual a ChatGPT (Plus o Pro) se ha consumido en la ventana de 5 horas y en la semanal, con el porcentaje que calcula OpenAI, cuánto falta para cada reinicio y la hora de la última consulta correcta, junto con su evolución mientras la aplicación está abierta. Muestra también el plan cuando la respuesta de OpenAI lo incluye. Usa el acceso que ya guardan en el equipo las herramientas Codex u opencode, sin pedir credenciales, y actualiza los datos cada minuto. Si la sesión ha caducado, lo indica con un aviso; si falla la conexión, conserva el último dato marcado como desactualizado. Si no hay acceso disponible, la sección no aparece.
+
+### Gemini Usage Monitor
+
+Muestra el consumo de la suscripción a Gemini en sus tres grupos de modelos (Gemini Models, Claude and GPT models y Gemini 4 Argon), con el porcentaje consumido de cada ventana, con un decimal, y el tiempo que falta para su reinicio; Gemini 4 Argon solo tiene ventana semanal. Obtiene los datos con la herramienta agy instalada en el equipo, sin pedir credenciales, y los actualiza cada minuto, mostrando la hora de la última consulta correcta y la evolución del consumo mientras la aplicación está abierta. Si la consulta falla, muestra un aviso formal sin detalles técnicos y conserva los últimos datos válidos.
 <!-- sdd:end -->
 
 ## Guía de uso

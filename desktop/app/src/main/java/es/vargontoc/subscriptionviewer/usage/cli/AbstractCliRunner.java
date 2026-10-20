@@ -44,6 +44,7 @@ public abstract class AbstractCliRunner {
 
     /** Ejecuta los argumentos y conserva también el código de salida para la subclase. */
     protected final CliExecution executeCli(List<String> arguments) {
+    
         Process process = null;
         ExecutorService readerExecutor = Executors.newSingleThreadExecutor(task -> {
             Thread thread = new Thread(task, readerThreadName);
@@ -106,8 +107,7 @@ public abstract class AbstractCliRunner {
             if (process != null) destroy(process);
             return failure("excepcion", null);
         } finally {
-            if (process != null) activeProcesses.remove(process);
-            readerExecutor.shutdownNow();
+            if (process != null) activeProcesses.remove(process);            readerExecutor.shutdownNow();
         }
     }
 
@@ -135,13 +135,16 @@ public abstract class AbstractCliRunner {
 
     private List<String> processArguments(List<String> arguments) {
         List<String> commandLine = new ArrayList<>();
-        if (isWindows()) {
+        boolean directExecutable = command.toLowerCase().endsWith(".exe");
+        if (isWindows() && !directExecutable) {
             commandLine.add("cmd.exe");
             commandLine.add("/d");
             commandLine.add("/c");
-            StringBuilder commandString = new StringBuilder(command);
-            for (String argument : arguments) commandString.append(' ').append(argument);
-            commandLine.add(commandString.toString());
+            // Cada token va como argumento propio: Java solo entrecomilla los que llevan espacios,
+            // y cmd.exe resuelve agy.cmd/agy.exe por PATH sin que las comillas de Java se mezclen
+            // con las nuestras.
+            commandLine.add(command);
+            commandLine.addAll(arguments);
         } else {
             commandLine.add(command);
             commandLine.addAll(arguments);

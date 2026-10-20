@@ -16,7 +16,19 @@ public class GeminiCliRunner extends AbstractCliRunner {
     /** Constructor por defecto para Spring. */
     @Autowired
     public GeminiCliRunner() {
-        this("agy", Duration.ofSeconds(60), DEFAULT_MAX_OUTPUT_BYTES);
+        this(resolveDefaultCommand(), Duration.ofSeconds(60), DEFAULT_MAX_OUTPUT_BYTES);
+    }
+
+    /** Usa la ruta de instalación habitual de agy si existe; si no, lo busca por PATH. */
+    private static String resolveDefaultCommand() {
+        String localAppData = System.getenv("LOCALAPPDATA");
+        if (localAppData != null) {
+            java.nio.file.Path installed = java.nio.file.Path.of(localAppData, "agy", "bin", "agy.exe");
+            if (java.nio.file.Files.isRegularFile(installed)) {
+                return installed.toString();
+            }
+        }
+        return "agy";
     }
 
     /** Constructor para pruebas con un ejecutable y límites controlados. */
