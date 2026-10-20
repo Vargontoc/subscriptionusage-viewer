@@ -196,7 +196,7 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   - Protección: ningún mensaje de log contiene la cadena centinela de una salida de prueba.
 - **Prueba manual:** no aplica: el comportamiento visible se verifica en TASK-016 y TASK-024.
 
-### [ ] TASK-014 Ciclo de Gemini en usage-poller
+### [x] TASK-014 Ciclo de Gemini en usage-poller
 
 - **Cubre:** REQ-001, REQ-007, REQ-011, REQ-013, NFR-002, NFR-003, DEC-006, DEC-008
 - **Componente:** usage-poller | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsagePoller.java

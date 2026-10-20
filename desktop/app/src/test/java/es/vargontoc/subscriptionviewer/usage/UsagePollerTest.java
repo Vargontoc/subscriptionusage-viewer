@@ -15,12 +15,16 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.CountDownLatch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -80,6 +84,119 @@ class UsagePollerTest {
         verify(executor, org.mockito.Mockito.timeout(1_000).times(2))
                 .schedule(any(Runnable.class), delays.capture(), eq(TimeUnit.MILLISECONDS));
         assertThat(delays.getAllValues()).containsExactly(0L, 10_000L);
+    }
+
+    @Test
+    void shouldPublishGeminiDataAndScheduleNextCycleAfterCompletion() {
+        ConfigurationProvider config = mock(ConfigurationProvider.class);
+        ScheduledExecutorService executor = mock(ScheduledExecutorService.class);
+        when(executor.schedule(any(Runnable.class), anyLong(), any(TimeUnit.class)))
+                .thenReturn(mock(ScheduledFuture.class));
+        UsageSnapshotPublisher publisher = mock(UsageSnapshotPublisher.class);
+        UsageSource gemini = mock(UsageSource.class);
+        when(gemini.getProviderId()).thenReturn("gemini");
+        when(gemini.read()).thenReturn(UsageReadResult.datos(readingOf("gemini", 40, 15)));
+        when(gemini.getPollInterval(config)).thenReturn(Duration.ofSeconds(60));
+        when(gemini.getReadTimeout()).thenReturn(Duration.ofSeconds(90));
+
+        UsagePoller poller = new UsagePoller(config, List.of(gemini), mock(UsageHistory.class),
+                publisher, Clock.fixed(NOW, ZoneId.systemDefault()), executor);
+        try {
+            poller.start();
+            ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
+            verify(executor).schedule(task.capture(), eq(0L), eq(TimeUnit.MILLISECONDS));
+            task.getValue().run();
+
+            verify(publisher, timeout(1_000)).publish(eq("gemini"),
+                    argThat(result -> result.estado() == UsageReadResult.Estado.DATOS), eq(NOW));
+            verify(executor, timeout(1_000)).schedule(any(Runnable.class), eq(60_000L),
+                    eq(TimeUnit.MILLISECONDS));
+        } finally {
+            poller.stop();
+        }
+    }
+
+    @Test
+    void shouldPublishGeminiConsultaFallidaAndWaitForItsInterval() {
+        ConfigurationProvider config = mock(ConfigurationProvider.class);
+        ScheduledExecutorService executor = mock(ScheduledExecutorService.class);
+        when(executor.schedule(any(Runnable.class), anyLong(), any(TimeUnit.class)))
+                .thenReturn(mock(ScheduledFuture.class));
+        UsageSnapshotPublisher publisher = mock(UsageSnapshotPublisher.class);
+        UsageSource gemini = mock(UsageSource.class);
+        when(gemini.getProviderId()).thenReturn("gemini");
+        when(gemini.read()).thenReturn(UsageReadResult.consultaFallida());
+        when(gemini.getPollInterval(config)).thenReturn(Duration.ofSeconds(60));
+        when(gemini.getReadTimeout()).thenReturn(Duration.ofSeconds(90));
+
+        UsagePoller poller = new UsagePoller(config, List.of(gemini), mock(UsageHistory.class),
+                publisher, Clock.fixed(NOW, ZoneId.systemDefault()), executor);
+        try {
+            poller.start();
+            ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
+            verify(executor).schedule(task.capture(), eq(0L), eq(TimeUnit.MILLISECONDS));
+            task.getValue().run();
+
+            verify(publisher, timeout(1_000)).publish(eq("gemini"),
+                    argThat(result -> result.estado() == UsageReadResult.Estado.CONSULTA_FALLIDA), eq(NOW));
+            verify(executor, timeout(1_000)).schedule(any(Runnable.class), eq(60_000L),
+                    eq(TimeUnit.MILLISECONDS));
+        } finally {
+            poller.stop();
+        }
+    }
+
+    @Test
+    void shouldIsolateSlowGeminiFromAnotherSource() throws InterruptedException {
+        ConfigurationProvider config = mock(ConfigurationProvider.class);
+        when(config.getUsagePollInterval()).thenReturn(Duration.ofSeconds(60));
+        UsageSnapshotPublisher publisher = mock(UsageSnapshotPublisher.class);
+        CountDownLatch slowStarted = new CountDownLatch(1);
+        UsageSource slowGemini = mock(UsageSource.class);
+        when(slowGemini.getProviderId()).thenReturn("gemini");
+        when(slowGemini.getPollInterval(config)).thenReturn(Duration.ofSeconds(60));
+        when(slowGemini.getReadTimeout()).thenReturn(Duration.ofSeconds(90));
+        when(slowGemini.read()).thenAnswer(invocation -> {
+            slowStarted.countDown();
+            try {
+                new CountDownLatch(1).await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return UsageReadResult.consultaFallida();
+        });
+
+        UsageSource claude = fixedSource(CLAUDE, 40, 15);
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        UsagePoller poller = new UsagePoller(config, List.of(slowGemini, claude), mock(UsageHistory.class),
+                publisher, Clock.fixed(NOW, ZoneId.systemDefault()), executor);
+        try {
+            poller.start();
+            assertThat(slowStarted.await(1, TimeUnit.SECONDS)).isTrue();
+            verify(publisher, timeout(1_000)).publish(eq(CLAUDE), any(UsageReadResult.class), eq(NOW));
+        } finally {
+            poller.stop();
+        }
+    }
+
+    @Test
+    void shouldKeepOpenCodeSilentForConsultaFallida() {
+        ConfigurationProvider config = mock(ConfigurationProvider.class);
+        UsageSnapshotPublisher publisher = mock(UsageSnapshotPublisher.class);
+        UsageSource opencode = mock(UsageSource.class);
+        when(opencode.getProviderId()).thenReturn("opencode");
+        when(opencode.read()).thenReturn(UsageReadResult.consultaFallida());
+        when(opencode.getReadTimeout()).thenReturn(Duration.ofSeconds(5));
+
+        UsagePoller poller = new UsagePoller(config, List.of(opencode), mock(UsageHistory.class),
+                publisher, Clock.fixed(NOW, ZoneId.systemDefault()),
+                Executors.newSingleThreadScheduledExecutor());
+        try {
+            poller.runCycle();
+            verify(publisher, never()).publish(eq("opencode"), any(UsageReadResult.class), any(Instant.class));
+        } finally {
+            poller.stop();
+        }
     }
 
     @Test
