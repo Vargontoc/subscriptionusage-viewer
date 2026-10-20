@@ -39,10 +39,10 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   1. Buscar en `desktop/app` todas las referencias a `liveProcessCount` y `destroyActiveProcesses`, incluidas las pruebas.
   2. Anotar cada referencia con su fichero, su clase y si es producción o prueba, y la decisión sobre el lugar del método tras el refactor. Comprobar que no queda ninguna referencia sin anotar.
 
-### [ ] TASK-003 Refactor de OpenCodeCliRunner para heredar de cli-runner-base
+### [x] TASK-003 Refactor de OpenCodeCliRunner para heredar de cli-runner-base
 
 - **Cubre:** REQ-013, NFR-001, NFR-002, NFR-003, DEC-001, DEC-010
-- **Componente:** opencode-cli-runner ↔ cli-runner-base | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/OpenCodeCliRunner.java ↔ por definir (analista técnico)
+- **Componente:** opencode-cli-runner ↔ cli-runner-base | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/OpenCodeCliRunner.java ↔ desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/cli/AbstractCliRunner.java
 - **Depende de:** TASK-002
 - **Alcance:** extraer la mecánica común (proceso hijo por PATH con envoltorio en Windows, cierre de stdin, descarte de stderr, lectura de stdout con límite, espera con plazo, destrucción del árbol de procesos, registro de procesos activos y resultado con salida y código de salida) a una base abstracta, de modo que `opencode-cli-runner` herede de ella. La API pública de OpenCode no cambia: métodos de estadísticas y de ruta de datos, tipo de resultado con fallo silencioso, constructores usados por pruebas y por Spring, timeout de 30 s, límite de 1 MB y validación de la ruta de una sola línea. El código de salida se añade al resultado sin que los consumidores existentes lo usen. Los métodos de TASK-002 quedan donde se decidió allí.
 - **Hecho cuando:** `opencode-cli-runner` hereda de la base, sus pruebas existentes pasan sin cambiar sus expectativas, los consumidores compilan sin modificarse y cada método queda en la clase decidida en TASK-002.
@@ -54,7 +54,7 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
 - **Prueba manual:**
   1. Ejecutar la aplicación con OpenCode activo y comprobar que sus datos se muestran y se actualizan igual que antes del refactor.
 
-### [ ] TASK-004 Regresión de credenciales de OpenAI tras el refactor del ejecutor
+### [x] TASK-004 Regresión de credenciales de OpenAI tras el refactor del ejecutor
 
 - **Cubre:** REQ-013, DEC-010
 - **Componente:** openai-credentials-reader | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/openai
@@ -69,7 +69,7 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   1. Con OpenAI activo mediante credenciales de opencode, abrir la ventana de uso y comprobar que la sección OpenAI muestra los mismos valores que antes del refactor.
   2. Con las credenciales no disponibles, comprobar que OpenAI muestra la sesión caducada como antes.
 
-### [ ] TASK-005 Configuración de subscription-viewer.gemini.usage-poll-interval
+### [x] TASK-005 Configuración de subscription-viewer.gemini.usage-poll-interval
 
 - **Cubre:** REQ-007, NFR-002, DEC-007
 - **Componente:** configuration-provider | src/main/java/es/vargontoc/subscriptionviewer/config
@@ -85,10 +85,10 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   1. Abrir `application.yml` y comprobar que `subscription-viewer.gemini` contiene `usage-poll-interval: "60s"`, con el mismo formato que `openai`.
   2. Sustituir temporalmente el valor por `abc`, lanzar la aplicación y comprobar que no arranca y que el mensaje de error nombra la propiedad. Restaurar `"60s"`.
 
-### [ ] TASK-006 Porcentaje con un decimal en la lectura de ventana
+### [x] TASK-006 Porcentaje con un decimal en la lectura de ventana
 
 - **Cubre:** REQ-004, DEC-004
-- **Componente:** UsageWindowReading | no consta en el mapa
+- **Componente:** UsageWindowReading | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageWindowReading.java
 - **Depende de:** -
 - **Alcance:** ampliar la lectura de ventana para que el porcentaje admita un decimal, sin cambiar los valores que producen Claude, OpenCode y OpenAI, que siguen siendo enteros.
 - **Hecho cuando:** una lectura conserva un porcentaje como 1,8 con su decimal, y las lecturas enteras existentes se representan igual que antes del cambio.
@@ -98,7 +98,7 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   - Regresión: las lecturas de Claude, OpenCode y OpenAI con valores enteros producen el mismo resultado que antes.
 - **Prueba manual:** no aplica: modelo interno sin comportamiento observable propio; la regresión visual se verifica en TASK-023.
 
-### [ ] TASK-007 Estado consulta fallida y tiempos declarados por fuente en usage-source
+### [x] TASK-007 Estado consulta fallida y tiempos declarados por fuente en usage-source
 
 - **Cubre:** REQ-007, REQ-011, REQ-013, DEC-005, DEC-006
 - **Componente:** usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageSource.java
@@ -111,10 +111,10 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   - Caso de límite: los estados existentes (datos, fallo transitorio, sesión caducada) conservan su significado.
 - **Prueba manual:** no aplica: contrato interno sin comportamiento observable propio; se verifica en TASK-014 y TASK-016.
 
-### [ ] TASK-008 Ejecutor gemini-cli-runner para agy
+### [x] TASK-008 Ejecutor gemini-cli-runner para agy
 
 - **Cubre:** REQ-002, REQ-011, NFR-001, NFR-003, DEC-001, DEC-008, DEC-009
-- **Componente:** gemini-cli-runner | por definir (analista técnico)
+- **Componente:** gemini-cli-runner | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/gemini/GeminiCliRunner.java
 - **Depende de:** TASK-001, TASK-003
 - **Alcance:** implementar la clase base de ejecución de CLI para `agy`, que aporta el comando `agy`, los argumentos `-p`, `/usage`, `--output-format` y `json`, un timeout fijo de 60 s y sus propiedades propias (límite de salida, nombre del hilo lector y etiqueta de log). Devuelve salida y código de salida, y los fallos no llevan detalle técnico. No acepta argumentos del usuario. Mantiene su propio registro de procesos, separado del de OpenCode.
 - **Hecho cuando:** el ejecutor lanza `agy` con esos cuatro argumentos, devuelve salida y código, destruye el proceso y sus hijos al cumplirse 60 s, y con los dos ejecutores registrados los consumidores reciben su implementación concreta sin ambigüedad de beans.
@@ -129,10 +129,10 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   1. En Windows, crear en una carpeta temporal un `agy.cmd` de prueba que no termine, añadir esa carpeta al PATH de la sesión y provocar una consulta desde la aplicación. Comprobar que se ejecuta el `.cmd`.
   2. Comprobar que el proceso desaparece a los 60 s y que no quedan procesos sobrantes en el Administrador de tareas. Quitar la carpeta del PATH.
 
-### [ ] TASK-009 Validar el sobre de la respuesta de agy
+### [x] TASK-009 Validar el sobre de la respuesta de agy
 
 - **Cubre:** REQ-002, REQ-011, DEC-002, DEC-009
-- **Componente:** gemini-usage-parser | por definir (analista técnico)
+- **Componente:** gemini-usage-parser | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/gemini/GeminiUsageParser.java
 - **Depende de:** TASK-001
 - **Alcance:** validar que la salida es JSON, que `status` es `SUCCESS` y que existe `command.data.groups`. Ignorar las propiedades no reconocidas y el texto `response`. Devolver un motivo de invalidez que nunca contenga la salida del comando.
 - **Hecho cuando:** una salida válida pasa a la extracción de grupos y cualquier salida inválida se clasifica como inválida sin contenido de la salida.
@@ -143,10 +143,10 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   - Protección: el motivo de invalidez no contiene una cadena centinela incluida en una salida inválida.
 - **Prueba manual:** no aplica: componente interno sin comportamiento observable; se verifica en TASK-013 y TASK-024.
 
-### [ ] TASK-010 Extraer grupos, ventanas y porcentajes de command.data.groups
+### [x] TASK-010 Extraer grupos, ventanas y porcentajes de command.data.groups
 
 - **Cubre:** REQ-003, REQ-004, REQ-005, REQ-012, DEC-002, DEC-003, DEC-004
-- **Componente:** gemini-usage-parser | por definir (analista técnico)
+- **Componente:** gemini-usage-parser | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/gemini/GeminiUsageParser.java; desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/gemini/GeminiGroup.java; desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/gemini/GeminiWindow.java
 - **Depende de:** TASK-006, TASK-009
 - **Alcance:** de `command.data.groups` extraer cada grupo por `name` y sus cubos por `window` (`weekly` y `5h`), `remaining_fraction` y `reset_time`. Calcular el porcentaje consumido acotado entre 0 y 100 y redondeado a un decimal, interpretar `reset_time` como UTC y omitir cubos y grupos inválidos. Si no queda ningún grupo válido, devolver consulta fallida.
 - **Hecho cuando:** una respuesta con los tres grupos produce cinco ventanas con los porcentajes de REQ-004, y las respuestas incompletas producen solo lo presente, o consulta fallida si no queda nada válido.
@@ -156,7 +156,7 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   - Caso de error: un cubo con `remaining_fraction` ausente o no numérico se ignora sin error; un `reset_time` ausente o no ISO-8601 deja la ventana sin reinicio; una respuesta sin ningún cubo válido produce consulta fallida.
 - **Prueba manual:** no aplica: componente interno sin comportamiento observable propio; se verifica en TASK-017.
 
-### [ ] TASK-011 Tiempo restante de las ventanas de Gemini en countdown-evaluator
+### [x] TASK-011 Tiempo restante de las ventanas de Gemini en countdown-evaluator
 
 - **Cubre:** REQ-005, DEC-002
 - **Componente:** countdown-evaluator | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/CountdownEvaluator.java

@@ -48,9 +48,9 @@ class OpenAiPollingIntegrationTest {
 
             assertThat(requests).hasValue(1);
             assertThat(history.getSeries("openai", UsageWindowType.FIVE_HOUR))
-                    .extracting(UsageHistoryPoint::usedPercentage).containsExactly(6);
+                    .extracting(UsageHistoryPoint::usedPercentage).containsExactly(6.0);
             assertThat(history.getSeries("openai", UsageWindowType.SEVEN_DAY))
-                    .extracting(UsageHistoryPoint::usedPercentage).containsExactly(1);
+                    .extracting(UsageHistoryPoint::usedPercentage).containsExactly(1.0);
             assertThat(publisher.getCurrentSnapshot().readingOf("openai")).isPresent();
             assertThat(publisher.getCurrentSnapshot().stateOf("openai").orElseThrow().estado())
                     .isEqualTo(UsageProviderState.Estado.CORRECTO);

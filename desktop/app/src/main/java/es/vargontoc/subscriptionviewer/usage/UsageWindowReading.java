@@ -9,5 +9,5 @@ import java.time.Instant;
  * @param usedPercentage  porcentaje consumido (0-100)
  * @param resetsAt        instante en el que se reinicia la ventana
  */
-public record UsageWindowReading(UsageWindowType type, int usedPercentage, Instant resetsAt) {
+public record UsageWindowReading(UsageWindowType type, double usedPercentage, Instant resetsAt) {
 }

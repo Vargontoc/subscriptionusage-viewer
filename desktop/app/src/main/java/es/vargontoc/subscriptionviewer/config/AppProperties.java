@@ -18,7 +18,9 @@ public class AppProperties {
 
     public static final Duration DEFAULT_CLAUDE_USAGE_POLL_INTERVAL = Duration.ofSeconds(10);
     public static final Duration DEFAULT_OPENAI_USAGE_POLL_INTERVAL = Duration.ofSeconds(60);
+    public static final Duration DEFAULT_GEMINI_USAGE_POLL_INTERVAL = Duration.ofSeconds(60);
     public static final Duration MIN_USAGE_POLL_INTERVAL = Duration.ofSeconds(10);
+    public static final Duration MIN_GEMINI_USAGE_POLL_INTERVAL = Duration.ofSeconds(30);
 
     /** Una entrada de la tabla de topes de OpenCode. */
     public record ModelCap(String model, BigDecimal capUsd) {
@@ -36,6 +38,8 @@ public class AppProperties {
 
     /** Propiedades de consulta del proveedor OpenCode. */
     private final OpenCodeProperties opencode = new OpenCodeProperties();
+    /** Propiedades de consulta del proveedor Gemini. */
+    private final GeminiProperties gemini = new GeminiProperties();
 
     public String getName() {
         return name;
@@ -64,6 +68,10 @@ public class AppProperties {
 
     public OpenCodeProperties getOpencode() {
         return opencode;
+    }
+
+    public GeminiProperties getGemini() {
+        return gemini;
     }
 
     /** Configuración externalizada bajo {@code subscription-viewer.opencode}. */
@@ -96,6 +104,19 @@ public class AppProperties {
         @Override
         public String toString() {
             return "OpenCodeProperties[usagePollInterval=" + usagePollInterval + "]";
+        }
+    }
+
+    /** Configuración externalizada bajo {@code subscription-viewer.gemini}. */
+    public static class GeminiProperties {
+        private Duration usagePollInterval = DEFAULT_GEMINI_USAGE_POLL_INTERVAL;
+
+        public Duration getUsagePollInterval() {
+            return usagePollInterval;
+        }
+
+        public void setUsagePollInterval(Duration usagePollInterval) {
+            this.usagePollInterval = usagePollInterval;
         }
     }
 }

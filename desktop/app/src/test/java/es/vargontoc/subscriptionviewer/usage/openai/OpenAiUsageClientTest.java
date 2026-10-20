@@ -30,7 +30,7 @@ class OpenAiUsageClientTest {
         assertThat(result.reading().windows()).extracting(w -> w.type())
                 .containsExactly(UsageWindowType.FIVE_HOUR, UsageWindowType.SEVEN_DAY);
         assertThat(result.reading().windows()).extracting(w -> w.usedPercentage())
-                .containsExactly(6, 1);
+                .containsExactly(6.0, 1.0);
         assertThat(result.reading().windows().get(0).resetsAt())
                 .isEqualTo(Instant.ofEpochSecond(1792344925));
     }

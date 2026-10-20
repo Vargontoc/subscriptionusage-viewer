@@ -22,6 +22,8 @@ subscription-viewer:
     usage-poll-interval: "10s"
   openai:
     usage-poll-interval: "60s"
+  gemini:
+    usage-poll-interval: "60s"
   opencode:
     cycle-day: 4
     default-cap-usd: 60

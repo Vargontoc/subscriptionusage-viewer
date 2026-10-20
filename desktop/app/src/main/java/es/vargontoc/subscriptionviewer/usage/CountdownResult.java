@@ -7,8 +7,16 @@ import java.time.Duration;
  *
  * @param remainingTime tiempo restante no negativo hasta el reinicio
  * @param valid         {@code true} si la ventana aún no ha caducado
+ * @param hasKnownReset {@code true} si existe un instante de reinicio conocido
  */
-public record CountdownResult(Duration remainingTime, boolean valid) {
+public record CountdownResult(Duration remainingTime, boolean valid, boolean hasKnownReset) {
+
+    /**
+     * Constructor compatible con el resultado original, que asumía un reinicio conocido.
+     */
+    public CountdownResult(Duration remainingTime, boolean valid) {
+        this(remainingTime, valid, true);
+    }
 
     /**
      * Devuelve una representación breve para la presentación de la cuenta atrás.
@@ -18,7 +26,7 @@ public record CountdownResult(Duration remainingTime, boolean valid) {
      * @return tiempo restante formateado en español
      */
     public String formattedRemainingTime() {
-        if (!valid) {
+        if (!valid || !hasKnownReset) {
             return "";
         }
         long days = remainingTime.toDays();

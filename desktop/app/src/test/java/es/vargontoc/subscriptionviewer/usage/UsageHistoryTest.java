@@ -15,6 +15,7 @@ class UsageHistoryTest {
     private static final String PROVIDER = "claude";
     private static final String OPENCODE_PROVIDER = "opencode";
     private static final String OPENAI_PROVIDER = "openai";
+    private static final String GEMINI_PROVIDER = "gemini";
     private static final Instant T1 = Instant.parse("2026-10-16T10:00:00Z");
     private static final Instant T2 = Instant.parse("2026-10-16T10:00:10Z");
     private static final Instant T3 = Instant.parse("2026-10-16T10:00:20Z");
@@ -52,7 +53,7 @@ class UsageHistoryTest {
 
         assertThat(history.getSeries(OPENCODE_PROVIDER, UsageWindowType.FIVE_HOUR))
                 .extracting(UsageHistoryPoint::usedPercentage)
-                .containsExactly(10, 20);
+                 .containsExactly(10.0, 20.0);
         assertThat(history.getSeries(OPENCODE_PROVIDER, UsageWindowType.FIVE_HOUR))
                 .extracting(UsageHistoryPoint::writtenAt)
                 .containsExactly(T1, T2);
@@ -122,6 +123,16 @@ class UsageHistoryTest {
     }
 
     @Test
+    void shouldPreserveDecimalGeminiPercentages() {
+        UsageHistory history = new UsageHistory();
+
+        history.add(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.FIVE_HOUR, 1.8, T1);
+
+        assertThat(history.getSeries(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.FIVE_HOUR)
+                .get(0).usedPercentage()).isEqualTo(1.8);
+    }
+
+    @Test
     void shouldAddPointsForDifferentWindowsIndependently() {
         UsageHistory history = new UsageHistory();
 
@@ -151,13 +162,13 @@ class UsageHistoryTest {
 
         assertThat(history.getSeries(OPENAI_PROVIDER, UsageWindowType.FIVE_HOUR))
                 .extracting(UsageHistoryPoint::usedPercentage)
-                .containsExactly(10, 20, 30);
+                 .containsExactly(10.0, 20.0, 30.0);
         assertThat(history.getSeries(OPENAI_PROVIDER, UsageWindowType.FIVE_HOUR))
                 .extracting(UsageHistoryPoint::writtenAt)
                 .containsExactly(T1, T2, T3);
         assertThat(history.getSeries(OPENAI_PROVIDER, UsageWindowType.SEVEN_DAY))
                 .extracting(UsageHistoryPoint::usedPercentage)
-                .containsExactly(2, 3, 4);
+                 .containsExactly(2.0, 3.0, 4.0);
     }
 
     @Test
@@ -190,7 +201,7 @@ class UsageHistoryTest {
 
         assertThat(history.getSeries(PROVIDER, UsageWindowType.FIVE_HOUR))
                 .extracting(UsageHistoryPoint::usedPercentage)
-                .containsExactly(40, 40);
+                 .containsExactly(40.0, 40.0);
         assertThat(history.getSeries(PROVIDER, UsageWindowType.FIVE_HOUR))
                 .extracting(UsageHistoryPoint::writtenAt)
                 .containsExactly(T1, T2);
@@ -205,11 +216,11 @@ class UsageHistoryTest {
         history.add(OPENCODE_PROVIDER, UsageHistory.TOTAL_SERIES, UsageWindowType.FIVE_HOUR, 15, T1);
 
         assertThat(history.getSeries(OPENCODE_PROVIDER, "model-a", UsageWindowType.FIVE_HOUR))
-                .extracting(UsageHistoryPoint::usedPercentage).containsExactly(10);
+                 .extracting(UsageHistoryPoint::usedPercentage).containsExactly(10.0);
         assertThat(history.getSeries(OPENCODE_PROVIDER, "model-b", UsageWindowType.FIVE_HOUR))
-                .extracting(UsageHistoryPoint::usedPercentage).containsExactly(20);
+                 .extracting(UsageHistoryPoint::usedPercentage).containsExactly(20.0);
         assertThat(history.getSeries(OPENCODE_PROVIDER, UsageHistory.TOTAL_SERIES, UsageWindowType.FIVE_HOUR))
-                .extracting(UsageHistoryPoint::usedPercentage).containsExactly(15);
+                 .extracting(UsageHistoryPoint::usedPercentage).containsExactly(15.0);
         assertThat(history.getSeries(OPENCODE_PROVIDER, UsageWindowType.FIVE_HOUR)).isEmpty();
     }
 
@@ -263,10 +274,10 @@ class UsageHistoryTest {
         assertThat(history.getSeries(OPENCODE_PROVIDER, UsageHistory.TOTAL_SERIES,
                 UsageWindowType.FIVE_HOUR))
                 .extracting(UsageHistoryPoint::usedPercentage)
-                .containsExactly(25);
+                 .containsExactly(25.0);
         assertThat(history.getSeries(OPENCODE_PROVIDER, UsageWindowType.FIVE_HOUR))
                 .extracting(UsageHistoryPoint::usedPercentage)
-                .containsExactly(25);
+                 .containsExactly(25.0);
     }
 
     @Test

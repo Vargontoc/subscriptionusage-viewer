@@ -129,6 +129,62 @@ class CountdownEvaluatorTest {
     }
 
     @Test
+    void shouldReturnTwoHoursForGeminiWhenResetIsInTheFuture() {
+        Clock clock = Clock.fixed(NOW, ZoneId.systemDefault());
+        CountdownEvaluator evaluator = new CountdownEvaluator(clock);
+
+        CountdownResult result = evaluator.evaluate("gemini", NOW.plus(Duration.ofHours(2)));
+
+        assertThat(result.valid()).isTrue();
+        assertThat(result.hasKnownReset()).isTrue();
+        assertThat(result.remainingTime()).isEqualTo(Duration.ofHours(2));
+        assertThat(result.formattedRemainingTime()).isEqualTo("2h 0m");
+    }
+
+    @Test
+    void shouldReturnZeroButKeepGeminiWindowVisibleWhenResetHasPassed() {
+        Clock clock = Clock.fixed(NOW, ZoneId.systemDefault());
+        CountdownEvaluator evaluator = new CountdownEvaluator(clock);
+
+        CountdownResult result = evaluator.evaluate("gemini", NOW.minusSeconds(1));
+
+        assertThat(result.valid()).isTrue();
+        assertThat(result.hasKnownReset()).isTrue();
+        assertThat(result.remainingTime()).isEqualTo(Duration.ZERO);
+        assertThat(result.formattedRemainingTime()).isEqualTo("0s");
+    }
+
+    @Test
+    void shouldHandleGeminiWindowWithoutReset() {
+        Clock clock = Clock.fixed(NOW, ZoneId.systemDefault());
+        CountdownEvaluator evaluator = new CountdownEvaluator(clock);
+
+        CountdownResult result = evaluator.evaluate("gemini", null);
+
+        assertThat(result.valid()).isTrue();
+        assertThat(result.hasKnownReset()).isFalse();
+        assertThat(result.remainingTime()).isEqualTo(Duration.ZERO);
+        assertThat(result.formattedRemainingTime()).isEmpty();
+    }
+
+    @Test
+    void shouldKeepExpiredWindowSemanticsForOtherProvidersWithNullReset() {
+        Clock clock = Clock.fixed(NOW, ZoneId.systemDefault());
+        CountdownEvaluator evaluator = new CountdownEvaluator(clock);
+
+        CountdownResult claude = evaluator.evaluate("claude", null);
+        CountdownResult openCode = evaluator.evaluate("opencode", null);
+        CountdownResult openAi = evaluator.evaluate("openai", null);
+
+        assertThat(claude.valid()).isFalse();
+        assertThat(claude.hasKnownReset()).isFalse();
+        assertThat(openCode.valid()).isFalse();
+        assertThat(openCode.hasKnownReset()).isFalse();
+        assertThat(openAi.valid()).isFalse();
+        assertThat(openAi.hasKnownReset()).isFalse();
+    }
+
+    @Test
     void shouldKeepExpiredWindowSemanticsForClaudeAndOpenCode() {
         Clock clock = Clock.fixed(NOW, ZoneId.systemDefault());
         CountdownEvaluator evaluator = new CountdownEvaluator(clock);

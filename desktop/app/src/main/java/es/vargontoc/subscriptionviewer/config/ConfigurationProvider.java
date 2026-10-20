@@ -35,12 +35,14 @@ public class ConfigurationProvider {
     private String claudeUsageStateFile = "~/.claude/statusline-dump.json";
     private Duration claudeUsagePollInterval = AppProperties.DEFAULT_CLAUDE_USAGE_POLL_INTERVAL;
     private Duration openAiUsagePollInterval = AppProperties.DEFAULT_OPENAI_USAGE_POLL_INTERVAL;
+    private Duration geminiUsagePollInterval = AppProperties.DEFAULT_GEMINI_USAGE_POLL_INTERVAL;
 
     public ConfigurationProvider(AppProperties appProperties, Environment environment) {
         this.appProperties = appProperties;
         this.environment = environment;
         loadClaudeAndOpenAiProperties();
         loadOpenCodeProperties();
+        loadGeminiProperties();
     }
 
     @PostConstruct
@@ -49,6 +51,7 @@ public class ConfigurationProvider {
         log.info("Propiedad subscription-viewer.claude.usage-state-file resuelta: {}", getUsageStateFile());
         log.info("Propiedad subscription-viewer.claude.usage-poll-interval resuelta: {}", getUsagePollInterval());
         log.info("Propiedad subscription-viewer.openai.usage-poll-interval resuelta: {}", getOpenAiUsagePollInterval());
+        log.info("Propiedad subscription-viewer.gemini.usage-poll-interval resuelta: {}", getGeminiUsagePollInterval());
         log.info("Propiedad subscription-viewer.opencode.cycle-day resuelta: {}", getOpenCodeCycleDay());
         log.info("Propiedad subscription-viewer.opencode.default-cap-usd resuelta: {}", getOpenCodeDefaultCapUsd());
         log.info("Propiedad subscription-viewer.opencode.poll-interval-seconds resuelta: {}", getOpenCodePollInterval());
@@ -106,6 +109,13 @@ public class ConfigurationProvider {
     public Duration getOpenAiUsagePollInterval() {
         return enforceMinimum(openAiUsagePollInterval,
                 "subscription-viewer.openai.usage-poll-interval");
+    }
+
+    /** Devuelve el intervalo configurado para las consultas de Gemini. */
+    public Duration getGeminiUsagePollInterval() {
+        return enforceMinimum(geminiUsagePollInterval,
+                "subscription-viewer.gemini.usage-poll-interval",
+                AppProperties.MIN_GEMINI_USAGE_POLL_INTERVAL);
     }
 
     /**
@@ -222,6 +232,14 @@ public class ConfigurationProvider {
         }
     }
 
+    private void loadGeminiProperties() {
+        String interval = environment.getProperty("subscription-viewer.gemini.usage-poll-interval");
+        if (interval != null && !interval.isBlank()) {
+            geminiUsagePollInterval = parsePositiveDuration(interval,
+                    "subscription-viewer.gemini.usage-poll-interval");
+        }
+    }
+
     private int parseCycleDay(String value) {
         if (value == null || value.isBlank()) return 1;
         try {
@@ -279,11 +297,14 @@ public class ConfigurationProvider {
     }
 
     private Duration enforceMinimum(Duration interval, String propertyName) {
+        return enforceMinimum(interval, propertyName, AppProperties.MIN_USAGE_POLL_INTERVAL);
+    }
+
+    private Duration enforceMinimum(Duration interval, String propertyName, Duration minimum) {
         if (interval == null || interval.isZero() || interval.isNegative()) {
             throw invalidDuration(propertyName, null);
         }
-        return interval.compareTo(AppProperties.MIN_USAGE_POLL_INTERVAL) < 0
-                ? AppProperties.MIN_USAGE_POLL_INTERVAL : interval;
+        return interval.compareTo(minimum) < 0 ? minimum : interval;
     }
 
     /**

@@ -5,7 +5,7 @@ import java.util.Optional;
 
 /** Resultado clasificado de una lectura de uso. */
 public final class UsageReadResult {
-    public enum Estado { DATOS, FALLO_TRANSITORIO, SESION_CADUCADA }
+    public enum Estado { DATOS, FALLO_TRANSITORIO, SESION_CADUCADA, CONSULTA_FALLIDA }
     private final Estado estado;
     private final UsageReading datos;
     private final Throwable causa;
@@ -20,6 +20,8 @@ public final class UsageReadResult {
     public static UsageReadResult falloTransitorio(Throwable causa) { return new UsageReadResult(Estado.FALLO_TRANSITORIO, null, causa); }
     /** Resultado usado cuando el proveedor rechaza las credenciales por sesión caducada. */
     public static UsageReadResult sesionCaducada() { return new UsageReadResult(Estado.SESION_CADUCADA, null, null); }
+    /** Resultado usado cuando no se puede completar una consulta del proveedor. */
+    public static UsageReadResult consultaFallida() { return new UsageReadResult(Estado.CONSULTA_FALLIDA, null, null); }
     public Estado estado() { return estado; }
     public Optional<UsageReading> datos() { return Optional.ofNullable(datos); }
     public Optional<Throwable> causa() { return Optional.ofNullable(causa); }

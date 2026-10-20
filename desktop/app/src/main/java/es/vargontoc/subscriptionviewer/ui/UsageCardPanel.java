@@ -8,6 +8,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
@@ -137,7 +138,7 @@ public class UsageCardPanel extends JPanel {
             if (row == null || row.seriesId() == null
                     || row.windows().stream().noneMatch(window -> window.usedPercentage() > 0)) continue;
             JLabel label = new JLabel(row.seriesId() + "  " + row.windows().stream()
-                    .map(window -> windowName(window.type()) + ": " + window.usedPercentage() + "%")
+                    .map(window -> windowName(window.type()) + ": " + percentageText(window.usedPercentage()))
                     .reduce((left, right) -> left + " | " + right).orElse(""));
             label.putClientProperty("opencode-row", Boolean.TRUE);
             add(label, getComponentCount() - 1);
@@ -221,8 +222,11 @@ public class UsageCardPanel extends JPanel {
         };
     }
 
-    private String percentageText(int percentage) {
-        return percentage + "%";
+    private String percentageText(double percentage) {
+        if (percentage == Math.rint(percentage)) {
+            return String.format(Locale.ROOT, "%.0f%%", percentage);
+        }
+        return String.format(Locale.ROOT, "%.1f%%", percentage);
     }
 
     private String formatDuration(Duration duration) {

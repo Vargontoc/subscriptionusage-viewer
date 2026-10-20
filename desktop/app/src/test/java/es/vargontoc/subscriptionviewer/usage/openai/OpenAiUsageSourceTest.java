@@ -33,7 +33,7 @@ class OpenAiUsageSourceTest {
 
         assertThat(result.estado()).isEqualTo(UsageReadResult.Estado.DATOS);
         assertThat(result.get().planType()).isEqualTo("plus");
-        assertThat(result.get().windows()).extracting(w -> w.usedPercentage()).containsExactly(6, 1);
+        assertThat(result.get().windows()).extracting(w -> w.usedPercentage()).containsExactly(6.0, 1.0);
         verify(client).read(credentials);
     }
 

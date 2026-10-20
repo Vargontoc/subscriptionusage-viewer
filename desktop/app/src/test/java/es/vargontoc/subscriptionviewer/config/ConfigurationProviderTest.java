@@ -39,7 +39,49 @@ class ConfigurationProviderTest {
              assertThat(provider.getUsagePollInterval()).isEqualTo(Duration.ofSeconds(10));
              assertThat(provider.getOpenCodeUsagePollInterval()).isEqualTo(Duration.ofSeconds(60));
              assertThat(provider.getOpenAiUsagePollInterval()).isEqualTo(Duration.ofSeconds(60));
-        });
+             assertThat(provider.getGeminiUsagePollInterval()).isEqualTo(Duration.ofSeconds(60));
+         });
+    }
+
+    @Test
+    void shouldApplyDefaultGeminiPollIntervalWhenAbsent() {
+        contextRunner.run(context -> assertThat(context.getBean(ConfigurationProvider.class)
+                .getGeminiUsagePollInterval()).isEqualTo(Duration.ofSeconds(60)));
+    }
+
+    @Test
+    void shouldApplyDefaultGeminiPollIntervalWhenEmpty() {
+        contextRunner.withPropertyValues("subscription-viewer.gemini.usage-poll-interval= ")
+                .run(context -> assertThat(context.getBean(ConfigurationProvider.class)
+                        .getGeminiUsagePollInterval()).isEqualTo(Duration.ofSeconds(60)));
+    }
+
+    @Test
+    void shouldApplyMinimumGeminiPollInterval() {
+        contextRunner.withPropertyValues("subscription-viewer.gemini.usage-poll-interval=5s")
+                .run(context -> assertThat(context.getBean(ConfigurationProvider.class)
+                        .getGeminiUsagePollInterval()).isEqualTo(Duration.ofSeconds(30)));
+    }
+
+    @Test
+    void shouldRejectInvalidGeminiPollInterval() {
+        contextRunner.withPropertyValues("subscription-viewer.gemini.usage-poll-interval=abc")
+                .run(context -> assertThat(context.getStartupFailure()).hasStackTraceContaining(
+                        "subscription-viewer.gemini.usage-poll-interval"));
+    }
+
+    @Test
+    void shouldRejectZeroGeminiPollInterval() {
+        contextRunner.withPropertyValues("subscription-viewer.gemini.usage-poll-interval=0s")
+                .run(context -> assertThat(context.getStartupFailure()).hasStackTraceContaining(
+                        "subscription-viewer.gemini.usage-poll-interval"));
+    }
+
+    @Test
+    void shouldRejectNegativeGeminiPollInterval() {
+        contextRunner.withPropertyValues("subscription-viewer.gemini.usage-poll-interval=-5s")
+                .run(context -> assertThat(context.getStartupFailure()).hasStackTraceContaining(
+                        "subscription-viewer.gemini.usage-poll-interval"));
     }
 
     @Test

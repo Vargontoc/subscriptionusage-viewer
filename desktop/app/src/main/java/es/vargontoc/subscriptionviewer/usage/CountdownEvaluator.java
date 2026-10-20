@@ -44,12 +44,18 @@ public class CountdownEvaluator {
      */
     public CountdownResult evaluate(String providerId, Instant resetsAt) {
         Instant now = clock.instant();
-        if (resetsAt != null && resetsAt.isAfter(now)) {
-            return new CountdownResult(Duration.between(now, resetsAt), true);
+        if (resetsAt == null) {
+            if ("gemini".equalsIgnoreCase(providerId)) {
+                return new CountdownResult(Duration.ZERO, true, false);
+            }
+            return new CountdownResult(Duration.ZERO, false, false);
         }
-        if ("openai".equalsIgnoreCase(providerId) && resetsAt != null) {
-            return new CountdownResult(Duration.ZERO, true);
+        if (resetsAt.isAfter(now)) {
+            return new CountdownResult(Duration.between(now, resetsAt), true, true);
         }
-        return new CountdownResult(Duration.ZERO, false);
+        if ("openai".equalsIgnoreCase(providerId) || "gemini".equalsIgnoreCase(providerId)) {
+            return new CountdownResult(Duration.ZERO, true, true);
+        }
+        return new CountdownResult(Duration.ZERO, false, true);
     }
 }

@@ -1,13 +1,24 @@
 package es.vargontoc.subscriptionviewer.usage;
 
 import org.junit.jupiter.api.Test;
+import es.vargontoc.subscriptionviewer.config.ConfigurationProvider;
+import es.vargontoc.subscriptionviewer.usage.openai.OpenAiCredentialsReader;
+import es.vargontoc.subscriptionviewer.usage.openai.OpenAiUsageClient;
+import es.vargontoc.subscriptionviewer.usage.openai.OpenAiUsageSource;
+import es.vargontoc.subscriptionviewer.usage.claude.ClaudeUsageSource;
+import es.vargontoc.subscriptionviewer.usage.claude.StateFileLoader;
+import es.vargontoc.subscriptionviewer.usage.opencode.OpenCodeUsageSource;
+import tools.jackson.databind.ObjectMapper;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Pruebas unitarias del contrato {@link UsageSource}.
@@ -67,6 +78,56 @@ class UsageSourceTest {
         assertThat(result.estado()).isNotEqualTo(UsageReadResult.Estado.DATOS);
         assertThat(result.datos()).isEmpty();
         assertThat(result.causa()).isEmpty();
+    }
+
+    @Test
+    void shouldExposeFailedQueryWithoutDataOrCause() {
+        UsageReadResult result = UsageReadResult.consultaFallida();
+
+        assertThat(result.estado()).isEqualTo(UsageReadResult.Estado.CONSULTA_FALLIDA);
+        assertThat(result.datos()).isEmpty();
+        assertThat(result.causa()).isEmpty();
+    }
+
+    @Test
+    void existingProvidersKeepTheirDefaultPollIntervalsAndTimeouts() {
+        ConfigurationProvider configuration = mock(ConfigurationProvider.class);
+        when(configuration.getUsagePollInterval()).thenReturn(Duration.ofSeconds(45));
+        when(configuration.getOpenCodePollInterval()).thenReturn(Duration.ofSeconds(55));
+        when(configuration.getOpenAiUsagePollInterval()).thenReturn(Duration.ofSeconds(65));
+
+        ClaudeUsageSource claude = new ClaudeUsageSource(configuration, mock(StateFileLoader.class), new ObjectMapper());
+        OpenCodeUsageSource opencode = new OpenCodeUsageSource(new ObjectMapper());
+        OpenAiUsageSource openai = new OpenAiUsageSource(mock(OpenAiCredentialsReader.class),
+                mock(OpenAiUsageClient.class), configuration);
+        try {
+            assertThat(claude.getPollInterval(configuration)).isEqualTo(Duration.ofSeconds(45));
+            assertThat(claude.getReadTimeout()).isEqualTo(Duration.ofSeconds(5));
+            assertThat(opencode.getPollInterval(configuration)).isEqualTo(Duration.ofSeconds(55));
+            assertThat(opencode.getReadTimeout()).isEqualTo(Duration.ofSeconds(5));
+            assertThat(openai.getPollInterval(configuration)).isEqualTo(Duration.ofSeconds(65));
+            assertThat(openai.getReadTimeout()).isEqualTo(Duration.ofSeconds(60));
+        } finally {
+            opencode.close();
+        }
+    }
+
+    @Test
+    void sourceCanOverridePollIntervalAndReadTimeout() {
+        UsageSource source = new FixedUsageSource("custom-provider", 40, 15) {
+            @Override
+            public java.time.Duration getPollInterval(ConfigurationProvider configurationProvider) {
+                return Duration.ofSeconds(17);
+            }
+
+            @Override
+            public java.time.Duration getReadTimeout() {
+                return Duration.ofSeconds(23);
+            }
+        };
+
+        assertThat(source.getPollInterval(mock(ConfigurationProvider.class))).isEqualTo(Duration.ofSeconds(17));
+        assertThat(source.getReadTimeout()).isEqualTo(Duration.ofSeconds(23));
     }
 
     @Test

@@ -68,27 +68,27 @@ public class UsageHistory {
      * @param usedPercentage porcentaje consumido
      * @param writtenAt      instante de registro
      */
-    public void add(String providerId, UsageWindowType type, int usedPercentage, Instant writtenAt) {
+    public void add(String providerId, UsageWindowType type, double usedPercentage, Instant writtenAt) {
         add(providerId, null, type, usedPercentage, null, writtenAt);
     }
 
     /**
      * Añade un punto incluyendo el instante de reinicio de la ventana.
      */
-    public void add(String providerId, UsageWindowType type, int usedPercentage,
+    public void add(String providerId, UsageWindowType type, double usedPercentage,
                     Instant resetsAt, Instant writtenAt) {
         add(providerId, null, type, usedPercentage, resetsAt, writtenAt);
     }
 
     /** Añade un punto a una serie de modelo (o a la serie {@code Total}). */
     public void add(String providerId, String seriesId, UsageWindowType type,
-                    int usedPercentage, Instant writtenAt) {
+                    double usedPercentage, Instant writtenAt) {
         add(providerId, seriesId, type, usedPercentage, null, writtenAt);
     }
 
     /** Añade las ventanas de una serie en una sola lectura. */
     public void add(String providerId, String seriesId,
-                    Map<UsageWindowType, Integer> percentages, Instant writtenAt) {
+                    Map<UsageWindowType, Double> percentages, Instant writtenAt) {
         Objects.requireNonNull(percentages, "Los porcentajes no pueden ser nulos");
         percentages.forEach((type, percentage) -> add(providerId, seriesId, type,
                 percentage == null ? 0 : percentage, writtenAt));
@@ -96,7 +96,7 @@ public class UsageHistory {
 
     /** Añade un punto a una serie incluyendo el instante de reinicio legado. */
     public void add(String providerId, String seriesId, UsageWindowType type,
-                    int usedPercentage, Instant resetsAt, Instant writtenAt) {
+                    double usedPercentage, Instant resetsAt, Instant writtenAt) {
         Objects.requireNonNull(providerId, "El proveedor no puede ser nulo");
         Objects.requireNonNull(type, "La ventana no puede ser nula");
         Objects.requireNonNull(writtenAt, "El instante no puede ser nulo");
@@ -178,7 +178,7 @@ public class UsageHistory {
         }
     }
 
-    private static int clamp(int percentage) {
+    private static double clamp(double percentage) {
         return Math.max(0, Math.min(100, percentage));
     }
 }

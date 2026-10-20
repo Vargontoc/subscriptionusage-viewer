@@ -66,6 +66,21 @@ class UsageCardPanelTest {
     }
 
     @Test
+    void shouldFormatDecimalPercentageOnlyWhenNeeded() {
+        UsageCardPanel panel = new UsageCardPanel("openai", new CountdownEvaluator(Clock.systemUTC()));
+        Instant reset = Instant.now().plusSeconds(3_600);
+        UsageReading reading = new UsageReading("openai", WRITTEN_AT, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 1.8, reset),
+                new UsageWindowReading(UsageWindowType.SEVEN_DAY, 100, reset)));
+
+        panel.update(new UsageProviderState(UsageProviderState.Estado.CORRECTO, reading, WRITTEN_AT));
+
+        assertThat(allTexts(panel)).anyMatch(text -> text.contains("1.8%"));
+        assertThat(allTexts(panel)).anyMatch(text -> text.contains("100%"));
+        assertThat(allTexts(panel)).noneMatch(text -> text.contains("100.0%"));
+    }
+
+    @Test
     void shouldRenderFormalOpenAiExpiredSessionMessageWithoutData() {
         UsageProviderCardPanel panel = new UsageProviderCardPanel("openai",
                 new CountdownEvaluator(Clock.systemUTC()));
