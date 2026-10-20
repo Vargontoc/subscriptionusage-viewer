@@ -332,7 +332,7 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   1. Repasar que el comando, los argumentos y la validación de una línea documentados coinciden con la subclase.
   2. Repasar que el contrato indica que su consumidor es `openai-credentials-reader`, y que no se describen cambios funcionales.
 
-### [ ] TASK-023 Regresión transversal de Claude, OpenCode y OpenAI
+### [x] TASK-023 Regresión transversal de Claude, OpenCode y OpenAI
 
 - **Cubre:** REQ-013, DEC-001, DEC-004, DEC-005, DEC-006, DEC-008, DEC-010
 - **Componente:** transversal (sin componente concreto): usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageSource.java; usage-poller | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsagePoller.java; usage-history | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageHistory.java; usage-snapshot-publisher | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageSnapshotPublisher.java; usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageWindow.java; opencode-cli-runner | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/OpenCodeCliRunner.java
@@ -347,7 +347,7 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   1. Con los mismos datos de Claude, OpenCode y OpenAI, comparar la ventana de uso de la versión anterior (commit f1e70b8) con la nueva: porcentajes, tiempos restantes y secciones deben ser idénticos.
   2. Comprobar que OpenAI sigue mostrando sesión caducada cuando corresponde.
 
-### [ ] TASK-024 Verificación de Gemini de extremo a extremo
+### [x] TASK-024 Verificación de Gemini de extremo a extremo
 
 - **Cubre:** REQ-001, REQ-010, REQ-013, NFR-001, NFR-004
 - **Componente:** transversal (sin componente concreto): background-launcher | desktop/app/scripts/start-background; usage-poller | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsagePoller.java; usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageWindow.java

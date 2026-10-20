@@ -119,8 +119,11 @@ class GeminiPollingIntegrationTest {
         assertThat(publisher.getCurrentSnapshot().readingOf("openai")).isPresent();
         assertThat(scheduler.delays()).contains(30_000L);
 
-        scheduler.runNext();
-        Thread.sleep(50); // Esperar a que la segunda lectura se complete
+        // Ejecutar las siguientes tareas programadas hasta que Gemini se ejecute por segunda vez
+        // Hay 4 fuentes, por lo que cada fuente tiene su propia tarea programada con delay 30s
+        for (int i = 0; i < 4 && geminiReads.get() < 2; i++) {
+            scheduler.runNext();
+        }
         awaitValue(geminiReads, 2);
         assertThat(geminiReads).hasValue(2);
         poller.stop();
