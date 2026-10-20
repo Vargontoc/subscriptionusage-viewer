@@ -257,7 +257,7 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   2. Comparar los porcentajes con la salida de `agy -p "/usage" --output-format json` en el mismo momento: deben coincidir con un decimal.
   3. Comprobar que la hora de actualización coincide con la hora de la última consulta completada.
 
-### [ ] TASK-018 Aviso formal de consulta fallida en usage-window
+### [x] TASK-018 Aviso formal de consulta fallida en usage-window
 
 - **Cubre:** REQ-011, REQ-013, DEC-005, DEC-009
 - **Componente:** usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageWindow.java

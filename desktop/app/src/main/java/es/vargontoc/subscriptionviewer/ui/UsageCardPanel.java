@@ -29,8 +29,11 @@ import es.vargontoc.subscriptionviewer.usage.UsageWindowType;
  */
 public class UsageCardPanel extends JPanel {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
+    private static final String GEMINI_QUERY_FAILED_MESSAGE =
+            "No se ha podido obtener el consumo de Gemini. Por favor, compruebe que la herramienta agy está instalada y que ha iniciado sesión, y vuelva a intentarlo más tarde.";
 
     private final CountdownEvaluator evaluator;
+    private final String providerId;
     private final JLabel providerLabel;
     private final Map<UsageWindowType, JLabel> windowLabels = new EnumMap<>(UsageWindowType.class);
     private final JLabel statusLabel;
@@ -44,6 +47,7 @@ public class UsageCardPanel extends JPanel {
      * @param evaluator  evaluador de cuenta atrás para calcular vigencia
      */
     public UsageCardPanel(String providerId, CountdownEvaluator evaluator) {
+        this.providerId = providerId;
         this.evaluator = evaluator;
         setLayout(new GridLayout(0, 1, 4, 4));
         setBorder(BorderFactory.createTitledBorder(displayProviderName(providerId)));
@@ -88,15 +92,16 @@ public class UsageCardPanel extends JPanel {
      */
     public void update(UsageProviderState state, String planType) {
         UsageReading reading = state.reading();
-        String providerId = reading != null ? reading.providerId() : "OpenCode";
-        providerLabel.setText(displayProviderName(providerId));
-        planLabel.setText(planText(providerId, planType));
+        String currentProviderId = reading != null ? reading.providerId() : providerId;
+        providerLabel.setText(displayProviderName(currentProviderId));
+        planLabel.setText(planText(currentProviderId, planType));
 
         if (reading != null && "opencode".equalsIgnoreCase(reading.providerId())) {
             updateOpenCode(reading);
             return;
         }
-        if (reading != null && "gemini".equalsIgnoreCase(reading.providerId())) {
+        if ((reading != null && "gemini".equalsIgnoreCase(reading.providerId()))
+                || (reading == null && "gemini".equalsIgnoreCase(providerId))) {
             updateGemini(state);
             return;
         }
@@ -159,7 +164,11 @@ public class UsageCardPanel extends JPanel {
         planLabel.setText("");
         providerLabel.setText("Gemini");
         windowLabels.values().forEach(label -> label.setText(""));
-        statusLabel.setText(statusText(state.estado()));
+        if (state.estado() == UsageProviderState.Estado.CONSULTA_FALLIDA) {
+            statusLabel.setText(GEMINI_QUERY_FAILED_MESSAGE);
+        } else {
+            statusLabel.setText(statusText(state.estado()));
+        }
         removeOpenCodeRows();
         removeGeminiRows();
 

@@ -115,6 +115,53 @@ class UsageCardPanelTest {
     }
 
     @Test
+    void shouldNotShowGeminiFailureMessageAfterSuccess() {
+        UsageCardPanel panel = new UsageCardPanel("gemini", new CountdownEvaluator(Clock.systemUTC()));
+        UsageReading reading = new UsageReading("gemini", WRITTEN_AT, List.of(), List.of(
+                geminiGroup("Gemini Models", new UsageWindowReading(UsageWindowType.WEEKLY, 20, null))));
+
+        panel.update(new UsageProviderState(UsageProviderState.Estado.CORRECTO, reading, WRITTEN_AT));
+
+        assertThat(allTexts(panel)).doesNotContain(
+                "No se ha podido obtener el consumo de Gemini. Por favor, compruebe que la herramienta agy está instalada y que ha iniciado sesión, y vuelva a intentarlo más tarde.");
+        assertThat(panel.hasMessage()).isFalse();
+    }
+
+    @Test
+    void shouldShowFormalGeminiFailureMessageWithoutCommandOutput() {
+        UsageCardPanel panel = new UsageCardPanel("gemini", new CountdownEvaluator(Clock.systemUTC()));
+
+        panel.update(new UsageProviderState(UsageProviderState.Estado.CONSULTA_FALLIDA, null, null));
+
+        assertThat(allTexts(panel)).contains(
+                "No se ha podido obtener el consumo de Gemini. Por favor, compruebe que la herramienta agy está instalada y que ha iniciado sesión, y vuelva a intentarlo más tarde.");
+        assertThat(allTexts(panel)).noneMatch(text -> text.contains("COMMAND_OUTPUT_SENTINEL"));
+        assertThat(geminiRows(panel)).isEmpty();
+    }
+
+    @Test
+    void shouldKeepGeminiDataAndLastSuccessfulTimeOnFailureAndClearMessageOnRecovery() {
+        UsageCardPanel panel = new UsageCardPanel("gemini", new CountdownEvaluator(Clock.systemUTC()));
+        UsageReading reading = new UsageReading("gemini", WRITTEN_AT, List.of(), List.of(
+                geminiGroup("Gemini Models", new UsageWindowReading(UsageWindowType.WEEKLY, 20, null))));
+        String expectedTime = java.time.LocalDateTime.ofInstant(WRITTEN_AT, java.time.ZoneId.systemDefault())
+                .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"));
+
+        panel.update(new UsageProviderState(UsageProviderState.Estado.CORRECTO, reading, WRITTEN_AT));
+        panel.update(new UsageProviderState(UsageProviderState.Estado.CONSULTA_FALLIDA, reading, WRITTEN_AT));
+
+        assertThat(geminiRows(panel)).containsExactly("Gemini Models: Semanal: 20%");
+        assertThat(allTexts(panel)).anyMatch(text -> text.contains(expectedTime));
+        assertThat(allTexts(panel)).contains(
+                "No se ha podido obtener el consumo de Gemini. Por favor, compruebe que la herramienta agy está instalada y que ha iniciado sesión, y vuelva a intentarlo más tarde.");
+
+        panel.update(new UsageProviderState(UsageProviderState.Estado.CORRECTO, reading, WRITTEN_AT));
+
+        assertThat(allTexts(panel)).doesNotContain(
+                "No se ha podido obtener el consumo de Gemini. Por favor, compruebe que la herramienta agy está instalada y que ha iniciado sesión, y vuelva a intentarlo más tarde.");
+    }
+
+    @Test
     void shouldRenderFormalOpenAiExpiredSessionMessageWithoutData() {
         UsageProviderCardPanel panel = new UsageProviderCardPanel("openai",
                 new CountdownEvaluator(Clock.systemUTC()));
