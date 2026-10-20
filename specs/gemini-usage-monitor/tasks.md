@@ -273,7 +273,7 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   1. Ocultar `agy` del PATH de forma temporal y reiniciar la aplicación. La sección Gemini debe mostrar exactamente el texto formal de REQ-011, sin datos, y el resto de proveedores debe seguir visible. Restaurar `agy`.
   2. Con `agy` restaurado, esperar un ciclo de refresco. El aviso debe desaparecer y aparecer los datos de Gemini.
 
-### [ ] TASK-019 Gráfico de evolución de Gemini en usage-window
+### [x] TASK-019 Gráfico de evolución de Gemini en usage-window
 
 - **Cubre:** REQ-009, DEC-003, DEC-004
 - **Componente:** usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageChartPanel.java

@@ -120,6 +120,7 @@ class GeminiPollingIntegrationTest {
         assertThat(scheduler.delays()).contains(30_000L);
 
         scheduler.runNext();
+        Thread.sleep(50); // Esperar a que la segunda lectura se complete
         awaitValue(geminiReads, 2);
         assertThat(geminiReads).hasValue(2);
         poller.stop();
