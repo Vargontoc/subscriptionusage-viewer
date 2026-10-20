@@ -157,6 +157,66 @@ class UsageChartPanelTest {
     }
 
     @Test
+    void shouldProjectGeminiGroupSeriesInTemporalOrder() {
+        UsageHistory history = new UsageHistory();
+        for (int i = 0; i < 3; i++) {
+            Instant writtenAt = T0.plusSeconds(i * 300L);
+            history.add("gemini", "Gemini Models", UsageWindowType.WEEKLY,
+                    10 + i, writtenAt.plusSeconds(1_000), writtenAt);
+            history.add("gemini", "Gemini Models", UsageWindowType.FIVE_HOUR,
+                    20 + i, writtenAt.plusSeconds(2_000), writtenAt);
+            history.add("gemini", "Claude and GPT models", UsageWindowType.WEEKLY,
+                    30 + i, writtenAt.plusSeconds(1_000), writtenAt);
+        }
+
+        UsageChartPanel chart = new UsageChartPanel();
+        chart.setSize(400, 300);
+        chart.updateSeries(history.getAllSeries());
+
+        assertThat(chart.projectSeries("gemini", "Gemini Models", UsageWindowType.WEEKLY))
+                .hasSize(3);
+        assertThat(chart.projectSeries("gemini", "Gemini Models", UsageWindowType.FIVE_HOUR))
+                .hasSize(3);
+        assertThat(chart.projectSeries("gemini", "Claude and GPT models", UsageWindowType.WEEKLY))
+                .hasSize(3);
+        List<UsageChartPanel.ScreenPoint> points =
+                chart.projectSeries("gemini", "Gemini Models", UsageWindowType.WEEKLY);
+        assertThat(points.get(0).x()).isLessThan(points.get(1).x());
+        assertThat(points.get(1).x()).isLessThan(points.get(2).x());
+    }
+
+    @Test
+    void shouldNotAddDuplicateGeminiPoints() {
+        UsageHistory history = new UsageHistory();
+        history.add("gemini", "Gemini Models", UsageWindowType.WEEKLY,
+                25, T0.plusSeconds(1_000), T0);
+        history.add("gemini", "Gemini Models", UsageWindowType.WEEKLY,
+                25, T0.plusSeconds(1_000), T0.plusSeconds(300));
+
+        UsageChartPanel chart = new UsageChartPanel();
+        chart.setSize(400, 300);
+        chart.updateSeries(history.getAllSeries());
+
+        assertThat(chart.projectSeries("gemini", "Gemini Models", UsageWindowType.WEEKLY))
+                .hasSize(1);
+    }
+
+    @Test
+    void shouldKeepGeminiPercentagesInRange() {
+        UsageChartPanel chart = new UsageChartPanel();
+        chart.setSize(400, 300);
+        chart.updateSeries(Map.of(
+                new UsageHistory.Key("gemini", "Gemini Models", UsageWindowType.WEEKLY),
+                List.of(new UsageHistoryPoint(0, T0),
+                        new UsageHistoryPoint(100, T0.plusSeconds(300)))));
+
+        for (UsageChartPanel.ScreenPoint point : chart.projectSeries(
+                "gemini", "Gemini Models", UsageWindowType.WEEKLY)) {
+            assertThat(point.y()).isBetween(0, 300);
+        }
+    }
+
+    @Test
     void shouldProjectModelAndTotalSeriesIndependently() {
         UsageChartPanel chart = new UsageChartPanel();
         chart.setSize(400, 300);

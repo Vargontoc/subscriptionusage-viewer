@@ -276,7 +276,7 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
 ### [ ] TASK-019 Gráfico de evolución de Gemini en usage-window
 
 - **Cubre:** REQ-009, DEC-003, DEC-004
-- **Componente:** usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageWindow.java
+- **Componente:** usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageChartPanel.java
 - **Depende de:** TASK-012, TASK-017
 - **Alcance:** mostrar en el gráfico de evolución una serie por grupo y ventana de Gemini, con los puntos del historial.
 - **Hecho cuando:** cada lectura distinta añade puntos sin recargar la aplicación, y ningún punto queda fuera de 0-100.

@@ -83,7 +83,7 @@ public class UsageChartPanel extends JPanel {
             if (points.isEmpty()) {
                 continue;
             }
-            Color color = colorFor(entry.getKey().type());
+            Color color = colorFor(entry.getKey());
             g2d.setColor(color);
 
             List<Point> screenPoints = new ArrayList<>(points.size());
@@ -164,7 +164,10 @@ public class UsageChartPanel extends JPanel {
                            Instant minTime, double timeSpan) {
         double timeRatio = secondsBetween(minTime, point.writtenAt()) / timeSpan;
         int x = left + (int) Math.round(timeRatio * width);
-        int y = top + height - (int) Math.round((point.usedPercentage() / 100.0) * height);
+        // El historial normalmente ya entrega valores acotados, pero el gráfico
+        // también debe ser seguro frente a series construidas directamente.
+        double percentage = Math.max(0.0, Math.min(100.0, point.usedPercentage()));
+        int y = top + height - (int) Math.round((percentage / 100.0) * height);
         return new Point(x, y);
     }
 
@@ -187,6 +190,19 @@ public class UsageChartPanel extends JPanel {
     private double secondsBetween(Instant start, Instant end) {
         return (end.getEpochSecond() - start.getEpochSecond())
                 + (end.getNano() - start.getNano()) / 1_000_000_000.0;
+    }
+
+    private Color colorFor(UsageHistory.Key key) {
+        if ("gemini".equals(key.providerId())) {
+            // La combinación estable de grupo y ventana mantiene el color entre
+            // repintados y evita que todos los grupos compartan el color de su
+            // ventana. Se reserva la paleta histórica para los demás proveedores.
+            int seed = 31 * key.type().hashCode()
+                    + (key.seriesId() == null ? 0 : key.seriesId().hashCode());
+            float hue = (seed & 0x7fffffff) / (float) Integer.MAX_VALUE;
+            return Color.getHSBColor(hue, 0.68f, 0.88f);
+        }
+        return colorFor(key.type());
     }
 
     private Color colorFor(UsageWindowType type) {
