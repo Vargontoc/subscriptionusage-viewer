@@ -105,8 +105,8 @@ public class UsageHistory {
 
         if (!points.isEmpty()) {
             UsageHistoryPoint last = points.get(points.size() - 1);
-            if (isOpenCode(providerId) || isOpenAi(providerId)) {
-                if (last.usedPercentage() == clamp(usedPercentage)
+            if (isOpenCode(providerId) || isOpenAi(providerId) || isGemini(providerId)) {
+                if (last.usedPercentage() == comparablePercentage(providerId, usedPercentage)
                         || !writtenAt.isAfter(last.writtenAt())) {
                     return;
                 }
@@ -115,7 +115,7 @@ public class UsageHistory {
             }
         }
 
-        points.add(new UsageHistoryPoint(clamp(usedPercentage), resetsAt, writtenAt));
+        points.add(new UsageHistoryPoint(comparablePercentage(providerId, usedPercentage), resetsAt, writtenAt));
         if (points.size() > MAX_POINTS_PER_SERIES) {
             points.remove(0);
         }
@@ -127,6 +127,18 @@ public class UsageHistory {
 
     private boolean isOpenAi(String providerId) {
         return "openai".equalsIgnoreCase(providerId);
+    }
+
+    private boolean isGemini(String providerId) {
+        return "gemini".equalsIgnoreCase(providerId);
+    }
+
+    private static double comparablePercentage(String providerId, double percentage) {
+        double clamped = clamp(percentage);
+        if ("gemini".equalsIgnoreCase(providerId)) {
+            return Math.round(clamped * 10.0) / 10.0;
+        }
+        return clamped;
     }
 
     /**

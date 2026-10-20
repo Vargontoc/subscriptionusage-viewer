@@ -169,7 +169,7 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   - Caso de error: la ausencia de reinicio devuelve "sin tiempo restante" sin lanzar excepción.
 - **Prueba manual:** no aplica: el tiempo restante se ve en la ventana; se verifica en TASK-017.
 
-### [ ] TASK-012 Historial de Gemini con un decimal y sin persistencia
+### [x] TASK-012 Historial de Gemini con un decimal y sin persistencia
 
 - **Cubre:** REQ-004, REQ-009, REQ-010, DEC-003, DEC-004
 - **Componente:** usage-history | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageHistory.java

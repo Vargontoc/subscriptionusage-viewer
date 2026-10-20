@@ -133,6 +133,66 @@ class UsageHistoryTest {
     }
 
     @Test
+    void shouldAddGeminiPointsPerGroupAndWindowWhenRoundedValueChanges() {
+        UsageHistory history = new UsageHistory();
+
+        history.add(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.FIVE_HOUR, 1.8, T1);
+        history.add(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.FIVE_HOUR, 1.9, T2);
+        history.add(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.SEVEN_DAY, 3.1, T1);
+        history.add(GEMINI_PROVIDER, "Claude and GPT models", UsageWindowType.FIVE_HOUR, 4.2, T1);
+
+        assertThat(history.getSeries(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.FIVE_HOUR))
+                .extracting(UsageHistoryPoint::usedPercentage)
+                .containsExactly(1.8, 1.9);
+        assertThat(history.getSeries(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.FIVE_HOUR))
+                .extracting(UsageHistoryPoint::writtenAt)
+                .containsExactly(T1, T2);
+        assertThat(history.getSeries(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.SEVEN_DAY))
+                .hasSize(1);
+        assertThat(history.getSeries(GEMINI_PROVIDER, "Claude and GPT models", UsageWindowType.FIVE_HOUR))
+                .hasSize(1);
+    }
+
+    @Test
+    void shouldNotDuplicateGeminiValueWhenReadingIsRepeated() {
+        UsageHistory history = new UsageHistory();
+
+        history.add(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.FIVE_HOUR, 1.8, T1);
+        history.add(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.FIVE_HOUR, 1.8, T2);
+
+        assertThat(history.getSeries(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.FIVE_HOUR))
+                .hasSize(1);
+    }
+
+    @Test
+    void shouldTreatGeminiValuesEqualAfterRoundingAsTheSame() {
+        UsageHistory history = new UsageHistory();
+
+        history.add(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.FIVE_HOUR, 1.81, T1);
+        history.add(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.FIVE_HOUR, 1.8, T2);
+
+        assertThat(history.getSeries(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.FIVE_HOUR))
+                .extracting(UsageHistoryPoint::usedPercentage)
+                .containsExactly(1.8);
+    }
+
+    @Test
+    void shouldDeduplicateClaudeOpenCodeAndOpenAiIntegerValues() {
+        UsageHistory history = new UsageHistory();
+
+        history.add(PROVIDER, UsageWindowType.FIVE_HOUR, 10, T1);
+        history.add(PROVIDER, UsageWindowType.FIVE_HOUR, 10, T1);
+        history.add(OPENCODE_PROVIDER, UsageWindowType.FIVE_HOUR, 10, T1);
+        history.add(OPENCODE_PROVIDER, UsageWindowType.FIVE_HOUR, 10, T2);
+        history.add(OPENAI_PROVIDER, UsageWindowType.FIVE_HOUR, 10, T1);
+        history.add(OPENAI_PROVIDER, UsageWindowType.FIVE_HOUR, 10, T2);
+
+        assertThat(history.getSeries(PROVIDER, UsageWindowType.FIVE_HOUR)).hasSize(1);
+        assertThat(history.getSeries(OPENCODE_PROVIDER, UsageWindowType.FIVE_HOUR)).hasSize(1);
+        assertThat(history.getSeries(OPENAI_PROVIDER, UsageWindowType.FIVE_HOUR)).hasSize(1);
+    }
+
+    @Test
     void shouldAddPointsForDifferentWindowsIndependently() {
         UsageHistory history = new UsageHistory();
 
