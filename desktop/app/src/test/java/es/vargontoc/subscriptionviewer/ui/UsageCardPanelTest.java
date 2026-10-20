@@ -81,6 +81,40 @@ class UsageCardPanelTest {
     }
 
     @Test
+    void shouldRenderGeminiGroupsWithOnlyTheirPresentWindows() {
+        Instant lastSuccess = Instant.parse("2026-10-16T12:34:56Z");
+        Instant reset = Instant.parse("2026-10-17T10:32:15Z");
+        UsageReading reading = new UsageReading("gemini", WRITTEN_AT, List.of(), List.of(
+                geminiGroup("Gemini Models", new UsageWindowReading(UsageWindowType.WEEKLY, 1.8, reset),
+                        new UsageWindowReading(UsageWindowType.FIVE_HOUR, 0.9, reset)),
+                geminiGroup("Claude and GPT models", new UsageWindowReading(UsageWindowType.WEEKLY, 0.9, reset),
+                        new UsageWindowReading(UsageWindowType.FIVE_HOUR, 1.8, reset)),
+                geminiGroup("Gemini 4 Argon", new UsageWindowReading(UsageWindowType.WEEKLY, 50, reset))));
+        UsageCardPanel panel = new UsageCardPanel("gemini", new CountdownEvaluator(
+                Clock.fixed(Instant.parse("2026-10-16T10:32:15Z"), java.time.ZoneOffset.UTC)));
+
+        panel.update(new UsageProviderState(UsageProviderState.Estado.CORRECTO, reading, lastSuccess));
+
+        assertThat(geminiRows(panel)).hasSize(3);
+        assertThat(geminiRows(panel)).anyMatch(text -> text.startsWith("Gemini 4 Argon:")
+                && text.contains("Semanal: 50%") && !text.contains("5 horas"));
+        String expectedTime = java.time.LocalDateTime.ofInstant(lastSuccess, java.time.ZoneId.systemDefault())
+                .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"));
+        assertThat(allTexts(panel)).anyMatch(text -> text.contains(expectedTime));
+    }
+
+    @Test
+    void shouldRenderGeminiWindowWithoutResetWithoutCountdown() {
+        UsageReading reading = new UsageReading("gemini", WRITTEN_AT, List.of(), List.of(
+                geminiGroup("New group", new UsageWindowReading(UsageWindowType.WEEKLY, 1.8, null))));
+        UsageCardPanel panel = new UsageCardPanel("gemini", new CountdownEvaluator(Clock.systemUTC()));
+
+        panel.update(new UsageProviderState(UsageProviderState.Estado.CORRECTO, reading, WRITTEN_AT));
+
+        assertThat(geminiRows(panel)).containsExactly("New group: Semanal: 1.8%");
+    }
+
+    @Test
     void shouldRenderFormalOpenAiExpiredSessionMessageWithoutData() {
         UsageProviderCardPanel panel = new UsageProviderCardPanel("openai",
                 new CountdownEvaluator(Clock.systemUTC()));
@@ -113,10 +147,22 @@ class UsageCardPanelTest {
                 new UsageWindowReading(UsageWindowType.MONTHLY, monthly, WRITTEN_AT.plusSeconds(1_800))));
     }
 
+    private UsageReading geminiGroup(String name, UsageWindowReading... windows) {
+        return new UsageReading("gemini", name, WRITTEN_AT, List.of(windows));
+    }
+
     private List<String> rowTexts(UsageCardPanel panel) {
         return java.util.Arrays.stream(panel.getComponents())
                 .filter(component -> component instanceof JLabel label
                         && Boolean.TRUE.equals(label.getClientProperty("opencode-row")))
+                .map(component -> ((JLabel) component).getText())
+                .toList();
+    }
+
+    private List<String> geminiRows(UsageCardPanel panel) {
+        return java.util.Arrays.stream(panel.getComponents())
+                .filter(component -> component instanceof JLabel label
+                        && Boolean.TRUE.equals(label.getClientProperty("gemini-row")))
                 .map(component -> ((JLabel) component).getText())
                 .toList();
     }

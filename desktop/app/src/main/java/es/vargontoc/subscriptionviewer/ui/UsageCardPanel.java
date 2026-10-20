@@ -96,6 +96,10 @@ public class UsageCardPanel extends JPanel {
             updateOpenCode(reading);
             return;
         }
+        if (reading != null && "gemini".equalsIgnoreCase(reading.providerId())) {
+            updateGemini(state);
+            return;
+        }
         if (reading != null && "claude".equalsIgnoreCase(reading.providerId())
                 && state.estado() == UsageProviderState.Estado.CORRECTO) {
             updateLegacy(reading);
@@ -149,6 +153,66 @@ public class UsageCardPanel extends JPanel {
         repaint();
     }
 
+    /** Renderiza una fila independiente para cada grupo devuelto por Gemini. */
+    private void updateGemini(UsageProviderState state) {
+        UsageReading reading = state.reading();
+        planLabel.setText("");
+        providerLabel.setText("Gemini");
+        windowLabels.values().forEach(label -> label.setText(""));
+        statusLabel.setText(statusText(state.estado()));
+        removeOpenCodeRows();
+        removeGeminiRows();
+
+        if (reading != null) {
+            for (UsageReading group : reading.seriesReadings()) {
+                if (group == null || group.seriesId() == null || group.windows().isEmpty()) {
+                    continue;
+                }
+                String windows = group.windows().stream()
+                        .map(window -> {
+                            CountdownResult result = evaluator.evaluate(reading.providerId(), window.resetsAt());
+                            if (!result.valid()) {
+                                return null;
+                            }
+                            String text = windowName(window.type()) + ": "
+                                    + percentageText(window.usedPercentage());
+                            if (result.hasKnownReset()) {
+                                text += " (" + result.formattedRemainingTime() + ")";
+                            }
+                            return text;
+                        })
+                        .filter(java.util.Objects::nonNull)
+                        .reduce((left, right) -> left + " | " + right)
+                        .orElse("");
+                if (windows.isEmpty()) {
+                    continue;
+                }
+                JLabel label = new JLabel(group.seriesId() + ": " + windows);
+                label.putClientProperty("gemini-row", Boolean.TRUE);
+                add(label, getComponentCount() - 1);
+            }
+        }
+        updateLastSuccessfulQuery(state);
+        revalidate();
+        repaint();
+    }
+
+    private void removeGeminiRows() {
+        for (int i = getComponentCount() - 1; i >= 0; i--) {
+            if (getComponent(i) instanceof JLabel label
+                    && Boolean.TRUE.equals(label.getClientProperty("gemini-row"))) remove(i);
+        }
+    }
+
+    private void updateLastSuccessfulQuery(UsageProviderState state) {
+        if (state.lastSuccessfulQuery() == null) {
+            writtenAtLabel.setText("");
+        } else {
+            LocalDateTime localTime = LocalDateTime.ofInstant(state.lastSuccessfulQuery(), ZoneId.systemDefault());
+            writtenAtLabel.setText("Última actualización: " + localTime.format(TIME_FORMATTER));
+        }
+    }
+
     private void removeOpenCodeRows() {
         for (int i = getComponentCount() - 1; i >= 0; i--) {
             if (getComponent(i) instanceof JLabel label
@@ -192,7 +256,8 @@ public class UsageCardPanel extends JPanel {
                 .mapToObj(this::getComponent)
                 .filter(component -> component instanceof JLabel)
                 .map(component -> (JLabel) component)
-                .anyMatch(label -> Boolean.TRUE.equals(label.getClientProperty("opencode-row"))
+                .anyMatch(label -> (Boolean.TRUE.equals(label.getClientProperty("opencode-row"))
+                        || Boolean.TRUE.equals(label.getClientProperty("gemini-row")))
                         && !label.getText().isEmpty());
         return rows || windowLabels.values().stream().anyMatch(label -> !label.getText().isEmpty());
     }
@@ -207,6 +272,7 @@ public class UsageCardPanel extends JPanel {
             case SIN_DATOS -> "No hay datos de uso disponibles en este momento.";
             case CORRECTO -> "";
             case SESION_CADUCADA -> "Sesion caducada, vuelva a conectarse con su CLI correspondiente";
+            case CONSULTA_FALLIDA -> "Consulta fallida";
         };
     }
 

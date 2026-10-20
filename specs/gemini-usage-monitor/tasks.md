@@ -211,7 +211,7 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   - Regresión: los fallos de OpenCode siguen sin publicarse y los de Claude y OpenAI se publican como hasta ahora.
 - **Prueba manual:** no aplica: se verifica en TASK-016 y TASK-024.
 
-### [ ] TASK-015 Publicación de la consulta fallida en usage-snapshot-publisher
+### [x] TASK-015 Publicación de la consulta fallida en usage-snapshot-publisher
 
 - **Cubre:** REQ-008, REQ-011, DEC-005
 - **Componente:** usage-snapshot-publisher | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageSnapshotPublisher.java
@@ -225,7 +225,7 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   - Regresión: la desactualización de Claude y la sesión caducada de OpenAI siguen igual.
 - **Prueba manual:** no aplica: se verifica en TASK-018.
 
-### [ ] TASK-016 Integración de usage-poller con gemini-usage-source
+### [x] TASK-016 Integración de usage-poller con gemini-usage-source
 
 - **Cubre:** REQ-001, REQ-007, REQ-013, NFR-002
 - **Componente:** usage-poller ↔ gemini-usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsagePoller.java ↔ por definir (analista técnico)
@@ -240,7 +240,7 @@ Primero se verifica `agy` y se prepara el refactor de `opencode-cli-runner` haci
   1. Lanzar la aplicación con `start-background` y comprobar que la terminal se devuelve al usuario y que la ventana de uso se abre sin esperar a Gemini.
   2. Mientras la primera consulta de Gemini sigue en curso, comprobar que la ventana responde y que los demás proveedores ya muestran datos.
 
-### [ ] TASK-017 Sección Gemini con grupos y ventanas en usage-window
+### [x] TASK-017 Sección Gemini con grupos y ventanas en usage-window
 
 - **Cubre:** REQ-003, REQ-004, REQ-005, REQ-006, REQ-008, REQ-012, DEC-003, DEC-004
 - **Componente:** usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageWindow.java

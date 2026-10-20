@@ -7,7 +7,7 @@ import java.util.Optional;
 /** Estado inmutable publicado para un proveedor, sin credenciales. */
 public record UsageProviderState(Estado estado, UsageReading reading, Instant lastSuccessfulQuery) {
     public enum Estado {
-        CORRECTO, DESACTUALIZADO, SIN_DATOS, SESION_CADUCADA
+        CORRECTO, DESACTUALIZADO, SIN_DATOS, SESION_CADUCADA, CONSULTA_FALLIDA
     }
 
     public UsageProviderState {

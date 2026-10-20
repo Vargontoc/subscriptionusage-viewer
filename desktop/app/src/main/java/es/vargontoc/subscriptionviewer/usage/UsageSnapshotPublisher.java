@@ -83,6 +83,8 @@ public class UsageSnapshotPublisher {
                     UsageProviderState.Estado.DESACTUALIZADO, providerId);
             case SESION_CADUCADA -> next = stateAfterFailure(previous,
                     UsageProviderState.Estado.SESION_CADUCADA, providerId);
+            case CONSULTA_FALLIDA -> next = stateAfterFailure(previous,
+                    UsageProviderState.Estado.CONSULTA_FALLIDA, providerId);
         }
         if (next == null) {
             providerStates.remove(providerId);

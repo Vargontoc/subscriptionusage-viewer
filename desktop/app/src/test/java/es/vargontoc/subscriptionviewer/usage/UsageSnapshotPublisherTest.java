@@ -116,6 +116,38 @@ class UsageSnapshotPublisherTest {
     }
 
     @Test
+    void queryFailureKeepsPreviousDataAndSuccessfulTime() {
+        UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
+        publisher.publish(CLAUDE, UsageReadResult.datos(readingOf(CLAUDE, 20, 5)), NOW);
+
+        publisher.publish(CLAUDE, UsageReadResult.consultaFallida(), NOW.plusSeconds(60));
+
+        UsageProviderState state = publisher.getCurrentSnapshot().stateOf(CLAUDE).orElseThrow();
+        assertThat(state.estado()).isEqualTo(UsageProviderState.Estado.CONSULTA_FALLIDA);
+        assertThat(state.reading().windows().get(0).usedPercentage()).isEqualTo(20);
+        assertThat(state.lastSuccessfulQuery()).isEqualTo(NOW);
+    }
+
+    @Test
+    void initialQueryFailureIsVisibleWithoutDataAndSuccessClearsIt() {
+        UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
+
+        publisher.publish("gemini", UsageReadResult.consultaFallida(), NOW);
+
+        UsageProviderState failed = publisher.getCurrentSnapshot().stateOf("gemini").orElseThrow();
+        assertThat(failed.estado()).isEqualTo(UsageProviderState.Estado.CONSULTA_FALLIDA);
+        assertThat(failed.reading()).isNull();
+        assertThat(failed.lastSuccessfulQuery()).isNull();
+
+        publisher.publish("gemini", UsageReadResult.datos(readingOf("gemini", 10, 2)), NOW.plusSeconds(60));
+
+        UsageProviderState recovered = publisher.getCurrentSnapshot().stateOf("gemini").orElseThrow();
+        assertThat(recovered.estado()).isEqualTo(UsageProviderState.Estado.CORRECTO);
+        assertThat(recovered.reading()).isNotNull();
+        assertThat(recovered.lastSuccessfulQuery()).isEqualTo(NOW.plusSeconds(60));
+    }
+
+    @Test
     void openAiSessionExpiryKeepsPreviousDataAndSuccessfulTime() {
         UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
         publisher.publish(OPENAI, UsageReadResult.datos(readingOf(OPENAI, 20, 5)), NOW);
