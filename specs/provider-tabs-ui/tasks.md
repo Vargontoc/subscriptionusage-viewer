@@ -21,10 +21,10 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 - **Prueba manual:**
   1. no aplica: función pura sin interfaz propia; su efecto visible se verifica en TASK-015.
 
-### [ ] TASK-002 Catálogo de textos formales de error y de primera consulta
+### [x] TASK-002 Catálogo de textos formales de error y de primera consulta
 
 - **Cubre:** REQ-006, REQ-018, NFR-003, DEC-005
-- **Componente:** provider-error-texts | por definir (analista técnico)
+- **Componente:** provider-error-texts | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/ProviderErrorTexts.java
 - **Depende de:** -
 - **Alcance:** catálogo único con los textos exactos de REQ-006 y "Obteniendo datos…" (REQ-018), seleccionados por proveedor y causa clasificada, sin componer texto con datos de respuestas, salidas o credenciales.
 - **Hecho cuando:** los textos coinciden carácter a carácter con REQ-006 y REQ-018, y se cumplen los criterios de aceptación de REQ-006 a nivel de texto.
