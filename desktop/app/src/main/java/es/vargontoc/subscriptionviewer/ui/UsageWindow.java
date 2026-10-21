@@ -2,65 +2,64 @@ package es.vargontoc.subscriptionviewer.ui;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Frame;
 import java.awt.GraphicsEnvironment;
-import java.util.HashMap;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.time.Clock;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
-import javax.swing.JFrame;
-import javax.swing.JLabel;
+import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.WindowConstants;
 
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import es.vargontoc.subscriptionviewer.usage.CountdownEvaluator;
-import es.vargontoc.subscriptionviewer.usage.UsageHistory;
-import es.vargontoc.subscriptionviewer.usage.UsageProviderState;
 import es.vargontoc.subscriptionviewer.usage.UsageSnapshot;
 import es.vargontoc.subscriptionviewer.usage.UsageSnapshotListener;
 import es.vargontoc.subscriptionviewer.usage.UsageSnapshotPublisher;
 import jakarta.annotation.PostConstruct;
 
-/**
- * Ventana de escritorio que muestra el uso por proveedor.
- *
- * <p>Se suscribe al {@link UsageSnapshotPublisher} y reconstruye las tarjetas
- * solo para los proveedores presentes en cada snapshot. Si no hay proveedores
- * con datos vigentes, muestra un texto informativo neutro.</p>
- *
- * <p>La creación de componentes Swing se retrasa hasta que la ventana se va a
- * mostrar, para que el bean pueda instanciarse en entornos headless (tests) sin
- * lanzar excepciones. Un temporizador de Swing refresca la presentación cada
- * segundo para actualizar la cuenta atrás y ocultar ventanas que hayan
- * caducado.</p>
- */
+/** Ventana fija con una pestaña y un contenido independiente por proveedor. */
 @Component
 public class UsageWindow implements UsageSnapshotListener {
-
-    private static final String NEUTRAL_TEXT = "No hay datos de uso disponibles en este momento.";
-    private static final String NEUTRAL_CARD = "neutral";
-    private static final String CARDS_CARD = "cards";
     private static final int REFRESH_DELAY_MS = 1_000;
+    private static final int WINDOW_WIDTH = 800;
+    private static final int WINDOW_HEIGHT = 600;
+    private static final List<String> PROVIDERS = List.of("claude", "openai", "opencode", "gemini");
 
     private final UsageSnapshotPublisher publisher;
     private final CountdownEvaluator evaluator;
-    private final UsageHistory usageHistory;
-    private JFrame frame;
-    private JPanel cardsPanel;
-    private JLabel neutralLabel;
+    private final Clock clock;
+
+    private JDialog dialog;
+    private ProviderTabBar tabBar;
     private JPanel contentPanel;
     private CardLayout cardLayout;
-    private UsageChartPanel chartPanel;
+    private final Map<String, ProviderContentPanel> contentPanels = new LinkedHashMap<>();
+    /** Último modelo pintado de cada proveedor, para conservar el scroll. */
+    private Map<String, ProviderViewModel> previousModels = new HashMap<>();
+    private String selectedProvider = "claude";
     private Timer refreshTimer;
-    private final Map<String, UsageCardPanel> cards = new HashMap<>();
     private volatile UsageSnapshot lastSnapshot = new UsageSnapshot();
 
-    public UsageWindow(UsageSnapshotPublisher publisher, CountdownEvaluator evaluator, UsageHistory usageHistory) {
+    @Autowired
+    public UsageWindow(UsageSnapshotPublisher publisher, CountdownEvaluator evaluator, Clock clock) {
         this.publisher = publisher;
         this.evaluator = evaluator;
-        this.usageHistory = usageHistory;
+        this.clock = clock;
+    }
+
+    /** Constructor de compatibilidad para clientes que antes proporcionaban el historial. */
+    public UsageWindow(UsageSnapshotPublisher publisher, CountdownEvaluator evaluator, Object ignoredHistory) {
+        this(publisher, evaluator, java.time.Clock.systemDefaultZone());
     }
 
     @PostConstruct
@@ -68,27 +67,19 @@ public class UsageWindow implements UsageSnapshotListener {
         publisher.addListener(this);
     }
 
-    /**
-     * Muestra la ventana en pantalla.
-     *
-     * @throws java.awt.HeadlessException si el entorno no admite interfaz gráfica
-     */
     public void show() {
         SwingUtilities.invokeLater(() -> {
             ensureWindowCreated();
-            updateContent(lastSnapshot);
-            frame.setVisible(true);
+            updateView(lastSnapshot);
+            dialog.setVisible(true);
             refreshTimer.start();
         });
     }
 
-    /**
-     * Oculta la ventana sin cerrarla.
-     */
     public void hide() {
         SwingUtilities.invokeLater(() -> {
-            if (frame != null) {
-                frame.setVisible(false);
+            if (dialog != null) {
+                dialog.setVisible(false);
             }
             if (refreshTimer != null) {
                 refreshTimer.stop();
@@ -96,132 +87,142 @@ public class UsageWindow implements UsageSnapshotListener {
         });
     }
 
-    /**
-     * Indica si la ventana está visible.
-     *
-     * @return {@code true} si la ventana se muestra
-     */
     public boolean isVisible() {
-        return frame != null && frame.isVisible();
+        return dialog != null && dialog.isVisible();
     }
 
     @Override
     public void onSnapshotChanged(UsageSnapshot snapshot) {
         lastSnapshot = snapshot;
         SwingUtilities.invokeLater(() -> {
-            if (frame != null) {
-                updateContent(snapshot);
+            if (dialog != null) {
+                updateView(snapshot);
             }
         });
     }
 
     private void ensureWindowCreated() {
-        if (frame != null) {
+        if (dialog != null) {
             return;
         }
         if (GraphicsEnvironment.isHeadless()) {
             throw new java.awt.HeadlessException("No hay entorno gráfico disponible");
         }
-        frame = new JFrame("Uso de suscripciones");
+
+        dialog = new JDialog((Frame) null, "Subscription Usage Viewer", false);
+        dialog.setResizable(false);
+        dialog.setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+        dialog.setLocationRelativeTo(null);
+        dialog.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
+        dialog.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent event) {
+                if (refreshTimer != null) {
+                    refreshTimer.stop();
+                }
+            }
+        });
+
+        tabBar = new ProviderTabBar();
+        tabBar.setSelectedProvider(selectedProvider);
+        tabBar.setHideListener(this::hide);
+        tabBar.addSelectionListener(this::selectProvider);
+
         cardLayout = new CardLayout();
         contentPanel = new JPanel(cardLayout);
-        cardsPanel = new JPanel();
-        neutralLabel = new JLabel(NEUTRAL_TEXT, JLabel.CENTER);
+        for (String provider : PROVIDERS) {
+            ProviderContentPanel panel = new ProviderContentPanel();
+            contentPanels.put(provider, panel);
+            contentPanel.add(panel, provider);
+        }
+        cardLayout.show(contentPanel, selectedProvider);
 
-        frame.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
-        frame.setSize(400, 300);
-        frame.setLayout(new BorderLayout());
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.add(tabBar, BorderLayout.NORTH);
+        mainPanel.add(contentPanel, BorderLayout.CENTER);
+        dialog.setContentPane(mainPanel);
 
-        cardsPanel.setLayout(new javax.swing.BoxLayout(cardsPanel, javax.swing.BoxLayout.Y_AXIS));
-        contentPanel.add(neutralLabel, NEUTRAL_CARD);
-        contentPanel.add(cardsPanel, CARDS_CARD);
-        frame.add(contentPanel, BorderLayout.NORTH);
-
-        chartPanel = new UsageChartPanel();
-        chartPanel.setPreferredSize(new java.awt.Dimension(0, 150));
-        frame.add(chartPanel, BorderLayout.CENTER);
-
-        refreshTimer = new Timer(REFRESH_DELAY_MS, e -> updateContent(lastSnapshot));
+        refreshTimer = new Timer(REFRESH_DELAY_MS, event -> {
+            if (dialog.isVisible()) {
+                updateView(lastSnapshot);
+            }
+        });
         refreshTimer.setRepeats(true);
-
-        // Un snapshot puede haber llegado antes de crear la ventana (por ejemplo,
-        // mientras estaba oculta). Renderizarlo ahora evita perder también la
-        // actualización del gráfico al abrirla por primera vez.
-        updateContent(lastSnapshot);
     }
 
-    private void updateContent(UsageSnapshot snapshot) {
-        if (cardsPanel == null) {
+    private void selectProvider(String providerId) {
+        if (!contentPanels.containsKey(providerId)) {
             return;
         }
-        cardsPanel.removeAll();
-        cards.clear();
+        selectedProvider = providerId;
+        if (cardLayout != null) {
+            cardLayout.show(contentPanel, providerId);
+        }
+    }
 
-        boolean anyCard = false;
-        Map<String, UsageProviderState> states = new HashMap<>(snapshot.providerStates());
-        // Compatibilidad con publicadores antiguos que aún solo entregan lecturas.
-        snapshot.readings().forEach((provider, reading) -> states.putIfAbsent(provider,
-                new UsageProviderState(UsageProviderState.Estado.CORRECTO, reading, reading.writtenAt())));
-        for (Map.Entry<String, UsageProviderState> entry : states.entrySet()) {
-            UsageProviderState state = entry.getValue();
-            UsageCardPanel card = new UsageProviderCardPanel(entry.getKey(), evaluator);
-            card.update(state);
-            if (!card.hasVisibleWindows() && !card.hasMessage()) {
-                continue;
+    private void updateView(UsageSnapshot snapshot) {
+        if (tabBar == null) {
+            return;
+        }
+        Map<String, ProviderViewModel> models = new LinkedHashMap<>();
+        for (String provider : PROVIDERS) {
+            models.put(provider, ProviderViewModel.from(provider, snapshot, clock, evaluator));
+        }
+        tabBar.setProviderStates(models);
+        tabBar.setSelectedProvider(selectedProvider);
+        for (String provider : PROVIDERS) {
+            ProviderViewModel model = models.get(provider);
+            ProviderViewModel previousModel = previousModels.get(provider);
+            if (!model.equals(previousModel)) {
+                ProviderContentPanel panel = contentPanels.get(provider);
+                if (panel != null) {
+                    panel.setModel(model);
+                }
             }
-            cardsPanel.add(card);
-            cards.put(entry.getKey(), card);
-            anyCard = true;
         }
-
-        if (anyCard) {
-            cardsPanel.revalidate();
-            cardsPanel.repaint();
-            cardLayout.show(contentPanel, CARDS_CARD);
-        } else {
-            cardLayout.show(contentPanel, NEUTRAL_CARD);
-        }
-
-        if (chartPanel != null) {
-            // updateContent solo se invoca en EDT (incluido el listener de
-            // snapshots), por lo que el modelo Swing se actualiza sin carreras.
-            // UsageHistory es en memoria y por eso el gráfico (incluido OpenAI)
-            // empieza vacío en cada ejecución de la aplicación.
-            refreshChart();
-        }
+        previousModels = new HashMap<>(models);
+        contentPanel.revalidate();
+        contentPanel.repaint();
     }
 
-    private void refreshChart() {
-        chartPanel.updateSeries(usageHistory.getAllSeries());
+    // Accesos de inspección deliberadamente limitados a la nueva composición.
+    public ProviderTabBar getTabBar() {
+        ensureWindowCreated();
+        return tabBar;
     }
 
-    /**
-     * Devuelve el panel de tarjetas (uso interno y tests).
-     *
-     * @return panel contenedor de tarjetas
-     */
+    /** Devuelve el panel del proveedor, útil para inspeccionar la vista activa. */
+    public ProviderContentPanel getContentPanel(String providerId) {
+        ensureWindowCreated();
+        return contentPanels.get(providerId);
+    }
+
+    public JPanel getContentPanel() {
+        ensureWindowCreated();
+        return contentPanel;
+    }
+
+    public Map<String, ProviderContentPanel> getContentPanels() {
+        ensureWindowCreated();
+        return Map.copyOf(contentPanels);
+    }
+
+    /** @deprecated la composición ya no contiene tarjetas. */
+    @Deprecated
     public JPanel getCardsPanel() {
-        ensureWindowCreated();
-        return cardsPanel;
+        return getContentPanel();
     }
 
-    /**
-     * Devuelve la etiqueta neutra (uso interno y tests).
-     *
-     * @return etiqueta de texto neutro
-     */
-    public JLabel getNeutralLabel() {
+    /** @deprecated la composición ya no contiene un estado neutro global. */
+    @Deprecated
+    public javax.swing.JLabel getNeutralLabel() {
         ensureWindowCreated();
-        return neutralLabel;
+        return new javax.swing.JLabel();
     }
 
-    /**
-     * Devuelve el panel del gráfico (uso interno y tests).
-     *
-     * @return panel del gráfico de evolución
-     */
+    /** @deprecated el gráfico se conserva para la siguiente especificación, pero no se crea aquí. */
+    @Deprecated
     public UsageChartPanel getChartPanel() {
-        ensureWindowCreated();
-        return chartPanel;
+        return null;
     }
 }

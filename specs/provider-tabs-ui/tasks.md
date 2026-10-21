@@ -200,10 +200,10 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 - **Prueba manual:**
   1. Revisar en el informe de la prueba que las dos tablas tienen la misma cantidad de filas y ninguna columna de tiempo; resultado esperado: coincide con REQ-013.
 
-### [ ] TASK-015 Barra de progreso propia
+### [x] TASK-015 Barra de progreso propia
 
 - **Cubre:** REQ-007, REQ-008, NFR-002, DEC-007
-- **Componente:** usage-progress-bar | por definir (analista técnico)
+- **Componente:** usage-progress-bar | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageProgressBar.java
 - **Depende de:** TASK-001
 - **Alcance:** barra con fondo blanco y borde negro, relleno proporcional al porcentaje con el color del nivel de TASK-001, y texto con el valor mostrado centrado (blanco al 100 %, negro en el resto de casos).
 - **Hecho cuando:** se cumplen los criterios de REQ-007 y REQ-008 y el texto es legible en todos los colores (NFR-002).
@@ -214,10 +214,10 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 - **Prueba manual:**
   1. En una ventana de prueba temporal (no entregable), mostrar barras de 0 %, 40 %, 99,96 % y 100 %; resultado esperado: colores y textos según REQ-007 y REQ-008, y texto legible en la barra negra.
 
-### [ ] TASK-016 Tabla de datos sin bordes
+### [x] TASK-016 Tabla de datos sin bordes
 
 - **Cubre:** REQ-019, REQ-021, REQ-012, REQ-013, DEC-008
-- **Componente:** usage-table | por definir (analista técnico)
+- **Componente:** usage-table | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageTable.java
 - **Depende de:** TASK-015
 - **Alcance:** tabla sin bordes entre celdas ni alrededor, cabecera de fondo negro con texto blanco, filas alternas gris y blanco, sin pie, con celdas de texto, "N/A" o barra de progreso, y con alto de fila y de cabecera común.
 - **Hecho cuando:** se cumple REQ-019 y las celdas de barra usan usage-progress-bar.
@@ -228,10 +228,10 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 - **Prueba manual:**
   1. Revisar en el informe de la prueba visual de la tabla que no hay bordes ni fila de pie; resultado esperado: coincide con REQ-019.
 
-### [ ] TASK-017 Contenedor de pestaña: estado gris y hora de actualización
+### [x] TASK-017 Contenedor de pestaña: estado gris y hora de actualización
 
 - **Cubre:** REQ-006, REQ-009, REQ-016, REQ-018, NFR-003
-- **Componente:** provider-content-panel | por definir (analista técnico)
+- **Componente:** provider-content-panel | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/ProviderContentPanel.java
 - **Depende de:** TASK-002, TASK-010
 - **Alcance:** pintar el modelo de un proveedor sin tablas: si está en gris, un contenedor de fondo gris con el texto formal o "Obteniendo datos…", sin hora; si tiene datos, el texto "última actualización" con la hora en la esquina superior izquierda. Sin título con el nombre del proveedor y sin pie.
 - **Hecho cuando:** se cumplen los criterios de REQ-006 y REQ-009 a nivel de contenedor.
@@ -242,10 +242,10 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 - **Prueba manual:**
   1. Tras TASK-022, con el fichero de estado de Claude ausente, seleccionar Claude; resultado esperado: contenedor gris con el texto de Claude y nada más.
 
-### [ ] TASK-018 Contenedor de pestaña: tablas en fila y desplazamiento conjunto
+### [x] TASK-018 Contenedor de pestaña: tablas en fila y desplazamiento conjunto
 
 - **Cubre:** REQ-014, REQ-021, REQ-012, REQ-013, DEC-008
-- **Componente:** provider-content-panel | por definir (analista técnico)
+- **Componente:** provider-content-panel | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/ProviderContentPanel.java
 - **Depende de:** TASK-016, TASK-017
 - **Alcance:** colocar las tablas de la pestaña en horizontal, con el mismo borde superior y una separación definida en un único valor ajustable; todas dentro de una única zona de desplazamiento vertical, de modo que se muevan juntas.
 - **Hecho cuando:** se cumplen los criterios de REQ-021 y REQ-014 de disposición y desplazamiento.
@@ -256,10 +256,10 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 - **Prueba manual:**
   1. Tras TASK-022, con OpenCode con varios modelos, desplazar la rueda del ratón; resultado esperado: ambas tablas se desplazan a la vez y las filas siguen alineadas.
 
-### [ ] TASK-019 Fila de pestañas fijas
+### [x] TASK-019 Fila de pestañas fijas
 
 - **Cubre:** REQ-003, REQ-005, REQ-020, DEC-001
-- **Componente:** provider-tab-bar | por definir (analista técnico)
+- **Componente:** provider-tab-bar | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/ProviderTabBar.java
 - **Depende de:** TASK-010
 - **Alcance:** fila con cuatro pestañas fijas en el orden Claude, OpenAI, OpenCode y Gemini, cada una con su icono PNG (`claude.png`, `openai.png`, `opencode.png` y `gemini.png` de `desktop/app/src/main/resources/icons`, que entran en el repositorio) y su nombre; cada pestaña se pinta en gris según su modelo; la seleccionada se distingue también si está en gris; emite el evento de cambio de pestaña.
 - **Hecho cuando:** se cumplen los criterios de REQ-003, REQ-005 (color de la pestaña) y REQ-020, y los cuatro iconos están en el repositorio.
@@ -270,10 +270,10 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 - **Prueba manual:**
   1. Ejecutar `git ls-files desktop/app/src/main/resources/icons` y comprobar que aparecen los cuatro PNG; resultado esperado: los cuatro están versionados.
 
-### [ ] TASK-020 Botón cerrar en la fila de pestañas
+### [x] TASK-020 Botón cerrar en la fila de pestañas
 
 - **Cubre:** REQ-002, DEC-001
-- **Componente:** provider-tab-bar | por definir (analista técnico)
+- **Componente:** provider-tab-bar | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/ProviderTabBar.java
 - **Depende de:** TASK-019
 - **Alcance:** botón cerrar en la misma fila de pestañas, alineado a la derecha del todo, que al pulsarlo emite la petición de ocultar la ventana.
 - **Hecho cuando:** el botón está a la derecha de la última pestaña y emite la petición de ocultar.
@@ -283,7 +283,7 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 - **Prueba manual:**
   1. Tras TASK-021, abrir la ventana y comprobar que el botón cerrar está en el extremo derecho de la fila; resultado esperado: visible y alineado a la derecha.
 
-### [ ] TASK-021 Ventana de tamaño fijo que solo se oculta
+### [x] TASK-021 Ventana de tamaño fijo que solo se oculta
 
 - **Cubre:** REQ-001, REQ-002, DEC-002, S9 de la especificación
 - **Componente:** usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageWindow.java
@@ -302,7 +302,7 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
   5. Elegir mostrar la ventana de uso en el menú de la bandeja; resultado esperado: la ventana vuelve a mostrarse.
   6. Cerrar desde la barra de título; resultado esperado: mismo efecto que el botón cerrar.
 
-### [ ] TASK-022 Composición de la ventana: pestañas, contenido y sin gráfico
+### [x] TASK-022 Composición de la ventana: pestañas, contenido y sin gráfico
 
 - **Cubre:** REQ-003, REQ-004, REQ-014, REQ-015, REQ-016, DEC-011, DEC-012
 - **Componente:** usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageWindow.java
@@ -319,7 +319,7 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
   3. Reiniciar la aplicación y abrir la ventana; resultado esperado: Claude seleccionada.
   4. Con Gemini de tres grupos y OpenCode con datos, revisar las cuatro pestañas; resultado esperado: no hay gráfico y no aparece barra de desplazamiento en Claude, OpenAI ni Gemini.
 
-### [ ] TASK-023 Ventana: refresco automático y repintado solo al cambiar
+### [x] TASK-023 Ventana: refresco automático y repintado solo al cambiar
 
 - **Cubre:** REQ-004, REQ-010, REQ-017, NFR-001, DEC-009
 - **Componente:** usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageWindow.java
@@ -335,7 +335,7 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
   2. Con Gemini en una consulta lenta, cambiar de pestaña; resultado esperado: el contenido aparece en menos de 1 segundo.
   3. Con Claude mostrado, anotar el tiempo restante y esperar un minuto; resultado esperado: el tiempo restante disminuye en un minuto.
 
-### [ ] TASK-024 Integración: publicador a ventana, cambio de estado sin reiniciar
+### [x] TASK-024 Integración: publicador a ventana, cambio de estado sin reiniciar
 
 - **Cubre:** REQ-005, REQ-006, REQ-017, REQ-018
 - **Componente:** usage-snapshot-publisher | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageSnapshotPublisher.java y usage-window | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/UsageWindow.java

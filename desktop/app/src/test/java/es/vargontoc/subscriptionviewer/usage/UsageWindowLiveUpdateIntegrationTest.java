@@ -1,199 +1,102 @@
 package es.vargontoc.subscriptionviewer.usage;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.awt.GraphicsEnvironment;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.swing.SwingUtilities;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-import es.vargontoc.subscriptionviewer.config.ConfigurationProvider;
-import es.vargontoc.subscriptionviewer.ui.UsageCardPanel;
+import es.vargontoc.subscriptionviewer.ui.ProviderViewModel.PresentationState;
 import es.vargontoc.subscriptionviewer.ui.UsageWindow;
 
-/**
- * Pruebas de integración de la actualización en vivo de la ventana de uso.
- *
- * <p>Ensambla una fuente mutable, el poller, el historial, el publisher y la
- * ventana con reloj controlado, y verifica que las lecturas nuevas cruzan al
- * EDT y actualizan tarjetas y gráfico sin interacción del usuario.</p>
- */
+/** Verifica la entrega en caliente de estados publicados a la ventana Swing. */
 @EnabledIf("notHeadless")
 class UsageWindowLiveUpdateIntegrationTest {
-
-    private static final Instant T0 = Instant.parse("2026-10-16T10:00:00Z");
+    private static final Instant NOW = Instant.parse("2026-10-21T10:00:00Z");
     private static final ZoneId ZONE = ZoneId.systemDefault();
-
-    @BeforeEach
-    void setUp() {
-        if (GraphicsEnvironment.isHeadless()) {
-            return;
-        }
-    }
-
 
     static boolean notHeadless() {
         return !GraphicsEnvironment.isHeadless();
     }
 
     @Test
-    void shouldUpdateWindowAfterPollerCycle() throws Exception {
-        MutableUsageSource source = new MutableUsageSource("claude",
-                readingOf("claude", 40, 15, T0.plusSeconds(3600), T0.plusSeconds(86400)));
-        UsageHistory history = new UsageHistory();
+    void shouldTransitionFromErrorToData() throws Exception {
         UsageSnapshotPublisher publisher = new UsageSnapshotPublisher();
-        CountdownEvaluator evaluator = new CountdownEvaluator(Clock.fixed(T0, ZONE));
-        UsageWindow window = new UsageWindow(publisher, evaluator, history);
-        window.subscribe();
+        UsageWindow window = createWindow(publisher);
 
-        SwingUtilities.invokeAndWait(() -> {
-            window.getCardsPanel();
-            window.getChartPanel();
-        });
+        publisher.publish("claude", UsageReadResult.consultaFallida());
+        drainEdt();
+        assertThat(window.getTabBar().isProviderGrey("claude")).isTrue();
 
-        UsagePoller poller = createPoller(source, history, publisher);
-        poller.runCycle();
+        publisher.publish("claude", UsageReadResult.datos(reading("claude")));
         drainEdt();
 
-        assertThat(window.getCardsPanel().getComponentCount()).isEqualTo(1);
-        UsageCardPanel card = (UsageCardPanel) window.getCardsPanel().getComponent(0);
-        assertThat(labelTextsOf(card)).anyMatch(text -> text.contains("40%"));
-        assertThat(labelTextsOf(card)).anyMatch(text -> text.contains("15%"));
-
-        assertThat(history.getAllSeries()).isNotEmpty();
-        assertThat(window.getChartPanel().isVisible()).isTrue();
+        assertThat(window.getTabBar().isProviderGrey("claude")).isFalse();
+        assertThat(window.getContentPanel("claude").getState()).isEqualTo(PresentationState.DATA);
+        window.hide();
+        drainEdt();
     }
 
     @Test
-    void shouldHideWindowWhenSourceReturnsEmpty() throws Exception {
-        MutableUsageSource source = new MutableUsageSource("claude",
-                readingOf("claude", 40, 15, T0.plusSeconds(3600), T0.plusSeconds(86400)));
-        UsageHistory history = new UsageHistory();
+    void shouldTransitionFromFetchingToError() throws Exception {
         UsageSnapshotPublisher publisher = new UsageSnapshotPublisher();
-        CountdownEvaluator evaluator = new CountdownEvaluator(Clock.fixed(T0, ZONE));
-        UsageWindow window = new UsageWindow(publisher, evaluator, history);
-        window.subscribe();
+        UsageWindow window = createWindow(publisher);
 
-        SwingUtilities.invokeAndWait(() -> {
-            window.getCardsPanel();
-            window.getNeutralLabel();
-        });
+        assertThat(window.getTabBar().isProviderGrey("gemini")).isTrue();
+        assertThat(window.getContentPanel("gemini").getState()).isEqualTo(PresentationState.FETCHING);
+        assertThat(window.getContentPanel("gemini").getText()).contains("Obteniendo datos");
 
-        UsagePoller poller = createPoller(source, history, publisher);
-        poller.runCycle();
+        publisher.publish("gemini", UsageReadResult.consultaFallida());
         drainEdt();
 
-        assertThat(window.getCardsPanel().getComponentCount()).isEqualTo(1);
-
-        source.setReading(Optional.empty());
-        poller.runCycle();
+        assertThat(window.getContentPanel("gemini").getState()).isEqualTo(PresentationState.ERROR);
+        assertThat(window.getContentPanel("gemini").getText())
+                .contains("No se ha podido obtener el consumo de Gemini");
+        window.hide();
         drainEdt();
-
-        assertThat(window.getCardsPanel().getComponentCount()).isEqualTo(0);
-        assertThat(window.getNeutralLabel().isVisible()).isTrue();
     }
 
     @Test
-    void shouldRestoreWindowAfterEmptyThenValid() throws Exception {
-        MutableUsageSource source = new MutableUsageSource("claude", Optional.empty());
-        UsageHistory history = new UsageHistory();
+    void shouldMaintainErrorDuringSecondQuery() throws Exception {
         UsageSnapshotPublisher publisher = new UsageSnapshotPublisher();
-        CountdownEvaluator evaluator = new CountdownEvaluator(Clock.fixed(T0, ZONE));
-        UsageWindow window = new UsageWindow(publisher, evaluator, history);
-        window.subscribe();
+        UsageWindow window = createWindow(publisher);
 
-        SwingUtilities.invokeAndWait(() -> {
-            window.getCardsPanel();
-            window.getNeutralLabel();
-        });
-
-        UsagePoller poller = createPoller(source, history, publisher);
-        poller.runCycle();
+        publisher.publish("openai", UsageReadResult.falloTransitorio(null));
+        drainEdt();
+        publisher.publish("openai", UsageReadResult.falloTransitorio(null));
         drainEdt();
 
-        assertThat(window.getCardsPanel().getComponentCount()).isEqualTo(0);
-        assertThat(window.getNeutralLabel().isVisible()).isTrue();
-
-        source.setReading(Optional.of(
-                readingOf("claude", 40, 15, T0.plusSeconds(3600), T0.plusSeconds(86400))));
-        poller.runCycle();
+        assertThat(window.getContentPanel("openai").getState()).isEqualTo(PresentationState.ERROR);
+        assertThat(window.getContentPanel("openai").getText()).doesNotContain("Obteniendo datos");
+        assertThat(window.getContentPanel("openai").getText())
+                .contains("No se ha podido obtener el consumo de OpenAI");
+        window.hide();
         drainEdt();
-
-        assertThat(window.getNeutralLabel().isVisible()).isFalse();
-        assertThat(window.getCardsPanel().getComponentCount()).isEqualTo(1);
     }
 
-    private UsagePoller createPoller(MutableUsageSource source, UsageHistory history,
-                                     UsageSnapshotPublisher publisher) {
-        ConfigurationProvider config = mock(ConfigurationProvider.class);
-        when(config.getUsagePollInterval()).thenReturn(Duration.ofSeconds(10));
-        return new UsagePoller(config, List.of(source), history, publisher,
-                Clock.fixed(T0, ZONE), Executors.newSingleThreadScheduledExecutor());
+    private UsageWindow createWindow(UsageSnapshotPublisher publisher) throws Exception {
+        Clock clock = Clock.fixed(NOW, ZONE);
+        UsageWindow window = new UsageWindow(publisher, new CountdownEvaluator(clock), clock);
+        window.subscribe();
+        window.show();
+        drainEdt();
+        return window;
+    }
+
+    private UsageReading reading(String provider) {
+        return new UsageReading(provider, NOW, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, 40, NOW.plusSeconds(3600)),
+                new UsageWindowReading(UsageWindowType.SEVEN_DAY, 15, NOW.plusSeconds(86400))));
     }
 
     private void drainEdt() throws Exception {
-        SwingUtilities.invokeAndWait(() -> {
-        });
-    }
-
-    private List<String> labelTextsOf(UsageCardPanel card) {
-        return java.util.Arrays.stream(card.getComponents())
-                .filter(c -> c instanceof javax.swing.JLabel)
-                .map(c -> ((javax.swing.JLabel) c).getText())
-                .toList();
-    }
-
-    private UsageReading readingOf(String providerId, int fiveHour, int sevenDay,
-                                   Instant fiveHourReset, Instant sevenDayReset) {
-        return new UsageReading(
-                providerId,
-                T0,
-                List.of(
-                        new UsageWindowReading(UsageWindowType.FIVE_HOUR, fiveHour, fiveHourReset),
-                        new UsageWindowReading(UsageWindowType.SEVEN_DAY, sevenDay, sevenDayReset)
-                )
-        );
-    }
-
-    private static final class MutableUsageSource implements UsageSource {
-
-        private final String providerId;
-        private final AtomicReference<Optional<UsageReading>> reading;
-
-        MutableUsageSource(String providerId, UsageReading reading) {
-            this.providerId = providerId;
-            this.reading = new AtomicReference<>(Optional.ofNullable(reading));
-        }
-
-        MutableUsageSource(String providerId, Optional<UsageReading> reading) {
-            this.providerId = providerId;
-            this.reading = new AtomicReference<>(reading);
-        }
-
-        void setReading(Optional<UsageReading> reading) {
-            this.reading.set(reading);
-        }
-
-        @Override
-        public String getProviderId() {
-            return providerId;
-        }
-
-        @Override
-        public Optional<UsageReading> doRead() {
-            return reading.get();
-        }
+        SwingUtilities.invokeAndWait(() -> { });
     }
 }

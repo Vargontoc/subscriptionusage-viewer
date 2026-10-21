@@ -21,15 +21,31 @@ import java.util.ArrayList;
      * {@link CountdownEvaluator}.</p>
  */
 public record ProviderViewModel(
-        String providerId,
-        PresentationState state,
-        Instant updatedAt,
-        List<TableViewModel> tables) {
+         String providerId,
+         PresentationState state,
+         Instant updatedAt,
+         List<TableViewModel> tables,
+         String presentationErrorText) {
+
+    public ProviderViewModel(String providerId, PresentationState state,
+                             Instant updatedAt, List<TableViewModel> tables) {
+        this(providerId, state, updatedAt, tables, defaultErrorText(providerId, state));
+    }
 
     public ProviderViewModel {
         Objects.requireNonNull(providerId, "providerId");
         Objects.requireNonNull(state, "state");
         tables = List.copyOf(tables == null ? List.of() : tables);
+    }
+
+    private static String defaultErrorText(String providerId, PresentationState state) {
+        if (state == PresentationState.FETCHING) {
+            return ProviderErrorTexts.FIRST_QUERY;
+        }
+        if (state == PresentationState.ERROR) {
+            return ProviderErrorTexts.errorText(providerId, UsageProviderState.Estado.SIN_DATOS);
+        }
+        return null;
     }
 
     /** Estado de presentación de una pestaña. */
@@ -41,14 +57,7 @@ public record ProviderViewModel(
 
     /** Texto formal asociado al estado gris, o el aviso de primera consulta. */
     public String errorText() {
-        if (state == PresentationState.FETCHING) {
-            return ProviderErrorTexts.FIRST_QUERY;
-        }
-        if (state == PresentationState.ERROR) {
-            return ProviderErrorTexts.errorText(providerId,
-                    UsageProviderState.Estado.SIN_DATOS);
-        }
-        return null;
+        return presentationErrorText;
     }
 
     /** Modelo de una tabla de la pestaña. */
@@ -130,7 +139,8 @@ public record ProviderViewModel(
             // La selección del texto permanece centralizada en ProviderErrorTexts;
             // el contenedor lo resolverá al pintar el estado de error.
             ProviderErrorTexts.errorText(providerId, providerState.estado());
-            return new ProviderViewModel(providerId, PresentationState.ERROR, null, List.of());
+            return new ProviderViewModel(providerId, PresentationState.ERROR, null, List.of(),
+                    ProviderErrorTexts.errorText(providerId, providerState.estado()));
         }
 
         if ((ProviderErrorTexts.CLAUDE.equalsIgnoreCase(providerId)
@@ -142,7 +152,8 @@ public record ProviderViewModel(
                     .filter(window -> window.result().valid())
                     .toList();
             if (validWindows.isEmpty()) {
-                return new ProviderViewModel(providerId, PresentationState.ERROR, null, List.of());
+                return new ProviderViewModel(providerId, PresentationState.ERROR, null, List.of(),
+                        ProviderErrorTexts.errorText(providerId, UsageProviderState.Estado.SIN_DATOS));
             }
             return new ProviderViewModel(providerId, PresentationState.DATA,
                     providerState.lastSuccessfulQuery(), buildWindowTables(validWindows));
