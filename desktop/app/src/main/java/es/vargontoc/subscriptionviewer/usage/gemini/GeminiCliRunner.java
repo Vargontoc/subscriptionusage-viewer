@@ -19,8 +19,27 @@ public class GeminiCliRunner extends AbstractCliRunner {
         this(resolveDefaultCommand(), Duration.ofSeconds(60), DEFAULT_MAX_OUTPUT_BYTES);
     }
 
-    /** Usa la ruta de instalación habitual de agy si existe; si no, lo busca por PATH. */
+    /** Localiza agy con {@code where}; si el PATH del proceso no lo incluye, prueba la ruta de instalación habitual. */
     private static String resolveDefaultCommand() {
+        if (System.getProperty("os.name", "").toLowerCase().contains("win")) {
+            try {
+                Process where = new ProcessBuilder("where.exe", "agy")
+                        .redirectError(ProcessBuilder.Redirect.DISCARD).start();
+                where.getOutputStream().close();
+                String found = null;
+                try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(where.getInputStream()))) {
+                    found = reader.readLine();
+                }
+                if (where.waitFor(5, java.util.concurrent.TimeUnit.SECONDS) && where.exitValue() == 0
+                        && found != null && !found.isBlank()) {
+                    return found.trim();
+                }
+                where.destroyForcibly();
+            } catch (java.io.IOException | InterruptedException exception) {
+                if (exception instanceof InterruptedException) Thread.currentThread().interrupt();
+            }
+        }
         String localAppData = System.getenv("LOCALAPPDATA");
         if (localAppData != null) {
             java.nio.file.Path installed = java.nio.file.Path.of(localAppData, "agy", "bin", "agy.exe");
