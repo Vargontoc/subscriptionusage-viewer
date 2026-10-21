@@ -130,10 +130,10 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 - **Prueba manual:**
   1. Arrancar la aplicación con `opencode` no disponible y revisar el registro o la traza del publicador; resultado esperado: el primer ciclo de OpenCode aparece como fallo y no como silencio.
 
-### [ ] TASK-010 Modelo de vista: estado, error y hora por proveedor
+### [x] TASK-010 Modelo de vista: estado, error y hora por proveedor
 
 - **Cubre:** REQ-005, REQ-006, REQ-009, REQ-018, DEC-003
-- **Componente:** provider-view-model | por definir (analista técnico)
+- **Componente:** provider-view-model | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/ProviderViewModel.java
 - **Depende de:** TASK-002, TASK-008
 - **Alcance:** a partir del último estado publicado y de la hora actual, producir por proveedor un modelo inmutable que sea de tres tipos: obteniendo datos, error (con su texto) o con datos (con la hora de actualización y la bandera de gris desactivada); las tablas las completan TASK-011 a TASK-014. Sin E/S y sin componentes gráficos.
 - **Hecho cuando:** para cada proveedor, el modelo cumple REQ-005, REQ-006, REQ-009 y REQ-018 según el estado publicado.
