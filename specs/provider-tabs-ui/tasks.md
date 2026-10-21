@@ -158,10 +158,10 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 - **Prueba manual:**
   1. Tras TASK-022, con el fichero de estado de prueba cuya ventana de 5 horas ya ha caducado, abrir la ventana y seleccionar Claude; resultado esperado: solo aparece la tabla semanal y la pestaña no está en gris.
 
-### [ ] TASK-012 Modelo de vista: tablas de Claude y OpenAI
+### [x] TASK-012 Modelo de vista: tablas de Claude y OpenAI
 
 - **Cubre:** REQ-007, REQ-010, REQ-011, REQ-016, DEC-006
-- **Componente:** provider-view-model | por definir (analista técnico)
+- **Componente:** provider-view-model | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/ProviderViewModel.java
 - **Depende de:** TASK-011
 - **Alcance:** construir las tablas de Claude y OpenAI, "Uso 5h" y "Uso semanal", cada una con cabecera "Reinicia en" y una fila con porcentaje y tiempo restante; el porcentaje se muestra con la precisión del proveedor y el texto de la barra es el valor mostrado. No se incluye plan, título ni pie.
 - **Hecho cuando:** los criterios de contenido de REQ-010 y REQ-011 se cumplen a nivel de modelo.
@@ -172,10 +172,10 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 - **Prueba manual:**
   1. Revisar en el informe de la prueba del modelo que las cabeceras son exactamente "Uso 5h", "Uso semanal" y "Reinicia en", y que no hay plan ni título; resultado esperado: coincide con REQ-010 y REQ-011.
 
-### [ ] TASK-013 Modelo de vista: tablas de Gemini
+### [x] TASK-013 Modelo de vista: tablas de Gemini
 
 - **Cubre:** REQ-007, REQ-012, DEC-006
-- **Componente:** provider-view-model | por definir (analista técnico)
+- **Componente:** provider-view-model | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/ProviderViewModel.java
 - **Depende de:** TASK-003, TASK-010
 - **Alcance:** construir las tres tablas de Gemini: modelos (cabecera "Modelo"), uso de 5 horas y uso semanal (con "Reinicia en"), con una fila por grupo en el mismo orden; "N/A" en las celdas de una ventana ausente; el porcentaje se muestra con un decimal; los grupos con nombre no previsto se añaden con su nombre y los grupos sin cubos se omiten.
 - **Hecho cuando:** los criterios de REQ-012 se cumplen a nivel de modelo.
@@ -186,10 +186,10 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 - **Prueba manual:**
   1. Revisar en el informe de la prueba que las tres tablas tienen las mismas filas en el mismo orden y que aparece "N/A" donde corresponde; resultado esperado: coincide con REQ-012.
 
-### [ ] TASK-014 Modelo de vista: tablas de OpenCode
+### [x] TASK-014 Modelo de vista: tablas de OpenCode
 
 - **Cubre:** REQ-013
-- **Componente:** provider-view-model | por definir (analista técnico)
+- **Componente:** provider-view-model | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/ProviderViewModel.java
 - **Depende de:** TASK-007, TASK-010
 - **Alcance:** construir la tabla de modelos (cabecera "Modelo", una fila por modelo de `opencode-go` con consumo, y una fila final "Total") y la tabla de usos ("Uso 5h", "Uso semanal" y "Uso mensual"), con una fila por cada fila de modelos y sin columnas de tiempo restante ni de reinicio.
 - **Hecho cuando:** los criterios de REQ-013 se cumplen a nivel de modelo.

@@ -12,13 +12,13 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.ArrayList;
 
 /**
  * Modelo inmutable que representa lo que debe mostrar una pestaña de proveedor.
  *
  * <p>La construcción no realiza E/S. La evaluación de las ventanas se deja al
- * {@link CountdownEvaluator}; las tablas se completan en las tareas posteriores
- * de esta feature.</p>
+     * {@link CountdownEvaluator}.</p>
  */
 public record ProviderViewModel(
         String providerId,
@@ -52,20 +52,37 @@ public record ProviderViewModel(
     }
 
     /** Modelo de una tabla de la pestaña. */
-    public record TableViewModel(String title, List<RowViewModel> rows) {
+    public record TableViewModel(String title, List<String> headers, List<RowViewModel> rows) {
+        /** Constructor compatible con consumidores que aún no especifican cabeceras. */
+        public TableViewModel(String title, List<RowViewModel> rows) {
+            this(title, List.of(title, "Reinicia en"), rows);
+        }
+
         public TableViewModel {
-            Objects.requireNonNull(title, "title");
+            headers = List.copyOf(headers == null ? List.of() : headers);
             rows = List.copyOf(rows == null ? List.of() : rows);
         }
     }
 
     /** Modelo de una fila de tabla. */
     public record RowViewModel(String label, CellViewModel percentageCell,
-                               CellViewModel timeCell) {
+                               CellViewModel timeCell, List<CellViewModel> additionalCells) {
+        public RowViewModel(String label, CellViewModel percentageCell, CellViewModel timeCell) {
+            this(label, percentageCell, timeCell, List.of());
+        }
+
         public RowViewModel {
-            Objects.requireNonNull(label, "label");
             Objects.requireNonNull(percentageCell, "percentageCell");
-            Objects.requireNonNull(timeCell, "timeCell");
+            additionalCells = List.copyOf(additionalCells == null ? List.of() : additionalCells);
+            additionalCells.forEach(Objects::requireNonNull);
+        }
+
+        /** Celdas de porcentaje en el orden de las cabeceras de uso. */
+        public List<CellViewModel> percentageCells() {
+            List<CellViewModel> cells = new ArrayList<>();
+            cells.add(percentageCell);
+            cells.addAll(additionalCells);
+            return List.copyOf(cells);
         }
     }
 
@@ -131,6 +148,16 @@ public record ProviderViewModel(
                     providerState.lastSuccessfulQuery(), buildWindowTables(validWindows));
         }
 
+        if (ProviderErrorTexts.GEMINI.equalsIgnoreCase(providerId)) {
+            return new ProviderViewModel(providerId, PresentationState.DATA,
+                    providerState.lastSuccessfulQuery(), buildGeminiTables(providerState.reading(), evaluator));
+        }
+
+        if (ProviderErrorTexts.OPENCODE.equalsIgnoreCase(providerId)) {
+            return new ProviderViewModel(providerId, PresentationState.DATA,
+                    providerState.lastSuccessfulQuery(), buildOpenCodeTables(providerState.reading()));
+        }
+
         return new ProviderViewModel(providerId, PresentationState.DATA,
                 providerState.lastSuccessfulQuery(), List.of());
     }
@@ -144,12 +171,117 @@ public record ProviderViewModel(
                     String title = window.window().type() == UsageWindowType.FIVE_HOUR
                             ? "Uso 5h" : "Uso semanal";
                     String remaining = window.result().formattedRemainingTime();
-                    return new TableViewModel(title, List.of(new RowViewModel("",
+            return new TableViewModel(title, List.of(title, "Reinicia en"), List.of(new RowViewModel("",
                             new CellViewModel(CellViewModel.CellType.PERCENTAGE,
                                     window.window().usedPercentage(), null),
                             new CellViewModel(CellViewModel.CellType.TEXT, null, remaining))));
                 })
                 .toList();
+    }
+
+    private static List<TableViewModel> buildGeminiTables(UsageReading reading,
+                                                           CountdownEvaluator evaluator) {
+        List<UsageReading> groups = reading.seriesReadings().stream()
+                .filter(group -> !group.windows().isEmpty())
+                .sorted((left, right) -> Integer.compare(geminiGroupOrder(left.seriesId()),
+                        geminiGroupOrder(right.seriesId())))
+                .toList();
+
+        List<RowViewModel> modelRows = groups.stream()
+                .map(group -> new RowViewModel(group.seriesId(),
+                        textCell(group.seriesId()), textCell(group.seriesId())))
+                .toList();
+        List<RowViewModel> fiveHourRows = groups.stream()
+                .map(group -> geminiWindowRow(group, UsageWindowType.FIVE_HOUR, evaluator))
+                .toList();
+        List<RowViewModel> weeklyRows = groups.stream()
+                .map(group -> geminiWindowRow(group, UsageWindowType.SEVEN_DAY, evaluator))
+                .toList();
+
+        return List.of(
+                new TableViewModel("Modelo", List.of("Modelo"), modelRows),
+                new TableViewModel("Uso 5h", List.of("Uso 5h", "Reinicia en"), fiveHourRows),
+                new TableViewModel("Uso semanal", List.of("Uso semanal", "Reinicia en"), weeklyRows));
+    }
+
+    private static List<TableViewModel> buildOpenCodeTables(UsageReading reading) {
+        List<UsageReading> series = reading.seriesReadings().stream()
+                .filter(Objects::nonNull)
+                .toList();
+
+        List<UsageReading> models = series.stream()
+                .filter(item -> item.seriesId() != null && !"Total".equalsIgnoreCase(item.seriesId()))
+                .toList();
+        UsageReading total = series.stream()
+                .filter(item -> item.seriesId() == null || "Total".equalsIgnoreCase(item.seriesId()))
+                .findFirst()
+                .orElse(new UsageReading(reading.providerId(), "Total", reading.writtenAt(), reading.windows()));
+
+        List<UsageReading> ordered = new ArrayList<>(models);
+        ordered.add(total);
+
+        List<RowViewModel> modelRows = ordered.stream()
+                .map(item -> new RowViewModel(item.seriesId() == null ? "Total" : item.seriesId(),
+                        percentageCell(windowPercentage(item, UsageWindowType.FIVE_HOUR)), null))
+                .toList();
+        List<RowViewModel> usageRows = ordered.stream()
+                .map(item -> new RowViewModel(null,
+                        percentageCell(windowPercentage(item, UsageWindowType.FIVE_HOUR)), null,
+                        List.of(percentageCell(windowPercentage(item, UsageWindowType.WEEKLY)),
+                                percentageCell(windowPercentage(item, UsageWindowType.MONTHLY)))))
+                .toList();
+
+        return List.of(
+                new TableViewModel("Modelo", List.of("Modelo"), modelRows),
+                new TableViewModel(null, List.of("Uso 5h", "Uso semanal", "Uso mensual"), usageRows));
+    }
+
+    private static double windowPercentage(UsageReading reading, UsageWindowType type) {
+        return reading.windows().stream()
+                .filter(window -> window.type() == type
+                        || (type == UsageWindowType.WEEKLY && window.type() == UsageWindowType.SEVEN_DAY))
+                .mapToDouble(UsageWindowReading::usedPercentage)
+                .findFirst()
+                .orElse(0.0);
+    }
+
+    private static CellViewModel percentageCell(double percentage) {
+        return new CellViewModel(CellViewModel.CellType.PERCENTAGE, percentage, null);
+    }
+
+    private static RowViewModel geminiWindowRow(UsageReading group, UsageWindowType type,
+                                                 CountdownEvaluator evaluator) {
+        UsageWindowReading window = group.windows().stream()
+                .filter(candidate -> candidate.type() == type
+                        || (type == UsageWindowType.SEVEN_DAY
+                        && candidate.type() == UsageWindowType.WEEKLY))
+                .findFirst().orElse(null);
+        if (window == null) {
+            return new RowViewModel("", naCell(), naCell());
+        }
+        CountdownResult countdown = evaluator.evaluate("gemini", window.resetsAt());
+        return new RowViewModel("",
+                new CellViewModel(CellViewModel.CellType.PERCENTAGE,
+                        window.usedPercentage(), null),
+                new CellViewModel(CellViewModel.CellType.TEXT, null,
+                        countdown.formattedRemainingTime()));
+    }
+
+    private static int geminiGroupOrder(String name) {
+        return switch (name) {
+            case "Gemini Models" -> 0;
+            case "Claude and GPT models" -> 1;
+            case "Gemini 4 Argon" -> 2;
+            default -> 3;
+        };
+    }
+
+    private static CellViewModel naCell() {
+        return new CellViewModel(CellViewModel.CellType.NA, null, "N/A");
+    }
+
+    private static CellViewModel textCell(String text) {
+        return new CellViewModel(CellViewModel.CellType.TEXT, null, text);
     }
 
     private record EvaluatedWindow(UsageWindowReading window, CountdownResult result) {

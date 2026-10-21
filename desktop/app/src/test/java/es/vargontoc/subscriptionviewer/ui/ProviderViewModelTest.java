@@ -83,6 +83,11 @@ class ProviderViewModelTest {
 
         assertEquals(ProviderViewModel.PresentationState.DATA, model.state());
         assertEquals(2, model.tables().size());
+        assertEquals(List.of("Uso 5h", "Reinicia en"), model.tables().get(0).headers());
+        assertEquals(List.of("Uso semanal", "Reinicia en"), model.tables().get(1).headers());
+        assertEquals(40.0, model.tables().get(0).rows().get(0).percentageCell().percentage());
+        assertEquals("1h 0m", model.tables().get(0).rows().get(0).timeCell().text());
+        assertEquals("2h 0m", model.tables().get(1).rows().get(0).timeCell().text());
     }
 
     @Test
@@ -113,6 +118,133 @@ class ProviderViewModelTest {
         assertEquals(ProviderViewModel.PresentationState.ERROR, model.state());
         assertEquals(ProviderErrorTexts.errorText("openai", UsageProviderState.Estado.CONSULTA_FALLIDA),
                 ProviderErrorTexts.errorText("openai", UsageProviderState.Estado.CONSULTA_FALLIDA));
+    }
+
+    @Test
+    void openAiSinVentanaSemanalSoloConstruyeTablaDeCincoHoras() {
+        ProviderViewModel model = model("openai", new UsageReading("openai", NOW,
+                List.of(new UsageWindowReading(UsageWindowType.FIVE_HOUR, 40.0,
+                        future(1)))));
+
+        assertEquals(List.of("Uso 5h"), model.tables().stream()
+                .map(ProviderViewModel.TableViewModel::title).toList());
+    }
+
+    @Test
+    void openAiNoExponePlanTypeEnElModelo() {
+        UsageReading reading = new UsageReading("openai", NOW,
+                List.of(new UsageWindowReading(UsageWindowType.FIVE_HOUR, 40.0, future(1))),
+                null, List.of(), "pro");
+        ProviderViewModel model = model("openai", reading);
+
+        assertEquals(ProviderViewModel.PresentationState.DATA, model.state());
+        assertEquals(List.of("Uso 5h"), model.tables().stream()
+                .map(ProviderViewModel.TableViewModel::title).toList());
+        assertEquals(List.of("Uso 5h", "Reinicia en"), model.tables().get(0).headers());
+    }
+
+    @Test
+    void geminiConstruyeTresTablasConLosGruposEnOrden() {
+        ProviderViewModel model = geminiModel(
+                geminiGroup("Gemini 4 Argon", weekly(30)),
+                geminiGroup("Claude and GPT models", window(1.84, 1), weekly(0.94)),
+                geminiGroup("Gemini Models", window(20, 1), weekly(10)));
+
+        assertEquals(List.of("Modelo", "Uso 5h", "Uso semanal"),
+                model.tables().stream().map(ProviderViewModel.TableViewModel::title).toList());
+        List<String> expected = List.of("Gemini Models", "Claude and GPT models", "Gemini 4 Argon");
+        assertEquals(expected, model.tables().get(0).rows().stream()
+                .map(ProviderViewModel.RowViewModel::label).toList());
+        assertEquals(expected.size(), model.tables().get(1).rows().size());
+        assertEquals(expected.size(), model.tables().get(2).rows().size());
+    }
+
+    @Test
+    void geminiVentanaAusenteMuestraNaYConservaLaSemanal() {
+        ProviderViewModel model = geminiModel(
+                geminiGroup("Gemini 4 Argon", weekly(30)),
+                geminiGroup("Claude and GPT models", window(1.84, 1), weekly(0.94)));
+
+        ProviderViewModel.RowViewModel argonFiveHours = model.tables().get(1).rows().get(1);
+        assertEquals(ProviderViewModel.CellViewModel.CellType.NA,
+                argonFiveHours.percentageCell().type());
+        assertEquals("N/A", argonFiveHours.timeCell().text());
+        ProviderViewModel.RowViewModel claudeWeekly = model.tables().get(2).rows().get(0);
+        assertEquals(0.94, claudeWeekly.percentageCell().percentage());
+    }
+
+    @Test
+    void geminiOmiteGruposSinCubosYAñadeLosDesconocidos() {
+        ProviderViewModel model = geminiModel(
+                geminiGroup("vacío"),
+                geminiGroup("Otro grupo", window(12, 1)));
+
+        assertEquals(List.of("Otro grupo"), model.tables().get(0).rows().stream()
+                .map(ProviderViewModel.RowViewModel::label).toList());
+        assertEquals(ProviderViewModel.CellViewModel.CellType.NA,
+                model.tables().get(2).rows().get(0).percentageCell().type());
+    }
+
+    @Test
+    void openCodeConstruyeTablasAlineadasConTotal() {
+        ProviderViewModel model = model("opencode", openCodeReading(
+                openCodeSeries("modelo-a", 50, 20, 10),
+                openCodeSeries("modelo-b", 25, 10, 5),
+                openCodeSeries("Total", 31.25, 30, 15)));
+
+        assertEquals(java.util.Arrays.asList("Modelo", null), model.tables().stream()
+                .map(ProviderViewModel.TableViewModel::title).toList());
+        assertEquals(List.of("modelo-a", "modelo-b", "Total"),
+                model.tables().get(0).rows().stream().map(ProviderViewModel.RowViewModel::label).toList());
+        assertEquals(3, model.tables().get(1).headers().size());
+        assertEquals(3, model.tables().get(0).rows().size());
+        assertEquals(3, model.tables().get(1).rows().size());
+        assertEquals(31.25, model.tables().get(1).rows().get(2).percentageCells().get(0).percentage());
+        assertEquals(50.0, model.tables().get(1).rows().get(0).percentageCell().percentage());
+        assertEquals(null, model.tables().get(0).rows().get(0).timeCell());
+        assertEquals(null, model.tables().get(1).rows().get(0).label());
+    }
+
+    @Test
+    void openCodeConsultaPosteriorAñadeModeloEnAmbasTablasSinCabecerasDuplicadas() {
+        ProviderViewModel model = model("opencode", openCodeReading(
+                openCodeSeries("modelo-a", 50, 20, 10),
+                openCodeSeries("modelo-b", 10, 5, 2),
+                openCodeSeries("Total", 20, 10, 5)));
+
+        assertEquals(List.of("Modelo"), model.tables().get(0).headers());
+        assertEquals(List.of("Uso 5h", "Uso semanal", "Uso mensual"), model.tables().get(1).headers());
+        assertEquals(3, model.tables().get(0).rows().size());
+        assertEquals(3, model.tables().get(1).rows().size());
+    }
+
+    private static UsageReading openCodeReading(UsageReading... series) {
+        return new UsageReading("opencode", NOW, List.of(), List.of(series));
+    }
+
+    private static UsageReading openCodeSeries(String name, double fiveHour,
+                                               double weekly, double monthly) {
+        return new UsageReading("opencode", name, NOW, List.of(
+                new UsageWindowReading(UsageWindowType.FIVE_HOUR, fiveHour, null),
+                new UsageWindowReading(UsageWindowType.WEEKLY, weekly, null),
+                new UsageWindowReading(UsageWindowType.MONTHLY, monthly, null)));
+    }
+
+    private static ProviderViewModel geminiModel(UsageReading... groups) {
+        UsageReading reading = new UsageReading("gemini", NOW, List.of(), List.of(groups));
+        return model("gemini", reading);
+    }
+
+    private static UsageReading geminiGroup(String name, UsageWindowReading... windows) {
+        return new UsageReading("gemini", name, NOW, List.of(windows));
+    }
+
+    private static UsageWindowReading window(double percentage, long hours) {
+        return new UsageWindowReading(UsageWindowType.FIVE_HOUR, percentage, future(hours));
+    }
+
+    private static UsageWindowReading weekly(double percentage) {
+        return new UsageWindowReading(UsageWindowType.SEVEN_DAY, percentage, future(2));
     }
 
     private static ProviderViewModel model(String provider, UsageReading reading) {
