@@ -116,7 +116,7 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 - **Prueba manual:**
   1. Con las pruebas del publicador, ejecutar la secuencia correcto, fallo y ausencia; resultado esperado: tras cada paso, el estado publicado es el que corresponde y ningún paso deja el proveedor sin entrada.
 
-### [ ] TASK-009 Sondeador: entregar todos los resultados de cada ciclo
+### [x] TASK-009 Sondeador: entregar todos los resultados de cada ciclo
 
 - **Cubre:** REQ-006, REQ-018, DEC-004
 - **Componente:** usage-poller | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsagePoller.java

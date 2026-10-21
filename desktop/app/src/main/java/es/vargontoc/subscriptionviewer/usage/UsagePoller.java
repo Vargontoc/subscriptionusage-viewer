@@ -154,12 +154,6 @@ public class UsagePoller implements SmartLifecycle {
         return source.getPollInterval(configurationProvider);
     }
 
-    /** Semántica heredada: los ciclos incompletos de OpenCode no se publican. */
-    private boolean isOpenCode(UsageSource source) {
-        return "opencode".equalsIgnoreCase(source.getProviderId())
-                || source.getProviderId().toLowerCase().contains("opencode");
-    }
-
     private void scheduleNext(UsageSource source, Duration delay) {
         if (!running) return;
         ScheduledFuture<?> future = executor.schedule(() -> poll(source),
@@ -182,21 +176,31 @@ public class UsagePoller implements SmartLifecycle {
         });
     }
 
-    /**
-     * Entrega únicamente ciclos completos de OpenCode. Una ausencia de datos
-     * representa un ciclo descartado y no debe despertar al publicador ni
-     * modificar la hora del último ciclo válido. Claude conserva la semántica
-     * de v1, incluida la publicación de sus estados de fallo.
-     */
     private void publishCycleResult(UsageSource source, UsageReadResult result,
                                     Instant completedAt) {
         // El resultado se entrega al historial únicamente después de que la
         // fuente haya cerrado su ciclo atómico y lo haya marcado como datos.
         // La propia historia decide qué series/ventanas cambian y deduplica.
         result.datos().ifPresent(this::recordSuccessfulCycle);
-        if (result.datos().isPresent() || !isOpenCode(source)) {
-            publisher.publish(source.getProviderId(), result, completedAt);
+        publisher.publish(source.getProviderId(), result, completedAt);
+    }
+
+    /**
+     * OpenCode devuelve una ausencia cuando su ciclo atómico no es válido. Esa
+     * ausencia es una consulta fallida, no un fallo transitorio genérico. Las
+     * excepciones que la fuente ya ha clasificado conservan su estado.
+     */
+    private UsageReadResult classifyCycleResult(UsageSource source, UsageReadResult result) {
+        if (isOpenCode(source) && result.estado() == UsageReadResult.Estado.FALLO_TRANSITORIO
+                && result.causa().isEmpty()) {
+            return UsageReadResult.consultaFallida();
         }
+        return result;
+    }
+
+    private boolean isOpenCode(UsageSource source) {
+        return "opencode".equalsIgnoreCase(source.getProviderId())
+                || source.getProviderId().toLowerCase().contains("opencode");
     }
 
     private void recordSuccessfulCycle(UsageReading reading) {
@@ -210,13 +214,16 @@ public class UsagePoller implements SmartLifecycle {
             if (timeout == null || timeout.isZero() || timeout.isNegative()) {
                 throw new IllegalStateException("El tiempo máximo de lectura debe ser positivo");
             }
-            return future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+            return classifyCycleResult(source, future.get(timeout.toMillis(), TimeUnit.MILLISECONDS));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             future.cancel(true);
-            return UsageReadResult.falloTransitorio(e);
+            return classifyCycleResult(source, UsageReadResult.falloTransitorio(e));
         } catch (ExecutionException | TimeoutException e) {
             future.cancel(true);
+            if (e instanceof TimeoutException && isOpenCode(source)) {
+                return UsageReadResult.consultaFallida();
+            }
             return UsageReadResult.falloTransitorio(e);
         }
     }

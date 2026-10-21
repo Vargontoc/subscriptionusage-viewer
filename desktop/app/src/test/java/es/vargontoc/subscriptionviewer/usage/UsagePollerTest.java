@@ -23,7 +23,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -180,7 +179,7 @@ class UsagePollerTest {
     }
 
     @Test
-    void shouldKeepOpenCodeSilentForConsultaFallida() {
+    void shouldPublishOpenCodeConsultaFallida() {
         ConfigurationProvider config = mock(ConfigurationProvider.class);
         UsageSnapshotPublisher publisher = mock(UsageSnapshotPublisher.class);
         UsageSource opencode = mock(UsageSource.class);
@@ -193,14 +192,15 @@ class UsagePollerTest {
                 Executors.newSingleThreadScheduledExecutor());
         try {
             poller.runCycle();
-            verify(publisher, never()).publish(eq("opencode"), any(UsageReadResult.class), any(Instant.class));
+            verify(publisher).publish(eq("opencode"),
+                    argThat(result -> result.estado() == UsageReadResult.Estado.CONSULTA_FALLIDA), eq(NOW));
         } finally {
             poller.stop();
         }
     }
 
     @Test
-    void shouldNotPublishOpenCodeCycleWithoutData() {
+    void shouldPublishOpenCodeCycleWithoutDataAsFailure() {
         ConfigurationProvider config = mock(ConfigurationProvider.class);
         UsageHistory history = mock(UsageHistory.class);
         UsageSnapshotPublisher publisher = mock(UsageSnapshotPublisher.class);
@@ -222,7 +222,8 @@ class UsagePollerTest {
 
         poller.runCycle();
 
-        org.mockito.Mockito.verifyNoInteractions(publisher);
+        verify(publisher).publish(eq("opencode"),
+                argThat(result -> result.estado() == UsageReadResult.Estado.CONSULTA_FALLIDA), eq(NOW));
         org.mockito.Mockito.verifyNoInteractions(history);
     }
 
@@ -239,7 +240,8 @@ class UsagePollerTest {
         poller.runCycle();
 
         verify(history).add(any(UsageReading.class));
-        verify(publisher).publish(eq("opencode"), any(UsageReadResult.class), eq(NOW));
+        verify(publisher).publish(eq("opencode"),
+                argThat(result -> result.estado() == UsageReadResult.Estado.DATOS), eq(NOW));
     }
 
     @Test
@@ -277,9 +279,30 @@ class UsagePollerTest {
         poller.runCycle();
 
         verify(publisher).publish(eq(CLAUDE), any(UsageReadResult.class), eq(NOW));
-        org.mockito.Mockito.verify(publisher, org.mockito.Mockito.never())
-                .publish(eq("opencode"), any(UsageReadResult.class), any(Instant.class));
+        verify(publisher).publish(eq("opencode"), any(UsageReadResult.class), eq(NOW));
         verify(history).add(any(UsageReading.class));
+    }
+
+    @Test
+    void shouldPublishInitialOpenAiFailureInsteadOfHidingIt() {
+        ConfigurationProvider config = mock(ConfigurationProvider.class);
+        UsageSnapshotPublisher publisher = mock(UsageSnapshotPublisher.class);
+        UsageSource openAi = mock(UsageSource.class);
+        when(openAi.getProviderId()).thenReturn("openai");
+        when(openAi.read()).thenReturn(UsageReadResult.falloTransitorio(new IllegalStateException("credentials")));
+        when(openAi.getReadTimeout()).thenReturn(Duration.ofSeconds(5));
+
+        UsagePoller poller = new UsagePoller(config, List.of(openAi), mock(UsageHistory.class), publisher,
+                Clock.fixed(NOW, ZoneId.systemDefault()),
+                Executors.newSingleThreadScheduledExecutor());
+        try {
+            poller.runCycle();
+
+            verify(publisher).publish(eq("openai"),
+                    argThat(result -> result.estado() == UsageReadResult.Estado.FALLO_TRANSITORIO), eq(NOW));
+        } finally {
+            poller.stop();
+        }
     }
 
     @Test
