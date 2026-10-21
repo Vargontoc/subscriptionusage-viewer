@@ -1,8 +1,12 @@
 package es.vargontoc.subscriptionviewer.ui;
 
 import es.vargontoc.subscriptionviewer.usage.CountdownEvaluator;
+import es.vargontoc.subscriptionviewer.usage.CountdownResult;
 import es.vargontoc.subscriptionviewer.usage.UsageProviderState;
+import es.vargontoc.subscriptionviewer.usage.UsageReading;
 import es.vargontoc.subscriptionviewer.usage.UsageSnapshot;
+import es.vargontoc.subscriptionviewer.usage.UsageWindowReading;
+import es.vargontoc.subscriptionviewer.usage.UsageWindowType;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -33,6 +37,18 @@ public record ProviderViewModel(
         FETCHING,
         ERROR,
         DATA
+    }
+
+    /** Texto formal asociado al estado gris, o el aviso de primera consulta. */
+    public String errorText() {
+        if (state == PresentationState.FETCHING) {
+            return ProviderErrorTexts.FIRST_QUERY;
+        }
+        if (state == PresentationState.ERROR) {
+            return ProviderErrorTexts.errorText(providerId,
+                    UsageProviderState.Estado.SIN_DATOS);
+        }
+        return null;
     }
 
     /** Modelo de una tabla de la pestaña. */
@@ -100,8 +116,43 @@ public record ProviderViewModel(
             return new ProviderViewModel(providerId, PresentationState.ERROR, null, List.of());
         }
 
+        if ((ProviderErrorTexts.CLAUDE.equalsIgnoreCase(providerId)
+                || ProviderErrorTexts.OPENAI.equalsIgnoreCase(providerId))) {
+            UsageReading reading = providerState.reading();
+            List<EvaluatedWindow> validWindows = reading.windows().stream()
+                    .map(window -> new EvaluatedWindow(window,
+                            evaluator.evaluate(providerId, window.resetsAt())))
+                    .filter(window -> window.result().valid())
+                    .toList();
+            if (validWindows.isEmpty()) {
+                return new ProviderViewModel(providerId, PresentationState.ERROR, null, List.of());
+            }
+            return new ProviderViewModel(providerId, PresentationState.DATA,
+                    providerState.lastSuccessfulQuery(), buildWindowTables(validWindows));
+        }
+
         return new ProviderViewModel(providerId, PresentationState.DATA,
                 providerState.lastSuccessfulQuery(), List.of());
+    }
+
+    private static List<TableViewModel> buildWindowTables(List<EvaluatedWindow> windows) {
+        return windows.stream()
+                .filter(window -> window.window().type() == UsageWindowType.FIVE_HOUR
+                        || window.window().type() == UsageWindowType.SEVEN_DAY
+                        || window.window().type() == UsageWindowType.WEEKLY)
+                .map(window -> {
+                    String title = window.window().type() == UsageWindowType.FIVE_HOUR
+                            ? "Uso 5h" : "Uso semanal";
+                    String remaining = window.result().formattedRemainingTime();
+                    return new TableViewModel(title, List.of(new RowViewModel("",
+                            new CellViewModel(CellViewModel.CellType.PERCENTAGE,
+                                    window.window().usedPercentage(), null),
+                            new CellViewModel(CellViewModel.CellType.TEXT, null, remaining))));
+                })
+                .toList();
+    }
+
+    private record EvaluatedWindow(UsageWindowReading window, CountdownResult result) {
     }
 
     /** Alias semántico para consumidores que prefieran una factoría explícita. */

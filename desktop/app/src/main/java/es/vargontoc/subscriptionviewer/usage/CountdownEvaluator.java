@@ -34,9 +34,9 @@ public class CountdownEvaluator {
 
     /**
      * Evalúa una ventana teniendo en cuenta el proveedor que la presenta.
-     * OpenAI debe seguir mostrando la ventana aunque su reinicio ya haya
-     * pasado, con una cuenta atrás de cero; las fuentes existentes conservan
-     * la semántica de ventana vencida.
+     * La vigencia real se aplica también a OpenAI. Gemini conserva su
+     * semántica especial porque sus ventanas se muestran con cuenta atrás
+     * cero una vez vencidas.
      *
      * @param providerId identificador del proveedor
      * @param resetsAt instante en el que se reinicia la ventana
@@ -53,7 +53,7 @@ public class CountdownEvaluator {
         if (resetsAt.isAfter(now)) {
             return new CountdownResult(Duration.between(now, resetsAt), true, true);
         }
-        if ("openai".equalsIgnoreCase(providerId) || "gemini".equalsIgnoreCase(providerId)) {
+        if ("gemini".equalsIgnoreCase(providerId)) {
             return new CountdownResult(Duration.ZERO, true, true);
         }
         return new CountdownResult(Duration.ZERO, false, true);

@@ -117,13 +117,13 @@ class CountdownEvaluatorTest {
     }
 
     @Test
-    void shouldReturnZeroButKeepOpenAiWindowVisibleWhenResetHasPassed() {
+    void shouldReturnNotValidWhenOpenAiResetHasPassed() {
         Clock clock = Clock.fixed(NOW, ZoneId.systemDefault());
         CountdownEvaluator evaluator = new CountdownEvaluator(clock);
 
         CountdownResult result = evaluator.evaluate("openai", NOW.minusSeconds(1));
 
-        assertThat(result.valid()).isTrue();
+        assertThat(result.valid()).isFalse();
         assertThat(result.remainingTime()).isEqualTo(Duration.ZERO);
         assertThat(result.remainingTime().isNegative()).isFalse();
     }

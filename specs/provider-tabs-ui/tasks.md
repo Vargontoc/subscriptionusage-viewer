@@ -144,10 +144,10 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 - **Prueba manual:**
   1. no aplica: componente de lógica sin comportamiento visible propio; su efecto se verifica en TASK-017 y TASK-019.
 
-### [ ] TASK-011 Modelo de vista: vigencia de Claude y OpenAI
+### [x] TASK-011 Modelo de vista: vigencia de Claude y OpenAI
 
 - **Cubre:** REQ-005, REQ-006, REQ-010, REQ-011, DEC-010
-- **Componente:** provider-view-model | por definir (analista técnico)
+- **Componente:** provider-view-model | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/ProviderViewModel.java
 - **Depende de:** TASK-010
 - **Alcance:** aplicar la vigencia de las ventanas de Claude y OpenAI con countdown-evaluator en cada refresco: se omite la tabla de una ventana caducada mientras la otra siga vigente, y el proveedor pasa a error si ninguna ventana está vigente.
 - **Hecho cuando:** se cumplen los criterios de vigencia de REQ-005, REQ-006, REQ-010 y REQ-011.
