@@ -34,7 +34,7 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 - **Prueba manual:**
   1. Comparar el catálogo con REQ-006 y REQ-018 línea a línea (tildes, puntuación y signo "…"); resultado esperado: coinciden todos.
 
-### [ ] TASK-003 Gemini: el parser entrega el porcentaje sin redondear
+### [x] TASK-003 Gemini: el parser entrega el porcentaje sin redondear
 
 - **Cubre:** REQ-008, DEC-006
 - **Componente:** gemini-usage-parser | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/gemini

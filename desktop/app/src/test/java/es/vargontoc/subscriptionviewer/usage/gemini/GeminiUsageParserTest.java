@@ -18,7 +18,7 @@ class GeminiUsageParserTest {
     @Test
     void aceptaSobreValidoYExtraeGroups() {
         GeminiUsageParser.ParseResult result = parser.parse("""
-                {"status":"SUCCESS","command":{"data":{"groups":[{"name":"Gemini Models","buckets":[{"window":"weekly","remaining_fraction":0.9818568229675293,"reset_time":"2026-10-26T00:00:00Z"}]}]}}}
+                {"status":"SUCCESS","command":{"data":{"groups":[{"name":"Gemini Models","buckets":[{"window":"weekly","remaining_fraction":0.9816,"reset_time":"2026-10-26T00:00:00Z"}]}]}}}
                 """);
 
         assertTrue(result.isValid());
@@ -26,7 +26,7 @@ class GeminiUsageParserTest {
         assertEquals("Gemini Models", result.groups().get(0).name());
         assertEquals(1, result.groups().get(0).windows().size());
         assertEquals(UsageWindowType.WEEKLY, result.groups().get(0).windows().get(0).type());
-        assertEquals(1.8, result.groups().get(0).windows().get(0).percentage());
+        assertEquals(1.84, result.groups().get(0).windows().get(0).percentage());
         assertEquals(Instant.parse("2026-10-26T00:00:00Z"), result.groups().get(0).windows().get(0).resetsAt());
     }
 
@@ -96,6 +96,16 @@ class GeminiUsageParserTest {
         assertEquals(100.0, result.groups().get(1).windows().get(0).percentage());
         assertEquals(50.0, result.groups().get(1).windows().get(1).percentage());
         assertEquals(100.0, result.groups().get(2).windows().get(0).percentage());
+    }
+
+    @Test
+    void conservaPorcentajeCercanoAlCienSinRedondear() {
+        GeminiUsageParser.ParseResult result = parser.parse("""
+                {"status":"SUCCESS","command":{"data":{"groups":[{"name":"Gemini Models","buckets":[{"window":"weekly","remaining_fraction":0.0004}]}]}}}
+                """);
+
+        assertTrue(result.isValid());
+        assertEquals(99.96, result.groups().get(0).windows().get(0).percentage());
     }
 
     @Test

@@ -1,7 +1,6 @@
 package es.vargontoc.subscriptionviewer.usage.gemini;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -125,7 +124,6 @@ public final class GeminiUsageParser {
         fraction = Math.max(0.0, Math.min(1.0, fraction));
         double percentage = BigDecimal.ONE.subtract(BigDecimal.valueOf(fraction))
                 .multiply(BigDecimal.valueOf(100))
-                .setScale(1, RoundingMode.HALF_UP)
                 .doubleValue();
         return new GeminiWindow(type, percentage, parseResetTime(bucket.get("reset_time")));
     }
