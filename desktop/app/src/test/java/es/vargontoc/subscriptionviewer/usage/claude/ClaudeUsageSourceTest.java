@@ -71,6 +71,23 @@ class ClaudeUsageSourceTest {
     }
 
     @Test
+    void shouldPreserveDecimalPercentagesWithoutRounding() {
+        String json = """
+                {
+                  "five_hour": { "used_percentage": 50.1, "resets_at": 1792186200 },
+                  "seven_day": { "used_percentage": 99.96, "resets_at": 1792544400 }
+                }
+                """;
+        ClaudeUsageSource source = createSource(json, FILE_TIME);
+
+        UsageReadResult result = source.read();
+
+        assertThat(result.isPresent()).isTrue();
+        assertThat(result.get().windows().get(0).usedPercentage()).isEqualTo(50.1);
+        assertThat(result.get().windows().get(1).usedPercentage()).isEqualTo(99.96);
+    }
+
+    @Test
     void shouldReturnEmptyWhenFileIsMissing() {
         ClaudeUsageSource source = createSource(new FixedStateFileLoader(Optional.empty()));
 

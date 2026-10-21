@@ -44,7 +44,29 @@ class OpenAiUsageClientTest {
 
         assertThat(result.planType()).isNull();
         assertThat(result.reading().windows()).hasSize(1);
-        assertThat(result.reading().windows().get(0).usedPercentage()).isEqualTo(6);
+        assertThat(result.reading().windows().get(0).usedPercentage()).isEqualTo(5.6);
+    }
+
+    @Test
+    void preservesDecimalPercentagesWithoutRounding() {
+        String json = "{\"rate_limit\":{\"primary_window\":{\"used_percent\":40," 
+                + "\"reset_at\":1792344925},\"secondary_window\":{\"used_percent\":50.1," 
+                + "\"reset_at\":1792348525}}}";
+
+        var result = new OpenAiUsageClient().parse(json, QUERY_TIME).orElseThrow();
+
+        assertThat(result.reading().windows()).extracting(w -> w.usedPercentage())
+                .containsExactly(40.0, 50.1);
+    }
+
+    @Test
+    void preservesPercentageJustBelowOneHundred() {
+        String json = "{\"rate_limit\":{\"primary_window\":{\"used_percent\":99.96," 
+                + "\"reset_at\":1792344925}}}";
+
+        var result = new OpenAiUsageClient().parse(json, QUERY_TIME).orElseThrow();
+
+        assertThat(result.reading().windows().get(0).usedPercentage()).isEqualTo(99.96);
     }
 
     @Test
@@ -88,6 +110,7 @@ class OpenAiUsageClientTest {
                         .read(new OpenAiCredentials("token", "account"));
                 assertThat(result.estado()).isEqualTo(
                         es.vargontoc.subscriptionviewer.usage.UsageReadResult.Estado.SESION_CADUCADA);
+                assertThat(result.datos()).isEmpty();
             }
         }
     }

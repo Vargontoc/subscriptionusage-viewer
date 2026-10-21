@@ -129,6 +129,6 @@ public class ClaudeUsageSource implements UsageSource {
         if (windowDto.resetsAt <= 0) {
             return null;
         }
-        return new UsageWindowReading(type, (double) Math.round(percentage), Instant.ofEpochSecond(windowDto.resetsAt));
+        return new UsageWindowReading(type, percentage, Instant.ofEpochSecond(windowDto.resetsAt));
     }
 }

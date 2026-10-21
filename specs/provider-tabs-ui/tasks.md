@@ -47,7 +47,7 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 - **Prueba manual:**
   1. Revisar que las pruebas del parser aprobadas antes de la feature siguen en verde salvo las que asumían el redondeo, que deben haberse actualizado; resultado esperado: ninguna prueba en rojo sin justificación.
 
-### [ ] TASK-004 Historial de Gemini: deduplicación con un decimal
+### [x] TASK-004 Historial de Gemini: deduplicación con un decimal
 
 - **Cubre:** REQ-015, DEC-006, DEC-011
 - **Componente:** usage-history | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageHistory.java
@@ -60,7 +60,7 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 - **Prueba manual:**
   1. Ejecutar las pruebas de regresión existentes del historial; resultado esperado: en verde, con la misma acumulación de Gemini que la versión aprobada.
 
-### [ ] TASK-005 Claude: la fuente entrega el porcentaje sin redondear
+### [x] TASK-005 Claude: la fuente entrega el porcentaje sin redondear
 
 - **Cubre:** REQ-008, DEC-006
 - **Componente:** claude-usage-source | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/claude
@@ -74,7 +74,7 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 - **Prueba manual:**
   1. Si existe el fichero de estado real de Claude, leer su valor y comprobar que conserva sus decimales; si solo contiene enteros, anotarlo en el informe de la tarea. Resultado esperado: el valor leído coincide con el del fichero.
 
-### [ ] TASK-006 OpenAI: el cliente entrega el porcentaje sin redondear
+### [x] TASK-006 OpenAI: el cliente entrega el porcentaje sin redondear
 
 - **Cubre:** REQ-008, REQ-006, DEC-006
 - **Componente:** openai-usage-client | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/openai
@@ -88,7 +88,7 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 - **Prueba manual:**
   1. Revisar en el informe de la tarea que las respuestas de prueba con decimales llegan sin redondear; resultado esperado: coincidencia con el valor de la respuesta.
 
-### [ ] TASK-007 OpenCode: el cálculo entrega el porcentaje sin redondear
+### [x] TASK-007 OpenCode: el cálculo entrega el porcentaje sin redondear
 
 - **Cubre:** REQ-008, REQ-013, DEC-006
 - **Componente:** opencode-usage-calculator | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/opencode/OpenCodeUsageCalculator.java

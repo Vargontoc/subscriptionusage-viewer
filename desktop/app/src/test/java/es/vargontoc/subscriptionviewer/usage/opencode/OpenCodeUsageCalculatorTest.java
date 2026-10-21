@@ -35,6 +35,17 @@ class OpenCodeUsageCalculatorTest {
     }
 
     @Test
+    void preservesDecimalPercentageBelowTheSaturationLimit() {
+        OpenCodeUsageCalculator.Calculation result = new OpenCodeUsageCalculator().calculate(
+                List.of(), List.of(), List.of(model("model-a", "59.976")));
+
+        assertThat(result.models().getFirst().percentage(UsageWindowType.MONTHLY))
+                .isEqualByComparingTo("99.96");
+        assertThat(result.total().percentage(UsageWindowType.MONTHLY))
+                .isEqualByComparingTo("99.96");
+    }
+
+    @Test
     void sanitizesCostsUsesDefaultCapAndSaturates() {
         OpenCodeUsageCalculator.Calculation result = new OpenCodeUsageCalculator().calculate(
                 List.of(model("marker", "-1"), model("listed", "15"), model("empty", null)),
@@ -43,6 +54,8 @@ class OpenCodeUsageCalculatorTest {
         assertThat(result.models()).extracting(OpenCodeUsageCalculator.ModelUsage::model)
                 .containsExactly("marker", "listed", "empty");
         assertThat(result.models().get(1).percentage(UsageWindowType.FIVE_HOUR))
+                .isEqualByComparingTo("100");
+        assertThat(result.total().percentage(UsageWindowType.FIVE_HOUR))
                 .isEqualByComparingTo("100");
         assertThat(result.total().percentage(UsageWindowType.SEVEN_DAY))
                 .isEqualByComparingTo("0");

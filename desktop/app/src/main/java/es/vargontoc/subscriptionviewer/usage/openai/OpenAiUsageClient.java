@@ -172,7 +172,7 @@ public final class OpenAiUsageClient {
         if (reset == null) {
             return null;
         }
-        return new UsageWindowReading(type, (int) Math.round(percentage), reset);
+        return new UsageWindowReading(type, percentage, reset);
     }
 
     private Instant resetAt(Map<?, ?> values) {

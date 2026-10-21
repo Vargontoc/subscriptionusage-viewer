@@ -168,12 +168,24 @@ class UsageHistoryTest {
     void shouldTreatGeminiValuesEqualAfterRoundingAsTheSame() {
         UsageHistory history = new UsageHistory();
 
-        history.add(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.FIVE_HOUR, 1.81, T1);
-        history.add(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.FIVE_HOUR, 1.8, T2);
+        history.add(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.FIVE_HOUR, 1.84, T1);
+        history.add(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.FIVE_HOUR, 1.76, T2);
 
         assertThat(history.getSeries(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.FIVE_HOUR))
                 .extracting(UsageHistoryPoint::usedPercentage)
-                .containsExactly(1.8);
+                .containsExactly(1.84);
+    }
+
+    @Test
+    void shouldKeepSeparateGeminiPointsWhenRoundedValuesDiffer() {
+        UsageHistory history = new UsageHistory();
+
+        history.add(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.FIVE_HOUR, 1.86, T1);
+        history.add(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.FIVE_HOUR, 1.84, T2);
+
+        assertThat(history.getSeries(GEMINI_PROVIDER, "Gemini Models", UsageWindowType.FIVE_HOUR))
+                .extracting(UsageHistoryPoint::usedPercentage)
+                .containsExactly(1.86, 1.84);
     }
 
     @Test

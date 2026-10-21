@@ -106,7 +106,13 @@ public class UsageHistory {
         if (!points.isEmpty()) {
             UsageHistoryPoint last = points.get(points.size() - 1);
             if (isOpenCode(providerId) || isOpenAi(providerId) || isGemini(providerId)) {
-                if (last.usedPercentage() == comparablePercentage(providerId, usedPercentage)
+                double lastValue = last.usedPercentage();
+                double currentValue = clamp(usedPercentage);
+                if (isGemini(providerId)) {
+                    lastValue = roundedForComparison(lastValue);
+                    currentValue = roundedForComparison(currentValue);
+                }
+                if (lastValue == currentValue
                         || !writtenAt.isAfter(last.writtenAt())) {
                     return;
                 }
@@ -115,7 +121,7 @@ public class UsageHistory {
             }
         }
 
-        points.add(new UsageHistoryPoint(comparablePercentage(providerId, usedPercentage), resetsAt, writtenAt));
+        points.add(new UsageHistoryPoint(clamp(usedPercentage), resetsAt, writtenAt));
         if (points.size() > MAX_POINTS_PER_SERIES) {
             points.remove(0);
         }
@@ -133,12 +139,8 @@ public class UsageHistory {
         return "gemini".equalsIgnoreCase(providerId);
     }
 
-    private static double comparablePercentage(String providerId, double percentage) {
-        double clamped = clamp(percentage);
-        if ("gemini".equalsIgnoreCase(providerId)) {
-            return Math.round(clamped * 10.0) / 10.0;
-        }
-        return clamped;
+    private static double roundedForComparison(double percentage) {
+        return Math.round(percentage * 10.0) / 10.0;
     }
 
     /**
