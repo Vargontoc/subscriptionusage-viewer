@@ -8,10 +8,10 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 
 ## Tareas
 
-### [ ] TASK-001 Nivel de color de la barra por umbrales
+### [x] TASK-001 Nivel de color de la barra por umbrales
 
 - **Cubre:** REQ-008, DEC-006
-- **Componente:** progress-level | por definir (analista técnico)
+- **Componente:** progress-level | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/ui/ProgressLevel.java
 - **Depende de:** -
 - **Alcance:** asignar el nivel de color (verde, amarillo, naranja, rojo o negro) a un porcentaje sin redondear según los umbrales de REQ-008.
 - **Hecho cuando:** se cumplen los criterios de aceptación de REQ-008 y el porcentaje 99,96 % obtiene rojo y 100 % exacto obtiene negro.
