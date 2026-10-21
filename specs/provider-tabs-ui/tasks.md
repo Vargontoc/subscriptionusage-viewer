@@ -102,7 +102,7 @@ El trabajo se divide en 24 tareas ordenadas por dependencias: primero las piezas
 - **Prueba manual:**
   1. Ejecutar las pruebas del cálculo aprobadas; resultado esperado: en verde, con los casos de saturación intactos.
 
-### [ ] TASK-008 Publicador: publicar siempre el resultado de cada consulta
+### [x] TASK-008 Publicador: publicar siempre el resultado de cada consulta
 
 - **Cubre:** REQ-005, REQ-006, REQ-018, DEC-004
 - **Componente:** usage-snapshot-publisher | desktop/app/src/main/java/es/vargontoc/subscriptionviewer/usage/UsageSnapshotPublisher.java

@@ -36,7 +36,7 @@ class UsageSnapshotPublisherTest {
     }
 
     @Test
-    void shouldRemoveClaudeOnAbsenceWithoutAffectingOthers() {
+    void shouldPublishClaudeAbsenceWithoutRemovingPreviousReadingOrOthers() {
         UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
         List<UsageSnapshot> snapshots = new ArrayList<>();
         publisher.addListener(snapshots::add);
@@ -46,7 +46,10 @@ class UsageSnapshotPublisherTest {
         publisher.publish(CLAUDE, Optional.empty());
 
         UsageSnapshot last = snapshots.get(snapshots.size() - 1);
-        assertThat(last.readingOf(CLAUDE)).isEmpty();
+        assertThat(last.readingOf(CLAUDE)).isPresent();
+        assertThat(last.stateOf(CLAUDE)).isPresent();
+        assertThat(last.stateOf(CLAUDE).orElseThrow().estado())
+                .isEqualTo(UsageProviderState.Estado.SIN_DATOS);
         assertThat(last.readingOf(OTHER)).isPresent();
     }
 
@@ -173,42 +176,46 @@ class UsageSnapshotPublisherTest {
     }
 
     @Test
-    void openAiInitialTransientFailureDoesNotPublishSectionOrQueryTime() {
+    void openAiInitialTransientFailureIsPublishedWithoutDataOrQueryTime() {
         UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
 
         publisher.publish(OPENAI, UsageReadResult.falloTransitorio(null), NOW);
 
-        assertThat(publisher.getCurrentSnapshot().stateOf(OPENAI)).isEmpty();
+        UsageProviderState state = publisher.getCurrentSnapshot().stateOf(OPENAI).orElseThrow();
+        assertThat(state.estado()).isEqualTo(UsageProviderState.Estado.DESACTUALIZADO);
+        assertThat(state.lastSuccessfulQuery()).isNull();
         assertThat(publisher.getCurrentSnapshot().readingOf(OPENAI)).isEmpty();
     }
 
     @Test
-    void openCodeFailureAfterSuccessKeepsDataAndSuccessfulTimeWithoutStaleState() {
+    void openCodeFailureAfterSuccessPublishesErrorAndKeepsDataAndSuccessfulTime() {
         UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
         publisher.publish("opencode", UsageReadResult.datos(readingOf("opencode", 20, 5)), NOW);
         publisher.publish("opencode", UsageReadResult.falloTransitorio(new RuntimeException("cli")),
                 NOW.plusSeconds(60));
 
         UsageProviderState state = publisher.getCurrentSnapshot().stateOf("opencode").orElseThrow();
-        assertThat(state.estado()).isEqualTo(UsageProviderState.Estado.CORRECTO);
+        assertThat(state.estado()).isEqualTo(UsageProviderState.Estado.DESACTUALIZADO);
         assertThat(state.reading().windows()).hasSize(2);
         assertThat(state.lastSuccessfulQuery()).isEqualTo(NOW);
     }
 
     @Test
-    void initialOpenCodeAbsenceHasNoPublishedState() {
+    void initialOpenCodeAbsencePublishesNoDataState() {
         UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
         publisher.publish("opencode", Optional.empty());
 
-        assertThat(publisher.getCurrentSnapshot().stateOf("opencode")).isEmpty();
+        assertThat(publisher.getCurrentSnapshot().stateOf("opencode")).isPresent();
+        assertThat(publisher.getCurrentSnapshot().stateOf("opencode").orElseThrow().estado())
+                .isEqualTo(UsageProviderState.Estado.SIN_DATOS);
     }
 
     @Test
-    void initialOpenCodeTransientFailureHasNoPublishedState() {
+    void initialOpenCodeTransientFailurePublishesState() {
         UsageSnapshotPublisher publisher = new UsageSnapshotPublisher(Runnable::run);
         publisher.publish("opencode", UsageReadResult.falloTransitorio(new RuntimeException("x")), NOW);
 
-        assertThat(publisher.getCurrentSnapshot().stateOf("opencode")).isEmpty();
+        assertThat(publisher.getCurrentSnapshot().stateOf("opencode")).isPresent();
     }
 
     @Test
@@ -234,7 +241,7 @@ class UsageSnapshotPublisherTest {
         assertThat(snapshot.stateOf(CLAUDE)).isPresent();
         assertThat(snapshot.stateOf(CLAUDE).orElseThrow().estado())
                 .isEqualTo(UsageProviderState.Estado.CORRECTO);
-        assertThat(snapshot.stateOf("opencode")).isEmpty();
+        assertThat(snapshot.stateOf("opencode")).isPresent();
         assertThat(snapshot.readingOf(CLAUDE)).isPresent();
     }
 

@@ -48,28 +48,24 @@ public class UsageSnapshotPublisher {
      * @param reading    lectura obtenida o {@link Optional#empty()} si no hay datos
      */
     public void publish(String providerId, Optional<UsageReading> reading) {
-        // OpenCode tiene un ciclo atómico: la ausencia de datos no es un nuevo
-        // estado, sino una consulta descartada. Conservamos la última lectura
-        // válida (y evitamos despertar a la vista).
-        if (isOpenCode(providerId) && reading.isEmpty()) {
-            return;
+        if (providerId == null) {
+            throw new NullPointerException("providerId es obligatorio");
         }
         reading.ifPresentOrElse(
-                value -> latestReadings.put(providerId, value),
-                () -> latestReadings.remove(providerId)
+                value -> publish(providerId, UsageReadResult.datos(value), value.writtenAt()),
+                () -> {
+                    UsageProviderState previous = providerStates.get(providerId);
+                    providerStates.put(providerId, stateAfterFailure(previous,
+                            UsageProviderState.Estado.SIN_DATOS, providerId));
+                    notifyListeners();
+                }
         );
-        notifyListeners();
     }
 
     /** Publica un resultado clasificado, conservando el último dato válido cuando procede. */
     public void publish(String providerId, UsageReadResult result, Instant queryTime) {
         if (providerId == null || result == null || queryTime == null) {
             throw new NullPointerException("providerId, result y queryTime son obligatorios");
-        }
-        // Para OpenCode solo existen datos o ausencia. Un fallo no debe crear
-        // estados de error/desactualización, ni borrar el último ciclo bueno.
-        if (isOpenCode(providerId) && result.estado() != UsageReadResult.Estado.DATOS) {
-            return;
         }
         UsageProviderState previous = providerStates.get(providerId);
         UsageProviderState next = null;
@@ -86,11 +82,7 @@ public class UsageSnapshotPublisher {
             case CONSULTA_FALLIDA -> next = stateAfterFailure(previous,
                     UsageProviderState.Estado.CONSULTA_FALLIDA, providerId);
         }
-        if (next == null) {
-            providerStates.remove(providerId);
-        } else {
-            providerStates.put(providerId, next);
-        }
+        providerStates.put(providerId, next);
         notifyListeners();
     }
 
@@ -104,14 +96,7 @@ public class UsageSnapshotPublisher {
         UsageReading reading = previous == null ? null : previous.reading();
         Instant successful = previous == null ? null : previous.lastSuccessfulQuery();
         if (reading == null) {
-            // OpenAI solo se hace visible cuando tiene datos o una sesión
-            // caducada. Los fallos iniciales (incluida la falta de credenciales)
-            // se mantienen silenciosos.
-            if (isOpenAi(providerId) && estado == UsageProviderState.Estado.DESACTUALIZADO) {
-                return null;
-            }
-            return new UsageProviderState(estado == UsageProviderState.Estado.DESACTUALIZADO
-                    ? UsageProviderState.Estado.SIN_DATOS : estado, null, null);
+            return new UsageProviderState(estado, null, null);
         }
         return new UsageProviderState(estado, reading, successful);
     }
